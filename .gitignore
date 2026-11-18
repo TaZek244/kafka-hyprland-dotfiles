@@ -1,0 +1,19 @@
+# --- Ảnh Kafka có bản quyền (HoYoverse / tác giả fan art): KHÔNG đưa lên repo công khai ---
+# Tự đặt ảnh vào wallpapers/ rồi chạy ./install.sh --only assets (xem wallpapers/README.md)
+wallpapers/*
+!wallpapers/README.md
+# Ảnh phụ cắt từ ảnh nền (install.sh tự tạo lại)
+rofi/kafka-banner.jpg
+walker/themes/kafka/bg.jpg
+greetd/greeter-bg.jpg
+
+# Ảnh tham khảo dotfiles của người khác
+example/
+
+# File tự sinh lúc chạy
+waybar/dock-density.css
+hypr/wallpapers
+__pycache__/
+*.pyc
+*.bak
+*.bak-*

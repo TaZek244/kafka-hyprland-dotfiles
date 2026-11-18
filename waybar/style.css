@@ -1,0 +1,345 @@
+/* ============================================================================
+ *  WAYBAR — KAFKA (HSR), PHONG CÁCH PHẲNG (tham khảo bố cục end-4 / illogical-impulse)
+ *
+ *  Nguyên tắc (2026-11-18, người dùng chê "tương phản xấu, nhiều màu"):
+ *  - MỘT nền đặc cho thanh trên + dock (khung chữ L), viền là đường mảnh trung tính.
+ *  - Cụm module = nền sáng hơn nền thanh một bậc (@surface), KHÔNG viền, bo 10px.
+ *  - Chữ/icon MỘT MÀU: @text (chính) và @dim (phụ). Không tô mỗi module một màu.
+ *  - MỘT màu nhấn @accent (hồng Kafka sáng, đủ tương phản trên nền tối) chỉ cho:
+ *    workspace đang chọn, khối Kafka, bộ gõ VI, app đang dùng trên dock.
+ *  - Màu cảnh báo (@warn/@crit) chỉ khi thật sự cần: pin yếu, nhiệt độ cao, đang quay.
+ *
+ *  Ghi chú GTK: không box-shadow có blur (bị cắt thành ô vuông), viền số nguyên,
+ *  transition chỉ đổi màu 120ms, không đổi kích thước khi active (thanh giật).
+ * ============================================================================ */
+
+@define-color bg          rgba(44, 36, 52, 0.93);   /* #2c2434: nền thanh + dock (nhạt hơn bản #140f19 theo yêu cầu) */
+@define-color surface     rgba(255, 255, 255, 0.08); /* nền cụm */
+@define-color surface_hi  rgba(255, 255, 255, 0.17); /* rê chuột */
+@define-color ring        rgba(255, 255, 255, 0.22); /* vòng mảnh khi rê chuột (inset, không blur) */
+@define-color line        rgba(255, 255, 255, 0.10); /* viền/vạch ngăn */
+@define-color text        #fbf7fd;
+@define-color dim         #d4cade;
+@define-color faint       #a091b1;
+@define-color accent      #c94785;                    /* MÀU KAFKA dùng làm NỀN (chữ trắng 4.5:1): khối Kafka, workspace, popup */
+@define-color accent_fg   #e0559a;                    /* cùng sắc, sáng hơn: CHỮ/icon màu Kafka trên nền tối */
+@define-color accent_soft rgba(201, 71, 133, 0.24);
+@define-color on_accent   #ffffff;
+@define-color warn        #f2c46d;
+@define-color crit        #ff5c7a;
+
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "FiraCode Nerd Font", "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    min-height: 0;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+window#waybar {
+    background: transparent;
+    color: @text;
+}
+
+tooltip {
+    background: #1c1522;
+    border: 1px solid @line;
+    border-radius: 10px;
+}
+tooltip label {
+    color: @text;
+    padding: 2px 4px;
+}
+
+/* ============================== THANH TRÊN ============================== */
+/* Khung chữ L: thanh trên + dock cùng nền @bg, chỗ nối có góc lõm (corner-fillet.py vẽ cùng màu). */
+window#waybar.topbar > box {
+    background-color: @bg;
+    border-bottom: 1px solid @line;
+    padding: 0 0 0 6px;          /* phải = 0: ô góc chạm mép phải, thẳng cột với dock */
+}
+
+/* Cụm chung */
+#workspaces,
+#network.speed,
+#clock,
+#mpris,
+#system,
+#control,
+#custom-ime,
+#custom-columns,
+#custom-notifications {
+    background-color: @surface;
+    border-radius: 10px;
+    padding: 0 12px;
+    margin: 6px 0;
+    color: @text;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+
+#network.speed:hover,
+#clock:hover,
+#mpris:hover,
+#custom-ime:hover,
+#custom-columns:hover,
+#custom-notifications:hover {
+    background-color: @surface_hi;
+    box-shadow: inset 0 0 0 1px @ring;
+    color: #ffffff;
+}
+
+/* Khối Kafka: chỗ duy nhất có nền màu nhấn trên thanh (logo) */
+#kafka {
+    background-color: @accent;
+    border-radius: 10px;
+    margin: 6px 0;
+    padding: 0;
+}
+#kafka #custom-launcher {
+    background: transparent;
+    color: @on_accent;
+    font-weight: 700;
+    padding: 0 12px 0 13px;
+    border-radius: 10px 0 0 10px;
+    transition: background-color 120ms ease;
+}
+#kafka #custom-layoutmode {
+    background: transparent;
+    color: @on_accent;
+    font-family: "FiraCode Nerd Font Propo";   /* bản mono làm glyph  (Desktop) tràn sang phải -> lệch */
+    font-size: 15px;
+    min-width: 20px;
+    padding: 0 11px;
+    border-left: 1px solid rgba(255, 255, 255, 0.30);
+    border-radius: 0 10px 10px 0;
+    transition: background-color 120ms ease;
+}
+#kafka #custom-launcher:hover,
+#kafka #custom-layoutmode:hover {
+    background-color: rgba(0, 0, 0, 0.18);
+}
+#kafka #custom-layoutmode.desktop {
+    background-color: rgba(0, 0, 0, 0.28);    /* chế độ Desktop: nửa phải tối hơn */
+}
+
+/* Workspace: số mờ, đang chọn = viên thuốc màu nhấn */
+#workspaces {
+    padding: 0 3px;
+}
+#workspaces button {
+    min-width: 30px;           /* cố định -> nút active không làm thanh co giãn */
+    padding: 0 8px;
+    margin: 3px 1px;
+    border-radius: 8px;
+    color: @dim;
+    background: transparent;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+#workspaces button.empty {     /* Focus Hint: workspace trống mờ + nhỏ */
+    min-width: 18px;
+    padding: 0 4px;
+    color: @faint;
+    font-size: 11px;
+}
+#workspaces button:hover {
+    background-color: @surface_hi;
+    box-shadow: inset 0 0 0 1px @ring;
+    color: #ffffff;
+}
+#workspaces button.active {
+    background-color: @accent;
+    color: @on_accent;
+}
+#workspaces button.urgent {
+    background-color: @crit;
+    color: @on_accent;
+}
+
+/* Bản đồ cột (màu ký hiệu do column-map.sh in) */
+#custom-columns {               /* bản đồ cột: icon app từng cột (column-map.sh) */
+    padding: 0 12px;
+    font-size: 15px;
+}
+#custom-columns.hidden-cols {
+    box-shadow: inset 0 0 0 1px @ring;       /* còn cột khuất: viền mảnh trung tính (bản ửng hồng bị chê "hồng quá") */
+}
+
+#network.speed { color: @dim; }
+
+/* Giữa */
+#clock { padding: 0 16px; }
+#mpris { color: @dim; }
+#mpris.playing { color: @text; }
+
+/* Thông số máy: 1 cụm CPU · RAM · nhiệt độ, chữ một màu */
+#system { padding: 0 4px; }
+#cpu, #memory, #temperature {
+    padding: 0 8px;
+    margin: 3px 0;
+    border-radius: 7px;
+    color: @text;
+    transition: background-color 120ms ease;
+}
+#cpu:hover, #memory:hover, #temperature:hover { background-color: @surface_hi; color: #ffffff; }
+#temperature.critical { color: @crit; }
+
+/* Bộ gõ: VI = màu nhấn, EN = chữ phụ */
+#custom-ime { font-weight: 700; padding: 0 11px; }
+#custom-ime.vi  { color: @accent_fg; }
+#custom-ime.en  { color: @dim; }
+#custom-ime.off { color: @faint; font-family: "FiraCode Nerd Font Propo"; }
+
+/* Cụm cài đặt nhanh (group/control): wifi · bluetooth · âm lượng · độ sáng · pin, bấm mở control-popup.py */
+#control { padding: 0 3px; }
+#control > widget > * {
+    padding: 0 8px;
+    margin: 3px 0;
+    border-radius: 7px;
+    background: transparent;
+    color: @text;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+#control > widget > *:hover { background-color: @surface_hi; color: #ffffff; }
+#network.top, #bluetooth.top { font-family: "FiraCode Nerd Font Propo"; font-size: 16px; }
+#pulseaudio, #backlight, #battery, #cpu, #memory, #temperature { font-size: 14px; }
+#network.top.disconnected, #network.top.disabled,
+#bluetooth.top.off, #bluetooth.top.disabled,
+#pulseaudio.muted { color: @faint; }
+#battery.warning:not(.charging) { color: @warn; }
+#battery.critical:not(.charging) { color: @on_accent; background-color: @crit; }
+
+/* Thông báo */
+#custom-notifications { color: @dim; }
+#custom-notifications.has { color: @text; }
+#custom-notifications.paused { color: @faint; }
+
+/* Ô góc (trên cột dock): icon màu nhấn, không nền; bấm = tổng quan.
+ * Đệm đo bằng grim: mép trái ô góc = mép trái dock. Đổi độ rộng dock thì đo lại. */
+#custom-corner {
+    background: transparent;
+    color: @accent_fg;
+    font-family: "FiraCode Nerd Font Propo";
+    font-size: 19px;
+    padding: 0 15px 0 15px;    /* đo grim: mép trái = x 1872 = mép trái dock 48px (glyph ~18px) */
+    margin: 0;
+    border-left: 1px solid @line;
+    transition: background-color 120ms ease, color 120ms ease;
+}
+#custom-corner:hover {
+    background-color: @surface_hi;
+    color: @text;
+}
+
+/* ================================ DOCK ================================== */
+/* Dải dọc 48px sát mép phải, dưới thanh trên. Icon một màu, phẳng. */
+window#waybar.dockbar { background: transparent; }
+window#waybar.dockbar > box {
+    background-color: @bg;
+    border-left: 1px solid @line;
+    padding: 6px 0;
+}
+
+/* Vạch ngăn giữa các khối */
+window#waybar.dockbar #pinned {
+    padding: 4px 0;
+    border-top: 1px solid @line;
+    border-bottom: 1px solid @line;
+    margin: 4px 0;               /* KHÔNG lề ngang: lề ngang cộng vào độ rộng dock (8px làm dock thành 62px) */
+}
+
+/* Ô icon chung. Waybar dính label vào mép trái hộp (CSS không đổi được halign) nên căn giữa bằng đệm:
+ * dock 48 = lề 4 + (đệm trái + icon + đệm phải) + lề 4. Đo lại bằng grim nếu đổi cỡ chữ. */
+#custom-apps,
+#custom-pin-browser,
+#custom-pin-terminal,
+#custom-pin-files,
+#custom-pin-code,
+#custom-pin-editor,
+#custom-tools,
+#custom-hidden,
+#custom-actions,
+#custom-powermenu {
+    font-family: "FiraCode Nerd Font Propo", "FiraCode Nerd Font", sans-serif;
+    font-size: 23px;
+    min-height: 40px;
+    padding: 0 8px 0 9px;        /* label 40 = 9 + icon ~23 + 8 -> giữa dock 48 (lề 4) */
+    margin: 1px 4px;
+    border-radius: 10px;
+    background: transparent;
+    color: @text;
+    transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+}
+#custom-apps:hover,
+#custom-pin-browser:hover,
+#custom-pin-terminal:hover,
+#custom-pin-files:hover,
+#custom-pin-code:hover,
+#custom-pin-editor:hover,
+#custom-tools:hover,
+#custom-hidden:hover,
+#custom-actions:hover,
+#custom-powermenu:hover {
+    background-color: @surface_hi;
+    box-shadow: inset 0 0 0 1px @ring;
+    color: #ffffff;
+}
+
+/* Nút ứng dụng: nền nhấn nhẹ để làm "điểm bắt đầu" của dock */
+#custom-apps {
+    background-color: @accent_soft;
+    color: @accent_fg;
+    margin-bottom: 4px;
+}
+#custom-apps:hover { background-color: @accent; color: @on_accent; }
+
+/* Nút tiện ích: chỉ đổi màu khi có trạng thái */
+#custom-tools.dnd       { color: @faint; }
+#custom-tools.recording { color: @crit; background-color: rgba(255, 92, 122, 0.16); }
+
+/* Thẻ app đang mở: không khung, chỉ vạch ngăn phía trên */
+window#waybar.dockbar #windows {
+    padding: 4px 0 0;
+    margin: 4px 0;
+    border-top: 1px solid @line;
+}
+#custom-hidden { color: @faint; }
+#custom-hidden.has {
+    color: @text;
+    background-color: @surface;
+    font-size: 13px;           /* chứa cả số -> nhỏ lại cho vừa ô */
+    padding: 0 6px;
+}
+
+/* Ô app gộp (image#wN do dock-apps.py vẽ: icon + xN + vạch nhấn trái nếu đang dùng). Ảnh dính mép trái. */
+window#waybar.dockbar #windows #image {
+    margin: 2px 0 2px 4px;
+    border-radius: 10px;
+    transition: background-color 120ms ease;
+}
+window#waybar.dockbar #windows #image:hover { background-color: @surface_hi; box-shadow: inset 0 0 0 1px @ring; }
+
+/* Khay hệ thống */
+window#waybar.dockbar #tray { padding: 10px 0 6px; }
+#tray > .passive { -gtk-icon-effect: dim; }
+#tray > .needs-attention { -gtk-icon-effect: highlight; }
+
+/* Đáy dock: chức năng nhanh + nguồn, cao hơn ô thường một chút cho dễ bấm (không thu gọn) */
+window#waybar.dockbar #actions {
+    padding: 4px 0 0;
+    margin: 0 0 2px;
+    border-top: 1px solid @line;
+}
+#custom-actions,
+#custom-powermenu {
+    font-size: 24px;
+    min-height: 44px;
+    padding: 0 8px;
+}
+#custom-powermenu { color: @crit; }
+#custom-powermenu:hover { background-color: rgba(255, 92, 122, 0.18); color: @crit; }
+
+/* Mật độ thẻ app trên dock: file do hypr/scripts/dock-density.sh tự sinh theo số cửa sổ */
+@import "dock-density.css";

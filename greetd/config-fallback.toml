@@ -1,0 +1,10 @@
+# greetd — cấu hình DỰ PHÒNG khi ReGreet/cage hỏng (thay cho việc quay về GDM, vì GDM có thể đã gỡ).
+# agreety = màn hình đăng nhập dạng chữ có sẵn trong gói greetd. Đăng nhập xong được một shell;
+# gõ `start-hyprland` để vào Hyprland, hoặc sửa lỗi rồi chạy lại greetd/install-greetd.sh.
+# install-greetd.sh chép file này thành /etc/greetd/config-fallback.toml; `--revert` chép nó đè lên config.toml.
+[terminal]
+vt = 1
+
+[default_session]
+command = "agreety --cmd '/bin/bash -l'"
+user = "greeter"

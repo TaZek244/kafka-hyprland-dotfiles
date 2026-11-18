@@ -1,0 +1,349 @@
+// Cấu hình niri 26.04 — Kafka.
+// Các màu chính: nền obsidian #141118/#1e1826, burgundy #b8326a/#8f2456,
+// lilac #c77dff, vàng #d4af6a và chữ ivory #f4eef8.
+
+// ----------------
+// 1. Màn hình
+// ----------------
+// Không khai báo output: niri tự chọn chế độ và bố trí màn hình.
+
+// ----------------
+// 2. Tự chạy
+// ----------------
+spawn-at-startup "waybar"
+spawn-at-startup "dunst"
+spawn-at-startup "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1"
+spawn-at-startup "nm-applet" "--indicator"
+spawn-at-startup "fcitx5" "-d"
+spawn-at-startup "awww-daemon"
+spawn-sh-at-startup "sleep 1 && ~/.config/hypr/scripts/wallpaper-cycle.sh set ~/.config/hypr/wallpapers/kafka_landscape_3.jpg"
+spawn-sh-at-startup "hypridle -c ~/.config/niri/hypridle-niri.conf"
+spawn-sh-at-startup "systemctl --user start elephant.service; walker --gapplication-service"
+spawn-at-startup "~/.config/hypr/scripts/tools-popup.py"
+spawn-sh-at-startup "wl-paste --type text --watch cliphist store"
+spawn-sh-at-startup "wl-paste --type image --watch cliphist store"
+
+// hyprshell là tính năng riêng của Hyprland; niri đã có Overview và Alt+Tab.
+// TODO: dock-density.sh và dock-apps.py cần một tiến trình riêng đọc
+// `niri msg --json event-stream`, vì niri không có hook sự kiện trong config.
+
+// ----------------
+// 3. Biến môi trường
+// ----------------
+environment {
+    XCURSOR_SIZE "24"
+    QT_QPA_PLATFORM "wayland;xcb"
+    QT_QPA_PLATFORMTHEME "qt6ct"
+    // Bỏ GDK_BACKEND: Important-Software.md cảnh báo đặt toàn cục sẽ làm hỏng screencast portal.
+    SDL_VIDEODRIVER "wayland"
+    CLUTTER_BACKEND "wayland"
+    GTK_IM_MODULE "fcitx"
+    QT_IM_MODULE "fcitx"
+    XMODIFIERS "@im=fcitx"
+}
+// Không đặt DISPLAY: theo Xwayland.md, niri tự tích hợp xwayland-satellite,
+// tự xuất DISPLAY và khởi động satellite khi ứng dụng X11 kết nối.
+
+// ----------------
+// 4. Giao diện
+// ----------------
+prefer-no-csd
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+cursor {
+    xcursor-size 24
+}
+
+layout {
+    gaps 12
+    center-focused-column "never"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        off
+    }
+    border {
+        on
+        width 2
+        active-gradient from="#b8326a" to="#d4af6a" angle=45 in="oklch longer hue"
+        inactive-color "#382b47aa"
+    }
+    shadow {
+        on
+        softness 20
+        color "#140d1cee"
+    }
+}
+
+overview {
+    backdrop-color "#140e1c"
+}
+
+// Blur toàn cục được tài liệu hóa bằng số pass; niri không có thuộc tính radius.
+blur {
+    passes 3
+}
+
+// ----------------
+// 5. Nhập liệu
+// ----------------
+input {
+    keyboard {
+        xkb {
+            layout "us"
+        }
+    }
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+    }
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+// ----------------
+// 6. Hoạt ảnh
+// ----------------
+animations {
+    window-open {
+        duration-ms 120
+        curve "cubic-bezier" 0.05 0.9 0.1 1.05
+    }
+    window-close {
+        duration-ms 120
+        curve "ease-out-quad"
+    }
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=1000 epsilon=0.0001
+    }
+    window-movement {
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
+    }
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
+    }
+}
+// Niri không có animation tương đương borderangle loop của Hyprland.
+
+// ----------------
+// 7. Phím tắt
+// ----------------
+binds {
+    Mod+Q hotkey-overlay-title="Mở Kitty" { spawn "kitty"; }
+    Mod+Return hotkey-overlay-title="Mở Kitty" { spawn "kitty"; }
+    Mod+C hotkey-overlay-title="Đóng cửa sổ" { close-window; }
+    Mod+Shift+X hotkey-overlay-title="Buộc đóng cửa sổ" { spawn-sh "kill -9 $(niri msg --json focused-window | jq .pid)"; }
+    Mod+Shift+Q hotkey-overlay-title="Mở menu đóng cửa sổ" { spawn "~/.config/hypr/scripts/closemenu.sh"; }
+    Mod+M hotkey-overlay-title="Mở menu nguồn" { spawn "~/.config/hypr/scripts/powermenu.sh"; }
+    Mod+Escape hotkey-overlay-title="Khóa màn hình" { spawn-sh "pidof hyprlock || hyprlock"; }
+    Mod+E hotkey-overlay-title="Mở trình quản lý tệp" { spawn "thunar"; }
+    Mod+Space hotkey-overlay-title="Mở Walker" { spawn "walker"; }
+    Mod+R hotkey-overlay-title="Mở Walker" { spawn "walker"; }
+    Mod+Shift+B hotkey-overlay-title="Tải lại Waybar" { spawn-sh "killall -SIGUSR2 waybar || waybar"; }
+    Mod+V hotkey-overlay-title="Mở bộ nhớ tạm" { spawn-sh "cliphist list | rofi -dmenu -p \"Clipboard\" -theme ~/.config/rofi/kafka.rasi | cliphist decode | wl-copy"; }
+    Mod+A hotkey-overlay-title="Bật hoặc tắt Kafka Cava" { spawn-sh "~/.config/hypr/scripts/toggle-app.sh kafka-cava kitty --class kafka-cava -e cava"; }
+
+    Mod+Shift+V hotkey-overlay-title="Đổi nổi hoặc lát" { toggle-window-floating; }
+    Mod+Ctrl+V hotkey-overlay-title="Đổi tiêu điểm nổi hoặc lát" { switch-focus-between-floating-and-tiling; }
+    Mod+F hotkey-overlay-title="Toàn màn hình" { fullscreen-window; }
+    Mod+Shift+F hotkey-overlay-title="Phóng đại cột" { maximize-column; }
+    Mod+Ctrl+F hotkey-overlay-title="Mở rộng cột" { expand-column-to-available-width; }
+    Mod+P hotkey-overlay-title="Căn giữa cột" { center-column; }
+    Mod+W hotkey-overlay-title="Hiển thị dạng tab" { toggle-column-tabbed-display; }
+    Mod+G hotkey-overlay-title="Đổi kích thước cột định sẵn" { switch-preset-column-width; }
+    Mod+Shift+G hotkey-overlay-title="Đổi chiều cao cửa sổ định sẵn" { switch-preset-window-height; }
+    // Tổng quan (thay hyprshell). Không dùng Mod+Tab: bind thường được ưu tiên hơn
+    // recent-windows nên sẽ chiếm mất Mod+Tab của bộ chuyển cửa sổ (Alt+Tab / Mod+Tab).
+    // Ngoài ra mở được bằng góc nóng trên-trái hoặc vuốt 4 ngón lên.
+    Mod+O hotkey-overlay-title="Tổng quan" { toggle-overview; }
+    // Nhấn-thả riêng Super (giống hyprshell) chỉ có từ bản SAU 26.04; khi lên bản đó thì bỏ comment:
+    // Mod { release { toggle-overview; } }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Minus { set-window-height "-10%"; }
+    Mod+Shift+Equal { set-window-height "+10%"; }
+
+    Mod+Comma { consume-or-expel-window-left; }
+    Mod+Period { consume-or-expel-window-right; }
+    Mod+BracketLeft { consume-window-into-column; }
+    Mod+BracketRight { expel-window-from-column; }
+
+    Mod+Left { focus-column-left; }
+    Mod+H { focus-column-left; }
+    Mod+Right { focus-column-right; }
+    Mod+L { focus-column-right; }
+    Mod+Up { focus-window-or-workspace-up; }
+    Mod+K { focus-window-or-workspace-up; }
+    Mod+Down { focus-window-or-workspace-down; }
+    Mod+J { focus-window-or-workspace-down; }
+    Mod+Ctrl+Left { move-column-left; }
+    Mod+Ctrl+H { move-column-left; }
+    Mod+Ctrl+Right { move-column-right; }
+    Mod+Ctrl+L { move-column-right; }
+    Mod+Ctrl+Up { move-window-up-or-to-workspace-up; }
+    Mod+Ctrl+K { move-window-up-or-to-workspace-up; }
+    Mod+Ctrl+Down { move-window-down-or-to-workspace-down; }
+    Mod+Ctrl+J { move-window-down-or-to-workspace-down; }
+    Mod+Home { focus-column-first; }
+    Mod+End { focus-column-last; }
+
+    Mod+1 { focus-workspace 1; }
+    Mod+2 { focus-workspace 2; }
+    Mod+3 { focus-workspace 3; }
+    Mod+4 { focus-workspace 4; }
+    Mod+5 { focus-workspace 5; }
+    Mod+6 { focus-workspace 6; }
+    Mod+7 { focus-workspace 7; }
+    Mod+8 { focus-workspace 8; }
+    Mod+9 { focus-workspace 9; }
+    Mod+0 { focus-workspace 10; }
+    Mod+Shift+1 { move-column-to-workspace 1; }
+    Mod+Shift+2 { move-column-to-workspace 2; }
+    Mod+Shift+3 { move-column-to-workspace 3; }
+    Mod+Shift+4 { move-column-to-workspace 4; }
+    Mod+Shift+5 { move-column-to-workspace 5; }
+    Mod+Shift+6 { move-column-to-workspace 6; }
+    Mod+Shift+7 { move-column-to-workspace 7; }
+    Mod+Shift+8 { move-column-to-workspace 8; }
+    Mod+Shift+9 { move-column-to-workspace 9; }
+    Mod+Shift+0 { move-column-to-workspace 10; }
+
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
+    Mod+WheelScrollRight { focus-column-right; }
+    Mod+WheelScrollLeft { focus-column-left; }
+
+    Print { screenshot; }
+    Shift+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+    Mod+Shift+S hotkey-overlay-title="Chụp màn hình" { screenshot; }
+    Mod+Shift+R hotkey-overlay-title="Quay toàn màn hình" { spawn "~/.config/hypr/scripts/capture.sh" "rec" "full"; }
+
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.5"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"; }
+    XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl s 5%+"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl s 5%-"; }
+
+    Mod+Shift+Slash hotkey-overlay-title="Hiện phím tắt" { show-hotkey-overlay; }
+    Mod+Shift+E hotkey-overlay-title="Thoát niri" { quit; }
+    Mod+Shift+P hotkey-overlay-title="Tắt màn hình" { power-off-monitors; }
+    Mod+Shift+Escape hotkey-overlay-title="Cho phép hoặc chặn phím tắt" { toggle-keyboard-shortcuts-inhibit; }
+
+    // Niri có thao tác kéo cửa sổ bằng Mod và chuột trái, đổi kích thước
+    // bằng Mod và chuột phải tích hợp sẵn.
+
+    // TODO: Không thể ánh xạ pin-toggle: niri không có pin cửa sổ sang mọi workspace.
+    // Mod+T { spawn "~/.config/hypr/scripts/pin-toggle.sh"; }
+    // Mod+Shift+T { spawn-sh "~/.config/hypr/scripts/pin-toggle.sh all"; }
+    // TODO: Không thể ánh xạ hide-windows: niri không có special workspace ẩn.
+    // (Mod+O cũ = menu ẩn/hiện, nay dành cho Tổng quan.)
+    // Mod+I { spawn-sh "~/.config/hypr/scripts/hide-windows.py hide-active"; }
+    // Mod+Shift+I { spawn-sh "~/.config/hypr/scripts/hide-windows.py show-all"; }
+    // TODO: Scratchpad/special workspace không có trong niri.
+    // Mod+S { spawn-sh "true"; }
+    // Mod+Shift+Z { spawn-sh "true"; }
+    // Mod+J đã dùng cho focus xuống; tabbed display thay cho togglesplit.
+    // Mod+P pseudotile được thay bằng center-column.
+}
+
+// ----------------
+// 8. Luật cửa sổ và lớp
+// ----------------
+window-rule {
+    geometry-corner-radius 14
+    clip-to-geometry true
+    opacity 0.96
+}
+window-rule {
+    match is-active=false
+    opacity 0.90
+}
+window-rule {
+    // Không đặt opacity ở đây: kitty đã có background_opacity 0.88 (chỉ nền trong, chữ rõ).
+    // Blur mặc định kiểu xray: chỉ nhòe hình nền, không nhòe cửa sổ phía dưới (rẻ hơn Hyprland).
+    match app-id="^kitty$"
+    background-effect {
+        blur true
+    }
+}
+
+layer-rule {
+    match namespace="^(walker|rofi)$"
+    background-effect {
+        blur true
+    }
+}
+// Hình nền awww hiện cả trong nền Tổng quan và khoảng giữa các workspace.
+// (tên namespace chưa xác minh trên máy: kiểm tra bằng `niri msg layers` rồi sửa regex nếu cần)
+layer-rule {
+    match namespace="^(awww|swww)"
+    place-within-backdrop true
+}
+layer-rule {
+    match namespace="^waybar$"
+    shadow {
+        off
+    }
+}
+
+window-rule {
+    match app-id=r#"^(org\.pulseaudio\.pavucontrol|pavucontrol)$"#
+    open-floating true
+    default-column-width { fixed 760; }
+    default-window-height { fixed 520; }
+}
+window-rule {
+    match app-id=r#"^nm-connection-editor$"#
+    open-floating true
+}
+window-rule {
+    match app-id=r#"^blueman-manager$"#
+    open-floating true
+    default-column-width { fixed 720; }
+    default-window-height { fixed 480; }
+}
+window-rule {
+    match app-id=r#"^kafka\.keybinds$"#
+    open-floating true
+    default-column-width { fixed 1000; }
+    default-window-height { fixed 640; }
+}
+window-rule {
+    match app-id=r#"^kafka-btop$"#
+    open-floating true
+    default-column-width { fixed 1100; }
+    default-window-height { fixed 680; }
+}
+window-rule {
+    match app-id=r#"^com\.gabm\.satty$"#
+    open-floating true
+    default-column-width { fixed 1500; }
+    default-window-height { fixed 900; }
+}
+window-rule {
+    match title=r#"^(Open File|Save File|Confirm)$"#
+    open-floating true
+}
+window-rule {
+    match app-id=r#"^kafka-cava$"#
+    open-floating true
+    default-column-width { fixed 720; }
+    default-window-height { fixed 260; }
+    default-floating-position x=12 y=12 relative-to="bottom-right"
+}
+
+// Phím người dùng tự thêm (thay hypr/keybinds.lua); đặt cuối nên ghi đè được phím ở trên.
+include optional=true "keybinds-user.kdl"

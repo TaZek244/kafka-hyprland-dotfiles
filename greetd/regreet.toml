@@ -1,0 +1,31 @@
+# Cấu hình ReGreet cho màn hình đăng nhập Kafka.
+skip_selection = false
+
+[background]
+# Ảnh nền Kafka và cách phủ kín màn hình.
+path = "/usr/share/backgrounds/kafka-greeter.jpg"
+fit = "Cover"
+
+[GTK]
+# Giao diện tối, phông chữ và theme GTK.
+application_prefer_dark_theme = true
+cursor_theme_name = "Adwaita"
+font_name = "FiraCode Nerd Font 13"
+icon_theme_name = "Adwaita"
+theme_name = "Adwaita"
+
+[commands]
+# Lệnh khởi động lại, tắt máy và tiền tố cho phiên X11.
+reboot = ["systemctl", "reboot"]
+poweroff = ["systemctl", "poweroff"]
+x11_prefix = [ "startx", "/usr/bin/env" ]
+
+[appearance]
+# Lời chào mở đầu theo chủ đề Kafka.
+greeting_msg = "Listen to the sound of the rain..."
+
+[widget.clock]
+# Đồng hồ theo ngôn ngữ và múi giờ của hệ thống.
+format = "<span size='40pt' weight='bold'>%H:%M</span>\n<span size='13pt'>%A, %d/%m</span>"
+resolution = "500ms"
+label_width = 320

@@ -1,0 +1,29 @@
+# Kafka cava theme
+
+[general]
+framerate = 60
+bars = 0
+bar_width = 2
+bar_spacing = 1
+autosens = 1
+
+[input]
+method = pipewire
+source = auto
+
+[output]
+method = ncurses
+
+[color]
+gradient = 1
+gradient_count = 6
+gradient_color_1 = '#382b47'
+gradient_color_2 = '#8f2456'
+gradient_color_3 = '#b8326a'
+gradient_color_4 = '#9b4dca'
+gradient_color_5 = '#c77dff'
+gradient_color_6 = '#d4af6a'
+background = default
+
+[smoothing]
+noise_reduction = 77

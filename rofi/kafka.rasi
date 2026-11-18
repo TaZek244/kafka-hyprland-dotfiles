@@ -1,0 +1,183 @@
+/*******************************************************************************
+ * ROFI LAUNCHER THEME - KAFKA (HONKAI: STAR RAIL)
+ * Left Banner: ~/.config/rofi/kafka-banner.jpg (cắt từ wallpapers/kafka_main.jpg)
+ * Palette: Obsidian (#141118), Burgundy (#b8326a), Lilac (#c77dff), Gold (#d4af6a)
+ *******************************************************************************/
+
+configuration {
+    modi:                       "drun,run,window";
+    show-icons:                 true;
+    display-drun:               "󰣇 Apps";
+    display-run:                "󰆍 Run";
+    display-window:             "󱂬 Window";
+    drun-display-format:        "{name}";
+    font:                       "FiraCode Nerd Font 11";
+    me-select-entry:            "";
+    me-accept-entry:            "MousePrimary";
+    /* Rê chuột tới dòng nào thì chọn (tô sáng) dòng đó: theme rofi không có :hover */
+    hover-select:               true;
+    /* scroll-method PHẢI là 0 (theo trang). 1 (liên tục) luôn đặt dòng đang chọn ở GIỮA danh sách,
+       mà hover-select chọn dòng dưới chuột -> rê chuột là danh sách trôi theo (vòng lặp).
+       touch-scroll-step: số pixel cuộn touchpad cho 1 dòng (0 = mỗi sự kiện 1 dòng -> trôi quá nhanh) */
+    scroll-method:              0;
+    touch-scroll-step:          24;
+    /* Bấm chuột trái vào chỗ trống (ngoài khung, kể cả dock/thanh trên) = thoát */
+    kb-cancel:                  "Escape,Control+g,Control+bracketleft,MouseSecondary,MousePrimary";
+}
+
+* {
+    bg-obsidian:                #140e1cE6;
+    bg-card:                    #16101eF2;
+    bg-selected:                #b8326aFF;
+    fg-main:                    #f4eef8FF;
+    fg-muted:                   #a99bbdFF;
+    accent-lilac:               #c77dffFF;
+    accent-gold:                #d4af6aFF;
+    background-color:           transparent;
+    text-color:                 @fg-main;
+}
+
+/* Cửa sổ phủ TOÀN màn hình và trong suốt (phủ nhẹ cho khung nổi lên): nhờ vậy
+   bấm ra ngoài khung, kể cả lên dock/thanh trên, rofi đều nhận được và thoát.
+   Khung thật (780x480, canh giữa) vẽ ở mainbox. */
+window {
+    transparency:               "real";
+    fullscreen:                 true;
+    border:                     0px;
+    padding:                    0px;
+    background-color:           rgba(8, 5, 12, 0.35);
+}
+
+mainbox {
+    enabled:                    true;
+    spacing:                    0px;
+    orientation:                horizontal;
+    margin:                     calc( 50% - 240px ) calc( 50% - 390px );
+    border:                     2px solid;
+    border-color:               @bg-selected;
+    border-radius:              18px;
+    background-color:           @bg-obsidian;
+    children:                   [ "imagebox", "listbox" ];
+}
+
+imagebox {
+    width:                      300px;
+    expand:                     false;
+    padding:                    18px;
+    /* Ảnh cắt sẵn đúng 300x476 (= khung, tạo từ wallpapers/kafka_main.jpg, lệnh ở CLAUDE.md):
+       để rofi co theo chiều cao thì ảnh dọc chỉ rộng ~270px -> lặp mép và mờ. */
+    background-image:           url("~/.config/rofi/kafka-banner.jpg", none);
+    border-radius:              16px 0px 0px 16px;
+    orientation:                vertical;
+    children:                   [ "dummy", "mode-switcher" ];
+}
+
+dummy {
+    expand:                     true;
+}
+
+mode-switcher {
+    spacing:                    4px;
+    background-color:           #140e1cCC;
+    border:                     1px solid;
+    border-color:               @accent-gold;
+    border-radius:              999px;
+    padding:                    6px;
+}
+
+button {
+    padding:                    6px 4px;
+    border-radius:              999px;
+    background-color:           transparent;
+    text-color:                 @fg-muted;
+    horizontal-align:           0.5;
+    cursor:                     pointer;
+}
+
+button selected {
+    background-color:           @bg-selected;
+    text-color:                 #ffffff;
+}
+
+listbox {
+    spacing:                    14px;
+    padding:                    22px;
+    orientation:                vertical;
+    children:                   [ "inputbar", "message", "listview" ];
+}
+
+message {
+    border:                     0px;
+    padding:                    2px 6px;
+    background-color:           transparent;
+}
+
+textbox {
+    text-color:                 #a99bbd;
+    background-color:           transparent;
+    markup:                     true;
+}
+
+inputbar {
+    enabled:                    true;
+    spacing:                    10px;
+    padding:                    10px 16px;
+    border:                     2px solid;
+    border-color:               @bg-selected;
+    border-radius:              999px;
+    background-color:           @bg-card;
+    children:                   [ "entry" ];
+}
+
+prompt {
+    text-color:                 @accent-gold;
+}
+
+entry {
+    placeholder:                "  Tìm ứng dụng...";
+    placeholder-color:          @fg-muted;
+    text-color:                 @fg-main;
+}
+
+listview {
+    enabled:                    true;
+    columns:                    1;
+    lines:                      7;
+    cycle:                      true;
+    dynamic:                    true;
+    scrollbar:                  true;
+    spacing:                    6px;
+}
+
+/* Thanh cuộn mảnh: thấy đang ở đâu trong danh sách */
+scrollbar {
+    handle-width:               4px;
+    handle-color:               @bg-selected;
+    background-color:           #3b1a33;
+    border-radius:              999px;
+    margin:                     0px 0px 0px 6px;
+}
+
+element {
+    enabled:                    true;
+    spacing:                    12px;
+    padding:                    9px 14px;
+    border-radius:              12px;
+    cursor:                     pointer;
+}
+
+element selected.normal {
+    background-color:           @bg-selected;
+    text-color:                 #ffffff;
+    border:                     1px solid;
+    border-color:               @accent-gold;
+}
+
+element-icon {
+    size:                       26px;
+}
+
+element-text {
+    vertical-align:             0.5;
+    text-color:                 inherit;
+}

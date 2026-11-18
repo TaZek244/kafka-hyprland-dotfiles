@@ -1,0 +1,114 @@
+/* ============================================================================
+ *  KAFKA POWER MENU — popup giữa màn hình, nền xung quanh phủ tối
+ *  Mỗi nút: icon to ở trên, chữ ở dưới (markup do powermenu.sh sinh ra).
+ *  Chuột: rê là chọn, bấm 1 lần là chạy. Esc hoặc bấm ra ngoài để đóng.
+ * ============================================================================ */
+configuration {
+    font: "FiraCode Nerd Font 13";
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: "MousePrimary";
+    /* Bấm chuột trái vào chỗ không phải nút (lớp phủ tối) = thoát, như Esc */
+    kb-cancel: "Escape,Control+g,Control+bracketleft,MouseSecondary,MousePrimary";
+}
+
+* {
+    base: #141118;
+    surface: #1e1826;
+    muted-border: #382b47;
+    burgundy: #b8326a;
+    wine: #8f2456;
+    lilac: #c77dff;
+    gold: #d4af6a;
+    ivory: #f4eef8;
+    lavender: #a99bbd;
+    background-color: transparent;
+    text-color: @ivory;
+}
+
+/* Lớp phủ tối toàn màn hình */
+window {
+    fullscreen: true;
+    border: 0px;
+    padding: 0px;
+    background-color: rgba(8, 5, 12, 0.72);
+}
+
+/* Căn giữa: đệm trên/dưới co giãn, lề ngang tính theo chiều rộng màn hình
+   (powermenu.sh chỉnh lại lề theo số cột). Tiêu đề nằm trong -mesg (markup),
+   KHÔNG dùng widget textbox-* riêng: rofi 2.0 làm listview biến mất. */
+mainbox {
+    orientation: vertical;
+    spacing: 0px;
+    children: [ "pad-top", "panel", "pad-bottom" ];
+}
+pad-top, pad-bottom {
+    expand: true;
+}
+
+panel {
+    orientation: vertical;
+    expand: false;
+    margin: 0px calc( 50% - 445px );
+    spacing: 18px;
+    padding: 26px 28px 28px 28px;
+    border: 2px;
+    border-color: @burgundy;
+    border-radius: 22px;
+    background-color: rgba(22, 16, 30, 0.96);
+    children: [ "message", "listview" ];
+}
+
+message {
+    border: 0px;
+    padding: 0px;
+}
+textbox {
+    horizontal-align: 0.5;
+    text-color: @lavender;
+    markup: true;
+}
+
+listview {
+    layout: vertical;
+    /* Xếp theo hàng ngang: chia cột đều, ô cuối không bị cắt mép phải
+       (xếp theo cột mặc định làm tròn bề rộng lệch vài px). */
+    flow: horizontal;
+    columns: 5;
+    lines: 1;
+    fixed-columns: true;
+    fixed-height: true;
+    spacing: 14px;
+    scrollbar: false;
+    cycle: true;
+}
+
+element {
+    orientation: vertical;
+    children: [ element-text ];
+    padding: 20px 6px 26px 6px;
+    border: 2px;
+    border-color: @muted-border;
+    border-radius: 16px;
+    background-color: @surface;
+    text-color: @ivory;
+    cursor: pointer;
+}
+
+element-text {
+    horizontal-align: 0.5;
+    vertical-align: 0.5;
+    background-color: transparent;
+    text-color: inherit;
+    cursor: inherit;
+}
+
+element selected.normal {
+    background-color: @burgundy;
+    border-color: @gold;
+    text-color: #ffffff;
+}
+
+inputbar {
+    enabled: false;
+}

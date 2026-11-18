@@ -1,0 +1,88 @@
+/* ============================================================================
+ *  KAFKA ACTIONS — hộp chức năng nhanh, popup nằm ngang bên TRÁI đáy dock.
+ *  Mở bằng nút menu trên dock (hypr/scripts/actionsmenu.sh).
+ *  Mỗi nút: icon ở trên, nhãn ở dưới (markup do script sinh ra).
+ *  Chuột: rê là chọn, bấm 1 lần là chạy. Esc / bấm ra ngoài (kể cả lên dock)
+ *  để đóng: cửa sổ phủ toàn màn hình nên rofi nhận được mọi cú bấm.
+ *  Vị trí khung: cách mép phải 98px (dock 62 + lề 12 + hở 24), cách đáy 40px,
+ *  không dính sát mép; nền xung quanh phủ tối nhẹ cho dễ nhìn.
+ * ============================================================================ */
+configuration {
+    font: "FiraCode Nerd Font 11";
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: "MousePrimary";
+    kb-cancel: "Escape,Control+g,Control+bracketleft,MouseSecondary,MousePrimary";
+}
+
+* {
+    background-color: transparent;
+    text-color: #f4eef8;
+}
+
+window {
+    fullscreen: true;
+    border: 0px;
+    padding: 0px;
+    background-color: rgba(8, 5, 12, 0.45);
+}
+
+mainbox {
+    orientation: vertical;
+    spacing: 0px;
+    children: [ "pad-top", "panel" ];
+}
+pad-top {
+    expand: true;
+}
+
+panel {
+    orientation: vertical;
+    expand: false;
+    margin: 0px 98px 40px calc( 100% - 738px );
+    padding: 12px;
+    border: 2px;
+    border-color: #b8326a;
+    border-radius: 20px;
+    background-color: rgba(34, 16, 29, 0.98);
+    children: [ "listview" ];
+}
+
+listview {
+    layout: vertical;
+    columns: 6;
+    lines: 1;
+    fixed-columns: true;
+    fixed-height: true;
+    spacing: 8px;
+    scrollbar: false;
+    cycle: true;
+}
+
+element {
+    orientation: vertical;
+    children: [ element-text ];
+    padding: 10px 2px 12px 2px;
+    border: 1px;
+    border-color: #3b1a33;
+    border-radius: 14px;
+    background-color: rgba(58, 21, 48, 0.55);
+    cursor: pointer;
+}
+
+element-text {
+    horizontal-align: 0.5;
+    vertical-align: 0.5;
+    text-color: inherit;
+    cursor: inherit;
+}
+
+element selected.normal {
+    background-color: #8f2456;
+    border-color: #d4af6a;
+    text-color: #ffffff;
+}
+
+inputbar {
+    enabled: false;
+}

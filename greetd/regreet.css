@@ -1,0 +1,249 @@
+/*
+ * ReGreet 0.5 — bản tối giản.
+ * Nền: ảnh Kafka nhòe + phủ tối (greetd/greeter-bg.jpg). Màu nhấn #b8326a chỉ ở nút Login / ô đang nhập.
+ *
+ * Bố cục do code ReGreet cố định (src/gui/templates.rs), CSS chỉ chỉnh được:
+ *   window > overlay > picture                      ảnh nền
+ *                    > frame (con thứ 2)            popup đăng nhập (căn giữa)
+ *                    > frame (con thứ 3)            đồng hồ (giữa, mép trên)
+ *   Cả hai frame đều có class .background nên phải phân biệt bằng :nth-child.
+ *                    > box > frame                  thanh thông báo
+ *                          > box > button × 2       Reboot, Power Off (căn giữa đáy)
+ * Hai nút nguồn được đẩy sang góc dưới phải bằng margin-left tính cho màn hình 1920 px:
+ *   hộp nút rộng W = 2×52 + 15 = 119; muốn mép phải cách màn hình 15 px thì
+ *   (1920 + M + W) / 2 = 1905  →  M = 1771. Đổi độ phân giải thì tính lại M.
+ * Adwaita tô nút suggested/destructive bằng background-image, nên luôn kèm background-image: none.
+ */
+
+* {
+  font-family: "FiraCode Nerd Font";
+  color: #ece3ea;
+  transition: color 120ms ease-in-out,
+              background-color 120ms ease-in-out,
+              border-color 120ms ease-in-out;
+}
+
+window {
+  background-color: transparent;
+}
+
+/* ---------- Đồng hồ: chữ to, rõ, không khung ---------- */
+overlay > frame:nth-child(3) {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  margin-top: 56px;
+}
+
+overlay > frame:nth-child(3) label {
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- Popup đăng nhập ---------- */
+overlay > frame:nth-child(2) {
+  background-color: rgba(20, 13, 26, 0.86);
+  border: 1px solid rgba(184, 50, 106, 0.30);
+  border-radius: 20px;
+  padding: 14px 18px 10px 18px;
+}
+
+/* Lời chào ở đầu popup */
+overlay > frame:nth-child(2) grid > label:first-child {
+  color: #ffffff;
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Nhãn "User:", "Session:", "Password:" */
+overlay > frame:nth-child(2) label {
+  color: #a99aa6;
+}
+
+/* Ô nhập chữ / mật khẩu */
+entry {
+  color: #ece3ea;
+  background-image: none;
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: none;
+  outline: none;
+  min-height: 38px;
+  padding: 0 12px;
+  caret-color: #ece3ea;
+}
+
+entry:focus-within {
+  border-color: #b8326a;
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+entry text {
+  color: #ece3ea;
+}
+
+/* Hộp chọn user / phiên */
+combobox button.combo {
+  color: #ece3ea;
+  background-image: none;
+  background-color: rgba(255, 255, 255, 0.07);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: none;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+combobox button.combo:hover {
+  background-color: rgba(255, 255, 255, 0.11);
+}
+
+combobox button.combo:checked,
+combobox button.combo:focus-visible {
+  border-color: #b8326a;
+}
+
+/* Nút bút chì (gõ tên/phiên bằng tay) */
+button.toggle {
+  color: #a99aa6;
+  background-image: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: none;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+button.toggle:hover {
+  color: #ece3ea;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+button.toggle:checked {
+  color: #ffffff;
+  background-color: rgba(184, 50, 106, 0.35);
+}
+
+/* Nút Cancel (hiện khi đang nhập mật khẩu) */
+button.text-button:not(.suggested-action):not(.destructive-action) {
+  color: #a99aa6;
+  background-image: none;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  box-shadow: none;
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+button.text-button:not(.suggested-action):not(.destructive-action):hover {
+  color: #ece3ea;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Nút Login: điểm nhấn duy nhất */
+button.suggested-action {
+  color: #ffffff;
+  font-weight: bold;
+  background-image: none;
+  background-color: #b8326a;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  box-shadow: none;
+  min-height: 36px;
+  padding: 0 22px;
+}
+
+button.suggested-action:hover {
+  background-image: none;
+  background-color: #c9407a;
+}
+
+button.suggested-action:active {
+  background-image: none;
+  background-color: #9a2858;
+}
+
+button:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+/* Danh sách xổ xuống */
+popover > contents,
+popover.background > contents {
+  color: #ece3ea;
+  background-color: #1a1220;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+popover row:hover,
+popover modelbutton:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+popover row:selected,
+popover modelbutton:checked {
+  background-color: rgba(184, 50, 106, 0.35);
+}
+
+/* Thông báo lỗi (sai mật khẩu...) */
+infobar,
+infobar > revealer > box {
+  background-color: rgba(20, 13, 26, 0.90);
+  border-radius: 12px;
+}
+
+infobar label {
+  color: #ff7a95;
+}
+
+/* ---------- Reboot / Power Off: ô vuông icon ở góc dưới phải, giống nút nguồn trên dock ---------- */
+overlay > box > box {
+  margin-left: 1771px;
+}
+
+overlay > box > box > button.destructive-action {
+  min-width: 50px;
+  min-height: 50px;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid #3b1a33;
+  box-shadow: none;
+  background-color: rgba(58, 21, 48, 0.55);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 26px 26px;
+}
+
+/* Ẩn chữ "Reboot"/"Power Off" do code đặt; icon vẽ bằng background-image, tô theo màu `color` */
+overlay > box > box > button.destructive-action > label {
+  color: transparent;
+  font-size: 1px;
+}
+
+overlay > box > box > button.destructive-action:first-child {
+  color: #ece3ea;
+  background-image: -gtk-icontheme("system-reboot-symbolic");
+}
+
+overlay > box > box > button.destructive-action:last-child {
+  color: #ff4d6d;
+  background-image: -gtk-icontheme("system-shutdown-symbolic");
+}
+
+overlay > box > box > button.destructive-action:first-child:hover {
+  color: #ffffff;
+  background-color: #5c1d40;
+  border-color: #d4af6a;
+}
+
+overlay > box > box > button.destructive-action:last-child:hover {
+  color: #ffffff;
+  background-color: #8f2456;
+  border-color: #ff4d6d;
+}

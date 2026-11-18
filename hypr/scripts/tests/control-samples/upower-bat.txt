@@ -1,0 +1,27 @@
+  native-path:          BAT1
+  vendor:               LGC
+  model:                AP18E8M
+  serial:               XXXXX
+  power supply:         yes
+  updated:              Wed 18 Nov 2026 08:34:55 PM +07 (1 seconds ago)
+  has history:          yes
+  has statistics:       yes
+  battery
+    present:             yes
+    rechargeable:        yes
+    state:               fully-charged
+    warning-level:       none
+    energy:              41.3798 Wh
+    energy-empty:        0 Wh
+    energy-full:         41.3798 Wh
+    energy-full-design:  57.4882 Wh
+    voltage-min-design:  15.4 V
+    capacity-level:      Full
+    energy-rate:         0 W
+    voltage:             16.542 V
+    charge-cycles:       51
+    percentage:          100%
+    capacity:            71.9796%
+    technology:          lithium-ion
+    icon-name:          'battery-full-charged-symbolic'
+

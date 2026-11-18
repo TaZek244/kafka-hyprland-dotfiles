@@ -1,0 +1,48 @@
+/*
+ * Màu nhấn Kafka cho app GTK3 (blueman, thunar, mousepad, nm-connection-editor, pavucontrol)
+ * trên nền Adwaita-dark. Chỉ đổi màu chọn/nhấn, không đổi bố cục.
+ * Liên kết vào ~/.config/gtk-3.0/gtk.css bằng install.sh.
+ */
+@define-color theme_selected_bg_color #b8326a;
+@define-color theme_selected_fg_color #f2e6ee;
+@define-color accent_bg_color #b8326a;
+
+*:selected,
+*:selected:focus,
+row:selected,
+treeview.view:selected,
+iconview:selected,
+selection {
+  background-color: #b8326a;
+  color: #f2e6ee;
+}
+
+switch:checked,
+checkbutton check:checked,
+radiobutton radio:checked,
+check:checked,
+radio:checked {
+  background-color: #b8326a;
+  border-color: #8e2a5c;
+  color: #f2e6ee;
+}
+
+progressbar progress,
+scale highlight,
+levelbar block.filled {
+  background-color: #b8326a;
+  border-color: #8e2a5c;
+}
+
+button.suggested-action {
+  background-image: none;
+  background-color: #8e2a5c;
+  border-color: #b8326a;
+  color: #f2e6ee;
+}
+
+entry:focus,
+spinbutton:focus {
+  border-color: #b8326a;
+  box-shadow: inset 0 0 0 1px #b8326a;
+}

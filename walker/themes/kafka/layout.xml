@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"></requires>
+  <object class="GtkWindow" id="Window">
+    <style>
+      <class name="window"></class>
+    </style>
+    <property name="resizable">true</property>
+    <property name="title">Walker</property>
+    <child>
+      <!-- Một khung duy nhất giữa màn hình; ảnh Kafka nhòe làm nền (CSS .box-wrapper). -->
+      <object class="GtkBox" id="BoxWrapper">
+        <style>
+          <class name="box-wrapper"></class>
+        </style>
+        <property name="overflow">hidden</property>
+        <property name="orientation">horizontal</property>
+        <property name="valign">center</property>
+        <property name="halign">center</property>
+        <property name="width-request">600</property>
+        <child>
+          <object class="GtkBox" id="Box">
+            <style>
+              <class name="box"></class>
+            </style>
+            <property name="orientation">vertical</property>
+            <property name="hexpand">true</property>
+            <property name="vexpand">true</property>
+            <property name="spacing">14</property>
+            <child>
+              <object class="GtkBox" id="SearchContainer">
+                <style>
+                  <class name="search-container"></class>
+                </style>
+                <property name="overflow">hidden</property>
+                <property name="orientation">horizontal</property>
+                <property name="halign">fill</property>
+                <property name="hexpand">true</property>
+                <child>
+                  <object class="GtkEntry" id="Input">
+                    <style>
+                      <class name="input"></class>
+                    </style>
+                    <property name="halign">fill</property>
+                    <property name="hexpand">true</property>
+                    <property name="placeholder-text">  Tìm ứng dụng...</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkBox" id="ContentContainer">
+                <style>
+                  <class name="content-container"></class>
+                </style>
+                <property name="orientation">horizontal</property>
+                <property name="spacing">10</property>
+                <property name="vexpand">true</property>
+                <child>
+                  <object class="GtkLabel" id="ElephantHint">
+                    <style>
+                      <class name="elephant-hint"></class>
+                    </style>
+                    <property name="label">Waiting for elephant...</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <property name="visible">false</property>
+                    <property name="valign">0.5</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="Placeholder">
+                    <style>
+                      <class name="placeholder"></class>
+                    </style>
+                    <property name="label">No Results</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <property name="valign">0.5</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkScrolledWindow" id="Scroll">
+                    <style>
+                      <class name="scroll"></class>
+                    </style>
+                    <property name="can-focus">false</property>
+                    <property name="overlay-scrolling">true</property>
+                    <property name="hexpand">true</property>
+                    <property name="vexpand">true</property>
+                    <property name="min-content-width">548</property>
+                    <property name="max-content-width">548</property>
+                    <property name="min-content-height">330</property>
+                    <property name="max-content-height">330</property>
+                    <property name="propagate-natural-height">false</property>
+                    <property name="propagate-natural-width">true</property>
+                    <property name="hscrollbar-policy">never</property>
+                    <property name="vscrollbar-policy">automatic</property>
+                    <child>
+                      <object class="GtkGridView" id="List">
+                        <style>
+                          <class name="list"></class>
+                        </style>
+                        <property name="max-columns">1</property>
+                        <property name="min-columns">1</property>
+                        <property name="can-focus">false</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <!-- Giữ id Preview để Walker vẫn tìm được; CSS ẩn phần này cho bố cục gọn. -->
+                  <object class="GtkBox" id="Preview">
+                    <style>
+                      <class name="preview"></class>
+                    </style>
+                    <property name="visible">false</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="ModeHint">
+                <style>
+                  <class name="mode-hint"></class>
+                </style>
+                <property name="label">󰣇 Apps  ·  &gt; Run  ·  $ Window  ·  ; Modes</property>
+                <property name="halign">center</property>
+                <property name="valign">end</property>
+                <property name="vexpand">true</property>
+              </object>
+            </child>
+            <child>
+              <!-- Keybinds/Error: walker cần các id này nhưng theme ẩn đi; GtkStack không đồng cỡ chỉ đo trang đang hiện (hộp rỗng) nên không chiếm chỗ; opacity 0 hay Revealer đóng vẫn chiếm. -->
+              <object class="GtkStack" id="HiddenBits">
+                <property name="hhomogeneous">false</property>
+                <property name="vhomogeneous">false</property>
+                <child>
+                  <object class="GtkBox" id="HiddenEmpty"></object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                <child>
+                  <!-- Giữ đầy đủ cây Keybinds/id mặc định nhưng ẩn khỏi giao diện Kafka. -->
+                  <object class="GtkBox" id="Keybinds">
+                    <property name="hexpand">true</property>
+                    <property name="margin-top">10</property>
+                    <property name="visible">false</property>
+                    <style>
+                      <class name="keybinds"></class>
+                    </style>
+                    <child>
+                      <object class="GtkBox" id="GlobalKeybinds">
+                        <property name="spacing">10</property>
+                        <style>
+                          <class name="global-keybinds"></class>
+                        </style>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkBox" id="ItemKeybinds">
+                        <property name="hexpand">true</property>
+                        <property name="halign">end</property>
+                        <property name="spacing">10</property>
+                        <style>
+                          <class name="item-keybinds"></class>
+                        </style>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="Error">
+                    <style>
+                      <class name="error"></class>
+                    </style>
+                    <property name="xalign">0</property>
+                    <property name="visible">false</property>
+                  </object>
+                </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

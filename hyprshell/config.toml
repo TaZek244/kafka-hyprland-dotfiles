@@ -1,0 +1,29 @@
+# Hyprshell — chế độ tổng quan kiểu GNOME Activities (Kafka edition)
+#   Nhấn-thả riêng Super : mở tổng quan (mọi cửa sổ thu nhỏ theo workspace + ô tìm app)
+#                          bấm vào cửa sổ để nhảy tới, Esc để đóng
+#   Alt + Tab (giữ Alt)  : chuyển nhanh giữa các cửa sổ gần đây
+# Kiểm tra: hyprshell config check -c ~/.config/hyprshell/config.toml
+version = 4
+
+[windows]
+scale = 8.5          # mức thu nhỏ cửa sổ (càng lớn càng nhỏ)
+items_per_row = 5    # 5 workspace mỗi hàng (I..V)
+
+[windows.overview]
+key = "super_l"
+modifier = "super"
+filter_by = []
+
+[windows.overview.launcher]
+default_terminal = "kitty"
+width = 650
+max_items = 6
+show_when_empty = true
+
+[windows.overview.launcher.plugins.applications]
+show_execs = false   # chỉ hiện tên app, không hiện dòng lệnh dài
+[windows.overview.launcher.plugins.calc]
+
+[windows.switch]
+modifier = "alt"
+filter_by = []

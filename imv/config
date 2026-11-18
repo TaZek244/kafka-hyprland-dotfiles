@@ -1,0 +1,18 @@
+# imv — trình xem ảnh (Wayland), màu Kafka. Liên kết vào ~/.config/imv bởi install.sh.
+# Phím: ←/→ ảnh trước/sau · +/- phóng to/thu nhỏ · f toàn màn hình · s đổi chế độ vừa khung
+#       r / Shift+R xoay · i bật/tắt dòng thông tin · q thoát (đủ phím: `man imv`)
+[options]
+background = 140e1c
+overlay = false
+overlay_font = FiraCode Nerd Font:11
+overlay_text_color = f4eef8
+overlay_background_color = 16101e
+overlay_background_alpha = cc
+overlay_text = [${imv_current_index}/${imv_file_count}] ${imv_current_file} · ${imv_width}x${imv_height} · ${imv_scale}%
+scaling_mode = shrink
+title_text = imv · ${imv_current_file}
+
+[binds]
+i = overlay
+r = rotate by 90
+<Shift+R> = rotate by -90

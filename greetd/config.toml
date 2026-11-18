@@ -1,0 +1,10 @@
+# greetd — trình đăng nhập thay GDM. Cài vào /etc/greetd/ bằng greetd/install-greetd.sh
+# (greeter chạy bằng user "greeter", không đọc được ~/, nên phải chép chứ không symlink).
+[terminal]
+vt = 1
+
+[default_session]
+# cage: compositor kiosk nhỏ chỉ để hiện ReGreet; -s cho phép đổi TTY, -m last dùng màn hình cắm sau cùng.
+# ReGreet tự đọc /etc/greetd/regreet.toml và /etc/greetd/regreet.css.
+command = "cage -s -m last -- regreet"
+user = "greeter"

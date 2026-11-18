@@ -1,0 +1,21 @@
+/* Hyprshell — bảng màu Kafka (HSR), đồng bộ Waybar/Rofi */
+:root {
+    --border-color: rgba(184, 50, 106, 0.55);      /* viền hồng nhạt  #b8326a */
+    --border-color-active: rgba(212, 175, 106, 1); /* đang chọn: vàng #d4af6a */
+
+    --bg-color: rgba(20, 14, 28, 0.92);            /* nền #140e1c */
+    --bg-color-hover: rgba(184, 50, 106, 0.35);
+
+    --border-radius: 16px;
+    --border-size: 2px;
+    --border-style: solid;
+
+    --text-color: rgba(244, 238, 248, 1);          /* #f4eef8 */
+
+    --window-padding: 3px;
+    --bg-window-color: rgba(22, 16, 30, 0.95);     /* #16101e */
+}
+
+* {
+    font-family: "FiraCode Nerd Font", "JetBrainsMono Nerd Font", sans-serif;
+}

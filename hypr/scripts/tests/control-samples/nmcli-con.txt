@@ -1,0 +1,11 @@
+Mang-Mau-1:802-11-wireless
+br-028b3d828906:bridge
+lo:loopback
+docker0:bridge
+Mang-Mau-2:802-11-wireless
+Mang-Mau-3:802-11-wireless
+Mang-Mau-4:802-11-wireless
+Mang-Mau-5:802-11-wireless
+Mang-Mau-6:802-11-wireless
+Mang-Mau-7:802-11-wireless
+Wired connection 1:802-3-ethernet

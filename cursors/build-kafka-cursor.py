@@ -23,7 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 THEME = "Kafka-Cursor"
-SIZES = (24, 32, 48, 64)          # cỡ Xcursor (cỡ danh nghĩa 24 = lưới 32 vẽ ở 24px)
+SIZES = (24, 32, 40, 48, 64)      # cỡ Xcursor; mặc định 32 (mũi tên thu 0.74 nên ~ cỡ con trỏ 24 thường, mặt Kafka đủ rõ)
 WAIT_FRAMES = 12
 WAIT_DELAY = 70                    # ms mỗi khung
 
@@ -33,6 +33,21 @@ VIOLET = "#a95ee8"
 PLUM_A = "#3a1a3c"
 PLUM_B = "#1f0f24"
 OUTLINE = 1.7                      # nửa độ dày viền hồng (vẽ nét 2×OUTLINE rồi tô đè)
+
+REPO = os.path.dirname(HERE)
+FACE_SRC = os.path.join(REPO, "wallpapers", "Kafka_thumbail.jpg")
+FACE_CROP = "360x360+200+30"        # khung mặt + cặp kính trên đầu (ảnh 736x736)
+
+
+def face_data_uri():
+    """Cắt mặt Kafka từ ảnh trong repo → PNG 160px, làm nét nhẹ (hiển thị ở ~16–24px), nhúng base64."""
+    import base64
+    p = subprocess.run(["magick", FACE_SRC, "-crop", FACE_CROP, "+repage", "-resize", "160x160",
+                        "-modulate", "100,115", "-unsharp", "0x1.2+0.8", "png:-"], capture_output=True, check=True)
+    return "data:image/png;base64," + base64.b64encode(p.stdout).decode()
+
+
+FACE = None
 
 DEFS = f"""<defs>
  <linearGradient id="body" x1="0" y1="0" x2="0.7" y2="1">
@@ -94,6 +109,26 @@ def badge(inner, cx=23.5, cy=23.5, r=5.6):
             f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="url(#edge)"/>{inner}')
 
 
+def face_badge(cx=22, cy=22, r=8.6, ring=True):
+    """Huy hiệu tròn mặt Kafka: viền tím than ngoài + ảnh cắt tròn + vòng gradient hồng→tím."""
+    global FACE
+    if FACE is None:
+        FACE = face_data_uri()
+    cid = f"fc{int(cx * 10)}{int(cy * 10)}{int(r * 10)}"
+    g = (f'<clipPath id="{cid}"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath>'
+         f'<circle cx="{cx}" cy="{cy}" r="{r + 1.6}" fill="{PLUM_B}"/>'
+         f'<image clip-path="url(#{cid})" x="{cx - r}" y="{cy - r}" width="{2 * r}" height="{2 * r}" '
+         f'preserveAspectRatio="xMidYMid slice" href="{FACE}"/>')
+    if ring:
+        g += f'<circle cx="{cx}" cy="{cy}" r="{r + 0.4}" fill="none" stroke="url(#edge)" stroke-width="1.3"/>'
+    return g
+
+
+def small_arrow():
+    """Mũi tên thu nhỏ quanh mũi (chừa chỗ cho huy hiệu mặt)."""
+    return f'<g transform="translate(5 3.2) scale(0.74) translate(-5 -3.2)">{arrow()}</g>'
+
+
 def plus(cx, cy, s=2.8, w=1.7, col="#ffffff"):
     return (f'<path d="M{cx - s},{cy} H{cx + s} M{cx},{cy - s} V{cy + s}" stroke="{col}" '
             f'stroke-width="{w}" stroke-linecap="round"/>')
@@ -109,7 +144,14 @@ def spinner(frame, cx=16, cy=16, r=9.0, w=3.2, web=True):
          f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PINK}" stroke-opacity="0.22" stroke-width="{w}"/>'
          f'<path d="M{x0:.2f},{y0:.2f} A{r},{r} 0 1 1 {x1:.2f},{y1:.2f}" fill="none" stroke="url(#edge)" '
          f'stroke-width="{w}" stroke-linecap="round"/>')
-    if web:
+    if web == "face":
+        head = math.radians(ang + 150)
+        sx, sy = cx + r * math.cos(head), cy + r * math.sin(head)
+        g += face_badge(cx, cy, r - w / 2 - 0.9, ring=False)
+        # con nhện nhỏ bò ở đầu cung
+        g += (f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="2.3" fill="{PLUM_B}"/>'
+              f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="1.4" fill="{PINK_HI}"/>')
+    elif web:
         rw = r - w / 2 - 1.2
         spokes = " ".join(f"M{cx},{cy} L{cx + rw * math.cos(math.radians(k * 60 + ang / 3)):.2f},"
                           f"{cy + rw * math.sin(math.radians(k * 60 + ang / 3)):.2f}" for k in range(6))
@@ -219,8 +261,8 @@ def shapes():
     def add(name, body, hot, aliases=()):
         S[name] = (body, hot, list(aliases))
     tip = (5, 3.2)
-    add("default", svg(arrow()), tip, ["left_ptr", "arrow", "top_left_arrow", "left-arrow", "x-cursor", "X_cursor"])
-    add("pointer", svg(hand("point")), (12.7, 2.8), ["hand1", "hand2", "hand", "pointing_hand", "e29285e634086352946a0e7090d73106", "9d800788f1b08800ae810202380a0822"])
+    add("default", svg(small_arrow() + face_badge()), tip, ["left_ptr", "arrow", "top_left_arrow", "left-arrow", "x-cursor", "X_cursor"])
+    add("pointer", svg(hand("point") + face_badge(24.6, 24.6, 6.4)), (12.7, 2.8), ["hand1", "hand2", "hand", "pointing_hand", "e29285e634086352946a0e7090d73106", "9d800788f1b08800ae810202380a0822"])
     add("text", svg(ibeam()), (16, 16), ["xterm", "ibeam"])
     add("vertical-text", svg(ibeam(90)), (16, 16), [])
     add("crosshair", svg(crosshair()), (16, 16), ["cross", "tcross", "cross_reverse", "diamond_cross"])
@@ -243,8 +285,8 @@ def shapes():
     add("row-resize", svg(double_arrow(90, bar=True)), (16, 16), ["split_v", "2870a09082c103050810ffdffffe0204"])
     add("zoom-in", svg(magnifier("+")), (12.5, 12.5), [])
     add("zoom-out", svg(magnifier("-")), (12.5, 12.5), [])
-    add("wait", [svg(spinner(f)) for f in range(WAIT_FRAMES)], (16, 16), ["watch", "clock"])
-    add("progress", [svg(arrow() + spinner(f, 23.2, 23.2, 4.8, 2.0, web=False)) for f in range(WAIT_FRAMES)], tip,
+    add("wait", [svg(spinner(f, r=11.2, w=3.0, web="face")) for f in range(WAIT_FRAMES)], (16, 16), ["watch", "clock"])
+    add("progress", [svg(small_arrow() + spinner(f, 22, 22, 8.2, 2.2, web="face")) for f in range(WAIT_FRAMES)], tip,
         ["left_ptr_watch", "half-busy", "00000000000000020006000e7e9ffc3f", "08e8e1c95fe2fc01f976f1e063a24ccd", "3ecb610c1bf2410f44200f48c40d3599"])
     # bỏ tên phụ trùng với tên chính khác (col/row-resize có hash trùng ew/ns: giữ cho ew/ns)
     seen = set(S)

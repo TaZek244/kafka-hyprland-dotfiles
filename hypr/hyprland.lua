@@ -97,8 +97,8 @@ end
 -- Con trỏ Kafka (thiết kế riêng, dựng bằng cursors/build-kafka-cursor.py: hyprcursor + Xcursor)
 hl.env("XCURSOR_THEME", "Kafka-Cursor")
 hl.env("HYPRCURSOR_THEME", "Kafka-Cursor")
-hl.env("XCURSOR_SIZE", "24")
-hl.env("HYPRCURSOR_SIZE", "24")
+hl.env("XCURSOR_SIZE", "32")
+hl.env("HYPRCURSOR_SIZE", "32")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 -- Chỉ đặt khi đã cài qt6ct (install.sh có cài); thiếu gói thì app Qt báo lỗi plugin theme
 do

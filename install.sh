@@ -277,10 +277,11 @@ step_system() {
     # Icon "Kafka" (Papirus-Dark + thư mục hồng tím, mạng nhện) và con trỏ "Kafka-Cursor": dựng từ script trong repo
     run python3 "$REPO_DIR/icons/build-kafka-icons.py"
     run python3 "$REPO_DIR/cursors/build-kafka-cursor.py"
+    run python3 "$REPO_DIR/cursors/build-kafka-pixel-cursor.py"   # bản pixel (đổi bằng hyprctl setcursor Kafka-Pixel 32)
     if command -v gsettings >/dev/null; then
         run gsettings set org.gnome.desktop.interface icon-theme 'Kafka'
         run gsettings set org.gnome.desktop.interface cursor-theme 'Kafka-Cursor'
-        run gsettings set org.gnome.desktop.interface cursor-size 24
+        run gsettings set org.gnome.desktop.interface cursor-size 32
     fi
     # app X/XWayland đọc con trỏ mặc định ở ~/.icons/default
     if (( DRY )); then info "\$ ghi ~/.icons/default/index.theme (Inherits=Kafka-Cursor)"

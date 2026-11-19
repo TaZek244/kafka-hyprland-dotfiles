@@ -380,28 +380,17 @@ def run():
             return True
 
         def draw_pixel(self, ctx):
-            """Kiểu pixel (theme pixel): khung bậc thang viền tối + viền trắng + bóng, vạch nhún dạng khối,
-            chữ trắng có bóng 1px, không khử răng cưa — khớp waybar/pixel/frame*.png."""
+            """Kiểu "pixel mềm" (theme pixel): khung lấy đúng ảnh 9-slice của Waybar (waybar/pixel/frame*.png,
+            ô thường / rê chuột), vạch nhún dạng khối, chữ trắng có bóng 1px, không khử răng cưa."""
             w, h, P = self.pw, self.ph, 2
             ctx.set_antialias(cairo.ANTIALIAS_NONE)
-            hv = self.hover_k
-            dark, white, shade = (0x2a / 255, 0x1f / 255, 0x33 / 255), (1, 1, 1), (0x4a / 255, 0x3a / 255, 0x5c / 255)
-            base, hi = (0x8f / 255, 0x7f / 255, 0xa6 / 255), (0xa8 / 255, 0x97 / 255, 0xbf / 255)
-            fill = tuple(b + (c - b) * hv for b, c in zip(base, hi))
+            dark, white = (0x14 / 255, 0x0e / 255, 0x1a / 255), (1, 1, 1)
+            self._nine(ctx, "frame-hover.png" if self.hover_k > 0.5 else "frame.png", w, h)
 
             def rect(x, y, rw, rh, col):
                 ctx.set_source_rgb(*col)
                 ctx.rectangle(x, y, rw, rh)
                 ctx.fill()
-            # viền tối (khuyết góc) → viền trắng → nền → bóng đáy-phải
-            rect(P, 0, w - 2 * P, P, dark)
-            rect(P, h - P, w - 2 * P, P, dark)
-            rect(0, P, P, h - 2 * P, dark)
-            rect(w - P, P, P, h - 2 * P, dark)
-            rect(P, P, w - 2 * P, h - 2 * P, white)
-            rect(2 * P, 2 * P, w - 4 * P, h - 4 * P, fill)
-            rect(w - 2 * P, 2 * P, P, h - 3 * P, shade)
-            rect(2 * P, h - 2 * P, w - 3 * P, P, shade)
             # vạch nhún: 4 cột khối 2px, nấc 2px
             playing = self.info["status"] == "Playing"
             t = time.monotonic()
@@ -409,8 +398,8 @@ def run():
                 amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
                 bh = int(2 + amp * 6) * P
                 x = 10 + i * 6
-                rect(x + 1, h - 3 * P - bh + 1, 4, bh, dark)        # bóng
-                rect(x, h - 3 * P - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
+                rect(x + 1, h - 7 - bh + 1, 4, bh, dark)        # bóng
+                rect(x, h - 7 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
             # chữ
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 10"))
@@ -432,6 +421,37 @@ def run():
                 PangoCairo.show_layout(ctx, layout)
             ctx.restore()
             return True
+
+        def _nine(self, ctx, name, w, h, sl=6):
+            """Vẽ ảnh 9-slice (góc giữ nguyên, cạnh/giữa kéo giãn, lọc nearest)."""
+            cache = getattr(self, "_nine_cache", None)
+            if cache is None:
+                cache = self._nine_cache = {}
+            if name not in cache:
+                path = os.path.join(HERE, "..", "..", "waybar", "pixel", name)
+                try:
+                    cache[name] = cairo.ImageSurface.create_from_png(path)
+                except Exception:
+                    cache[name] = None
+            img = cache[name]
+            if img is None:
+                return
+            iw, ih = img.get_width(), img.get_height()
+            xs = [(0, sl, 0, sl), (sl, iw - 2 * sl, sl, w - 2 * sl), (iw - sl, sl, w - sl, sl)]
+            ys = [(0, sl, 0, sl), (sl, ih - 2 * sl, sl, h - 2 * sl), (ih - sl, sl, h - sl, sl)]
+            for sx, sw, dx, dw in xs:
+                for sy, sh, dy, dh in ys:
+                    if dw <= 0 or dh <= 0:
+                        continue
+                    ctx.save()
+                    ctx.rectangle(dx, dy, dw, dh)
+                    ctx.clip()
+                    ctx.translate(dx, dy)
+                    ctx.scale(dw / sw, dh / sh)
+                    ctx.set_source_surface(img, -sx, -sy)
+                    ctx.get_source().set_filter(cairo.FILTER_NEAREST)
+                    ctx.paint()
+                    ctx.restore()
 
         # ---- chuột ----
         def on_enter(self, *_a):

@@ -1,42 +1,43 @@
 /* ============================================================================
- *  THEME PIXEL (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
+ *  THEME "PIXEL MỀM" (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
  *
- *  Phong cách pixel art: khung vuông góc bậc thang, viền tối ngoài + viền trắng trong + bóng đáy-phải,
- *  tông tím lavender, chữ trắng có bóng pixel 1px. Khung = ảnh 9-slice trong waybar/pixel/ (sinh bằng
- *  waybar/pixel/make-frames.py; đổi màu thì sửa ở đó). border-image cần border-width = 6px (3 điểm × 2px).
- *  Lưu ý GTK3: border-image cộng 6px mỗi cạnh vào kích thước module → đệm dọc phải nhỏ lại.
+ *  Chất pixel nhưng không gắt (người dùng chê bản lavender + viền trắng 2px là "màu xấu, quá pixel"):
+ *  - Tông tím than đậm hoà với ảnh nền (như bản phẳng), màu nhấn hồng #c94785 giữ nguyên.
+ *  - Khung bo góc bán kính 5px vẽ bằng bậc thang 1px (không khử răng cưa), viền ngoài tối mảnh,
+ *    mép sáng trên-trái + bóng dưới-phải thay viền trắng. Ảnh 9-slice: waybar/pixel/make-frames.py.
+ *  - border-image cộng 6px mỗi cạnh vào kích thước → KHÔNG lồng khung trong khung (ô con dùng box-shadow).
  * ============================================================================ */
 
-@define-color px_bar    #6e5c82;   /* nền thanh */
-@define-color px_dark   #2a1f33;   /* viền tối */
-@define-color px_tile   #5d4c70;   /* ô chìm */
-@define-color px_text   #ffffff;
-@define-color px_dim    #e6dcf2;
-@define-color px_faint  #b9aacb;
-@define-color px_pink   #c94785;
-@define-color px_pinkfg #ffb3d6;
+@define-color px_bar     rgba(30, 23, 37, 0.95);  /* nền thanh + dock */
+@define-color px_edge    #140e1a;                 /* viền tối */
+@define-color px_line    #3a2f46;
+@define-color px_text    #fbf7fd;
+@define-color px_dim     #d4cade;
+@define-color px_faint   #9a8bab;
+@define-color px_pink    #c94785;
+@define-color px_pinkfg  #f08cbb;
+@define-color px_hover   rgba(255, 255, 255, 0.10);
 
 * {
-    text-shadow: 1px 1px 0 @px_dark;     /* bóng chữ kiểu pixel (không blur) */
-    font-weight: 800;
+    text-shadow: 1px 1px 0 rgba(10, 6, 14, 0.55);  /* bóng chữ 1px, không blur */
 }
 
 tooltip {
-    background: @px_tile;
+    background: transparent;
     border-style: solid;
     border-width: 6px;
     border-image: url("pixel/frame-dark.png") 6 stretch;
     border-radius: 0;
 }
 
-/* ---------- nền thanh trên: dải tím, đáy viền tối 2px + vạch trắng 2px ---------- */
+/* ---------- nền thanh trên: đáy viền tối 1px + vạch sáng mảnh ---------- */
 window#waybar.topbar > box {
     background-color: @px_bar;
-    border-bottom: 2px solid @px_dark;
-    box-shadow: inset 0 -2px @px_tile;
+    border-bottom: 1px solid @px_edge;
+    box-shadow: inset 0 -1px @px_line;
 }
 
-/* ---------- mọi cụm: khung pixel ---------- */
+/* ---------- mọi cụm: khung pixel mềm ---------- */
 #workspaces,
 #network.speed,
 #clock,
@@ -51,8 +52,8 @@ window#waybar.topbar > box {
     border-style: solid;
     border-width: 6px;
     border-image: url("pixel/frame.png") 6 stretch;
-    margin: 2px 0;
-    padding: 0 6px;
+    margin: 3px 0;
+    padding: 0 5px;
     color: @px_text;
     box-shadow: none;
 }
@@ -70,47 +71,45 @@ window#waybar.topbar > box {
 /* Khối Kafka: khung hồng */
 #kafka { border-image: url("pixel/frame-active.png") 6 stretch; padding: 0; }
 #kafka #custom-launcher,
-#kafka #custom-layoutmode { border-radius: 0; padding: 0 8px; }
-#kafka #custom-layoutmode { border-left: 2px solid @px_dark; }
+#kafka #custom-layoutmode { border-radius: 0; padding: 0 7px; }
+#kafka #custom-layoutmode { border-left: 1px solid rgba(61, 16, 40, 0.8); box-shadow: inset 1px 0 rgba(255, 255, 255, 0.18); }
 #kafka #custom-launcher:hover,
-#kafka #custom-layoutmode:hover { background-color: rgba(42, 31, 51, 0.25); }
+#kafka #custom-layoutmode:hover { background-color: rgba(20, 14, 26, 0.22); }
 
-/* Workspace: ô vuông, đang chọn = ô hồng có khung */
-#workspaces { padding: 0 2px; }
+/* Workspace: ô bo nhẹ; đang chọn = ô hồng có mép sáng/bóng (box-shadow, không cộng kích thước) */
+#workspaces { padding: 0 1px; }
 #workspaces button {
-    border-radius: 0;
+    border-radius: 4px;
     margin: 0 1px;
     padding: 0 6px;
     color: @px_dim;
     border: none;
 }
 #workspaces button.empty { color: @px_faint; }
-#workspaces button:hover { background-color: rgba(255, 255, 255, 0.18); box-shadow: none; color: @px_text; }
-/* Ô đang chọn: nền hồng + viền pixel vẽ bằng box-shadow inset (không cộng kích thước như border-image,
-   lồng border-image trong cụm làm thanh cao 44px) */
+#workspaces button:hover { background-color: @px_hover; box-shadow: none; color: @px_text; }
 #workspaces button.active {
     background-color: @px_pink;
-    box-shadow: inset 0 0 0 2px @px_text, inset -2px -2px 0 2px #8e2d5e;
-    color: @px_text;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(61, 16, 40, 0.6);
+    color: #ffffff;
 }
 #workspaces button.urgent {
-    background-color: #e64664;
-    box-shadow: inset 0 0 0 2px @px_text;
+    background-color: #e0506e;
+    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 #network.speed { color: @px_dim; }
-#clock { padding: 0 10px; }
+#clock { padding: 0 9px; }
 
-/* Ô con bên trong cụm: vuông, rê chuột = ô sáng */
+/* Ô con bên trong cụm */
 #cpu, #memory, #temperature,
 #control > widget > * {
-    border-radius: 0;
+    border-radius: 4px;
     margin: 0;
     padding: 0 6px;
     color: @px_text;
 }
 #cpu:hover, #memory:hover, #temperature:hover,
-#control > widget > *:hover { background-color: rgba(255, 255, 255, 0.18); }
+#control > widget > *:hover { background-color: @px_hover; }
 
 #custom-ime.vi  { color: @px_pinkfg; }
 #custom-ime.en  { color: @px_dim; }
@@ -122,31 +121,30 @@ window#waybar.topbar > box {
 #custom-notifications { color: @px_dim; }
 #custom-notifications.has { color: @px_text; }
 
-/* Ô trống của ô nhạc: giữ nguyên vạch đánh dấu (media-pill.py dò vị trí bằng nó) */
+/* Ô trống của ô nhạc: giữ vạch đánh dấu (media-pill.py dò vị trí bằng nó) */
 #custom-media-slot { margin: 6px 0 6px 8px; }
 
 /* Ô góc trên cột dock */
 #custom-corner {
-    border-left: 2px solid @px_dark;
+    border-left: 1px solid @px_edge;
+    box-shadow: inset 1px 0 @px_line;
     color: @px_pinkfg;
     background-color: transparent;
 }
-#custom-corner:hover { background-color: rgba(255, 255, 255, 0.18); color: @px_text; }
+#custom-corner:hover { background-color: @px_hover; color: @px_text; }
 
-/* ---------- dock: dải tím, mép trái viền tối 2px + vạch sáng ---------- */
+/* ---------- dock ---------- */
 window#waybar.dockbar > box {
     background-color: @px_bar;
-    border-left: 2px solid @px_dark;
-    box-shadow: inset 2px 0 @px_tile;
+    border-left: 1px solid @px_edge;
+    box-shadow: inset 1px 0 @px_line;
 }
 window#waybar.dockbar #pinned,
 window#waybar.dockbar #windows,
-window#waybar.dockbar #actions {
-    border-top: 2px solid @px_dark;
-}
-window#waybar.dockbar #pinned { border-bottom: 2px solid @px_dark; }
+window#waybar.dockbar #actions { border-top: 1px solid @px_line; }
+window#waybar.dockbar #pinned { border-bottom: 1px solid @px_line; }
 
-/* Nút dock: vuông; rê chuột = khung pixel sáng */
+/* Nút dock: bo nhẹ; rê chuột = ô sáng có mép sáng/bóng kiểu pixel */
 #custom-apps,
 #custom-pin-browser,
 #custom-pin-terminal,
@@ -157,7 +155,7 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_dark; }
 #custom-hidden,
 #custom-actions,
 #custom-powermenu {
-    border-radius: 0;
+    border-radius: 6px;
     color: @px_text;
     box-shadow: none;
 }
@@ -170,16 +168,23 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_dark; }
 #custom-tools:hover,
 #custom-hidden:hover,
 #custom-actions:hover {
-    background-color: rgba(255, 255, 255, 0.20);
-    box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark;
+    background-color: #4a3c59;
+    box-shadow: inset 1px 1px 0 #7a6890, inset -1px -1px 0 #2a2034, 0 0 0 1px @px_edge;
 }
-#custom-apps { background-color: @px_pink; color: @px_text; box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark; }
-#custom-apps:hover { background-color: #e0559a; }
-#custom-powermenu { color: #ffd0dc; }
-#custom-powermenu:hover { background-color: rgba(230, 70, 100, 0.45); box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark; }
-#custom-hidden.has { background-color: @px_tile; }
-window#waybar.dockbar #windows #image { border-radius: 0; }
+#custom-apps {
+    background-color: @px_pink;
+    color: #ffffff;
+    box-shadow: inset 1px 1px 0 #f08cbb, inset -1px -1px 0 #962f62, 0 0 0 1px #3d1028;
+}
+#custom-apps:hover { background-color: #d9568f; box-shadow: inset 1px 1px 0 #ffb0d2, inset -1px -1px 0 #962f62, 0 0 0 1px #3d1028; }
+#custom-powermenu { color: #ff9aae; }
+#custom-powermenu:hover {
+    background-color: rgba(224, 80, 110, 0.30);
+    box-shadow: inset 1px 1px 0 rgba(255, 154, 174, 0.6), 0 0 0 1px @px_edge;
+}
+#custom-hidden.has { background-color: #2a2134; }
+window#waybar.dockbar #windows #image { border-radius: 6px; }
 window#waybar.dockbar #windows #image:hover {
-    background-color: rgba(255, 255, 255, 0.20);
-    box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark;
+    background-color: #4a3c59;
+    box-shadow: inset 1px 1px 0 #7a6890, inset -1px -1px 0 #2a2034;
 }

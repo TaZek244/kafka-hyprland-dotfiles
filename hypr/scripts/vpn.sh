@@ -102,10 +102,12 @@ state_class() { # <active> <state> -> on | connecting | off
 }
 
 warp_available() { command -v "$warp_bin" >/dev/null 2>&1; }
+# warp-cli đòi --accept-tos khi không chạy trong terminal (Waybar, notify...) → luôn truyền cờ này
+warp_run() { "$warp_bin" --accept-tos "$@"; }
 
 warp_state() {
     local out
-    out=$("$warp_bin" status 2>/dev/null) || { printf 'off'; return; }
+    out=$(warp_run status 2>/dev/null) || { printf 'off'; return; }
     if   [[ $out == *Connected* ]];   then printf 'on'
     elif [[ $out == *Connecting* ]];  then printf 'connecting'
     else printf 'off'; fi
@@ -194,7 +196,7 @@ change_state() {
 
     if [[ $BACKEND == warp ]]; then
         # warp-cli dùng connect/disconnect, không phải up/down
-        out=$("$warp_bin" "$([[ $action == up ]] && echo connect || echo disconnect)" 2>&1); rc=$?
+        out=$(warp_run "$([[ $action == up ]] && echo connect || echo disconnect)" 2>&1); rc=$?
     else
         out=$("$nmcli_bin" connection "$action" id "$BACK_NAME" 2>&1); rc=$?
     fi
@@ -308,6 +310,7 @@ FAKE
     cat > "$fake_warp" <<'FAKE'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${FAKE_WARP_LOG:-/dev/null}"
+[[ ${1:-} == --accept-tos ]] && shift
 case "${1:-}" in
     status) printf '%s\n' "${FAKE_WARP_STATUS:-Disconnected}" ;;
     connect|disconnect) printf 'ok\n' ;;

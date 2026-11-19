@@ -35,9 +35,6 @@ SLOT_X_1920 = 936                 # mép trái ô trống khi màn rộng 1920 (
 HOVER_DELAY_MS = 180              # rê vào bao lâu mới bật sóng (lướt qua thì thôi)
 LEAVE_DELAY_MS = 450
 
-BG = (1, 1, 1, 0.08)              # @surface
-BG_HI = (1, 1, 1, 0.17)           # @surface_hi
-RING = (1, 1, 1, 0.22)            # @ring
 TEXT = (0xfb / 255, 0xf7 / 255, 0xfd / 255)
 DIM = (0xd4 / 255, 0xca / 255, 0xde / 255)
 ACCENT = (0xe0 / 255, 0x55 / 255, 0x9a / 255)
@@ -145,6 +142,7 @@ def run():
             super().__init__()
             self.info = {"status": "Stopped", "title": "", "artist": ""}
             self.hover = False
+            self.hover_k = 0.0
             self.scroll_x = 0.0
             self.hover_proc = None
             self._hover_src = None
@@ -206,6 +204,8 @@ def run():
         def tick(self):
             if self.get_visible():
                 self.scroll_x += 1.2
+                target = 1.0 if self.hover else 0.0
+                self.hover_k += (target - self.hover_k) * 0.35   # ~200ms chuyển mượt
                 self.queue_draw()
             return True
 
@@ -214,31 +214,57 @@ def run():
             ctx.set_source_rgba(0, 0, 0, 0)
             ctx.paint()
             ctx.set_operator(cairo.OPERATOR_OVER)
-            w, h, r = PILL_W, PILL_H, 10
-            ctx.new_sub_path()
-            ctx.arc(w - r, r, r, -math.pi / 2, 0)
-            ctx.arc(w - r, h - r, r, 0, math.pi / 2)
-            ctx.arc(r, h - r, r, math.pi / 2, math.pi)
-            ctx.arc(r, r, r, math.pi, 3 * math.pi / 2)
-            ctx.close_path()
-            ctx.set_source_rgba(*(BG_HI if self.hover else BG))
-            ctx.fill_preserve()
-            if self.hover:
-                ctx.set_source_rgba(*RING)
-                ctx.set_line_width(1)
-                ctx.stroke()
-            else:
-                ctx.new_path()
+            w, h = PILL_W, PILL_H
+            r = h / 2.0                                   # bo tròn hẳn hai đầu (viên thuốc mềm)
+
+            def pill_path(inset=0.0):
+                rr = r - inset
+                ctx.new_sub_path()
+                ctx.arc(w - r, r, rr, -math.pi / 2, math.pi / 2)
+                ctx.arc(r, r, rr, math.pi / 2, 3 * math.pi / 2)
+                ctx.close_path()
+
+            hv = self.hover_k                              # 0..1, đổi mượt khi rê chuột
+            # nền kính: gradient chéo trắng mờ + ánh hồng→tím tăng dần khi rê chuột
+            pill_path()
+            g = cairo.LinearGradient(0, 0, w, h)
+            g.add_color_stop_rgba(0.0, 1, 1, 1, 0.10 + 0.06 * hv)
+            g.add_color_stop_rgba(1.0, 1, 1, 1, 0.04 + 0.04 * hv)
+            ctx.set_source(g)
+            ctx.fill()
+            if hv > 0.01:
+                pill_path()
+                g2 = cairo.LinearGradient(0, 0, w, 0)
+                g2.add_color_stop_rgba(0.0, *ACCENT, 0.30 * hv)
+                g2.add_color_stop_rgba(1.0, 0xa9 / 255, 0x5e / 255, 0xe8 / 255, 0.16 * hv)
+                ctx.set_source(g2)
+                ctx.fill()
+            # vệt sáng mép trên (như mặt kính) + viền mảnh
+            pill_path(0.5)
+            edge = cairo.LinearGradient(0, 0, 0, h)
+            edge.add_color_stop_rgba(0.0, 1, 1, 1, 0.26 + 0.14 * hv)
+            edge.add_color_stop_rgba(0.5, 1, 1, 1, 0.06)
+            edge.add_color_stop_rgba(1.0, 1, 1, 1, 0.10 + 0.08 * hv)
+            ctx.set_source(edge)
+            ctx.set_line_width(1)
+            ctx.stroke()
             playing = self.info["status"] == "Playing"
             # 4 vạch nhún nhảy (giả lập, không tốn cava) — dừng thì đứng yên thấp
             t = time.monotonic()
             for i in range(4):
                 amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
                 bh = 4 + amp * 12
-                ctx.set_source_rgb(*ACCENT)
-                x = 12 + i * 4.5
-                ctx.rectangle(x, h / 2 + 8 - bh, 2.6, bh)
-                ctx.fill()
+                x = 14 + i * 4.6
+                y0 = h / 2 + 8 - bh
+                gb = cairo.LinearGradient(0, y0, 0, y0 + bh)
+                gb.add_color_stop_rgb(0.0, 0xf0 / 255, 0x6a / 255, 0xab / 255)
+                gb.add_color_stop_rgb(1.0, 0xa9 / 255, 0x5e / 255, 0xe8 / 255)
+                ctx.set_source(gb)
+                ctx.set_line_width(2.8)
+                ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                ctx.move_to(x + 1.4, y0 + 1.4)
+                ctx.line_to(x + 1.4, y0 + bh - 1.4)
+                ctx.stroke()
             # chữ chạy ngang
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("Sans 10.5"))
@@ -246,7 +272,7 @@ def run():
             layout.set_markup(f"<i>{GLib.markup_escape_text(text)}</i>" if not playing
                               else GLib.markup_escape_text(text), -1)
             tw, th = layout.get_pixel_size()
-            x0, avail = 38, w - 38 - 12
+            x0, avail = 40, w - 40 - 14
             ctx.save()
             ctx.rectangle(x0, 0, avail, h)
             ctx.clip()

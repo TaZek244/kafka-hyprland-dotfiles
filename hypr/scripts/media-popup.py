@@ -59,111 +59,123 @@ G_NEXT = "\U000f04ad"   # 󰒭
 G_MUSIC = "\U000f0387"  # 󰎇
 
 CSS = """
-/* Đồng bộ bảng màu phẳng Waybar Kafka */
+/* Kính mờ (glassmorphism): nền trong suốt + Hyprland làm nhòe phía sau (layer rule blur trong
+   hyprland.lua, ignore_alpha để lớp phủ trong suốt quanh khung không bị nhòe). Màu ánh của khung đổi
+   theo ảnh bìa (provider thứ hai, xem _apply_tint). */
 * {
     font-family: "FiraCode Nerd Font", sans-serif;
     color: #fbf7fd;
     font-size: 11pt;
-    font-weight: 600;
+    font-weight: 500;
 }
 window {
     background-color: transparent;
 }
 .panel {
-    background-color: rgba(44, 36, 52, 0.96);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 16px;
-    padding: 16px;
+    background-color: rgba(34, 26, 44, 0.46);
+    background-image: linear-gradient(165deg, rgba(201, 71, 133, 0.30), rgba(30, 22, 40, 0.20) 55%, rgba(18, 13, 26, 0.35));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-top-color: rgba(255, 255, 255, 0.30);      /* vệt sáng mép trên như mặt kính */
+    border-radius: 24px;
+    padding: 20px 20px 16px 20px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10),
+                0 18px 48px rgba(8, 4, 14, 0.55);
 }
 .song-title {
     font-size: 15pt;
-    font-weight: 800;
-    color: #fbf7fd;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
 }
 .song-artist {
-    font-size: 11.5pt;
-    font-weight: 600;
-    color: #d4cade;
+    font-size: 11pt;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.78);
 }
 .song-player {
-    font-size: 9.5pt;
-    font-weight: 600;
-    color: #a091b1;
+    font-size: 9pt;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.45);
+    letter-spacing: 1px;
 }
 .empty-title {
     font-size: 13pt;
-    font-weight: 700;
-    color: #d4cade;
+    font-weight: 600;
+    color: rgba(251, 247, 253, 0.7);
 }
 .time-lbl {
-    font-size: 9.5pt;
-    font-weight: 600;
-    color: #d4cade;
+    font-size: 9pt;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.6);
 }
 button.ctrl-btn {
     font-family: "FiraCode Nerd Font Propo";
-    font-size: 18pt;
-    color: #fbf7fd;
+    font-size: 17pt;
+    color: rgba(255, 255, 255, 0.9);
     background-image: none;
-    background-color: rgba(255, 255, 255, 0.08);
-    border: none;
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 999px;
-    min-width: 42px;
-    min-height: 42px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     box-shadow: none;
-    transition: background-color 120ms ease, box-shadow 120ms ease;
+    transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 button.ctrl-btn:hover {
-    background-color: rgba(255, 255, 255, 0.17);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.26);
+    color: #ffffff;
 }
+button.ctrl-btn:active { background-color: rgba(255, 255, 255, 0.24); }
 button.play-btn {
     font-family: "FiraCode Nerd Font Propo";
-    font-size: 22pt;
-    color: #fbf7fd;
-    background-image: none;
+    font-size: 21pt;
+    color: #ffffff;
+    background-image: linear-gradient(135deg, #e0559a, #a95ee8);
     background-color: #c94785;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.28);
     border-radius: 999px;
-    min-width: 54px;
-    min-height: 54px;
+    min-width: 58px;
+    min-height: 58px;
     padding: 0;
-    box-shadow: none;
-    transition: background-color 120ms ease, box-shadow 120ms ease;
+    box-shadow: 0 6px 22px rgba(224, 85, 154, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: box-shadow 200ms ease, background-image 200ms ease;
 }
 button.play-btn:hover {
-    background-color: #e0559a;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    background-image: linear-gradient(135deg, #f06aab, #b973f2);
+    box-shadow: 0 8px 30px rgba(224, 85, 154, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
+button.play-btn:active { box-shadow: 0 3px 12px rgba(224, 85, 154, 0.45); }
 scale {
-    padding: 4px 0;
+    padding: 6px 0;
 }
 scale trough {
-    min-height: 6px;
-    background-color: rgba(255, 255, 255, 0.14);
+    min-height: 4px;
+    background-color: rgba(255, 255, 255, 0.12);
     border: none;
-    border-radius: 4px;
+    border-radius: 999px;
 }
 scale highlight {
-    min-height: 6px;
+    min-height: 4px;
+    background-image: linear-gradient(90deg, #e0559a, #b973f2);
     background-color: #e0559a;
-    background-image: none;
     border: none;
-    border-radius: 4px;
+    border-radius: 999px;
 }
 scale slider {
-    min-width: 14px;
-    min-height: 14px;
-    margin: -4px;
+    min-width: 12px;
+    min-height: 12px;
+    margin: -5px;
     border-radius: 50%;
-    background-color: #fbf7fd;
+    background-color: #ffffff;
     background-image: none;
     border: none;
-    box-shadow: none;
+    box-shadow: 0 0 0 3px rgba(224, 85, 154, 0.0), 0 1px 4px rgba(0, 0, 0, 0.4);
+    transition: box-shadow 160ms ease;
 }
-scale slider:hover {
-    background-color: #ffffff;
+scale:hover slider {
+    box-shadow: 0 0 0 5px rgba(224, 85, 154, 0.30), 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 scrolledwindow, viewport {
     background-color: transparent;
@@ -175,44 +187,47 @@ scrollbar {
     min-height: 0;
 }
 .lyrics-box {
-    background-color: rgba(255, 255, 255, 0.04);
-    border-radius: 12px;
-    padding: 8px 12px;
+    background-color: rgba(10, 6, 16, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    padding: 10px 12px;
 }
 .lyric-line {
     font-size: 12pt;
-    font-weight: 600;
-    color: #a091b1;
-    padding: 4px 6px;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.42);
+    padding: 5px 8px;
+    transition: color 250ms ease;
 }
 .lyric-line.active {
-    font-size: 14pt;
-    font-weight: 800;
-    color: #fbf7fd;
+    font-size: 14.5pt;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 0 14px rgba(224, 85, 154, 0.85), 0 0 2px rgba(255, 255, 255, 0.6);
 }
 .lyric-plain {
     font-size: 12pt;
-    font-weight: 600;
-    color: #d4cade;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.8);
     padding: 6px;
 }
 .lyric-status {
-    font-size: 12pt;
-    font-weight: 600;
-    color: #a091b1;
-    padding: 16px;
+    font-size: 11.5pt;
+    font-weight: 500;
+    color: rgba(251, 247, 253, 0.5);
+    padding: 18px;
 }
 button.lyric-btn {
     background-image: none;
     background-color: transparent;
     border: none;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 2px 4px;
     box-shadow: none;
-    transition: background-color 120ms ease;
+    transition: background-color 180ms ease;
 }
 button.lyric-btn:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.07);
 }
 """
 
@@ -1086,8 +1101,33 @@ def run_app(arg_x=None):
                     return
                 self.art_pixbuf = pixbuf
                 self.art_area.queue_draw()
+                self._apply_tint(pixbuf)
 
             self._bg(worker, done=done)
+
+        def _apply_tint(self, pixbuf):
+            """Ánh màu khung kính theo ảnh bìa: lấy màu trung bình, đẩy độ bão hoà lên cho tươi."""
+            import colorsys
+            rgb = None
+            if pixbuf is not None:
+                try:
+                    px = pixbuf.scale_simple(1, 1, GdkPixbuf.InterpType.BILINEAR).get_pixels()
+                    r, g, b = px[0] / 255, px[1] / 255, px[2] / 255
+                    h, sat, v = colorsys.rgb_to_hsv(r, g, b)
+                    rgb = colorsys.hsv_to_rgb(h, max(sat, 0.5), min(max(v, 0.55), 0.8))
+                except Exception:
+                    rgb = None
+            if rgb is None:
+                rgb = (0xC9 / 255, 0x47 / 255, 0x85 / 255)
+            r, g, b = (int(c * 255) for c in rgb)
+            css = (".panel { background-image: linear-gradient(165deg, "
+                   f"rgba({r},{g},{b},0.38), rgba(30,22,40,0.18) 55%, rgba(18,13,26,0.35)); }}\n"
+                   f".lyric-line.active {{ text-shadow: 0 0 14px rgba({r},{g},{b},0.9), 0 0 2px rgba(255,255,255,0.6); }}")
+            if not hasattr(self, "_tint_prov"):
+                self._tint_prov = Gtk.CssProvider()
+                Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), self._tint_prov,
+                                                         Gtk.STYLE_PROVIDER_PRIORITY_USER + 2)
+            self._tint_prov.load_from_data(css.encode("utf-8"))
 
         def _draw_art(self, _widget, ctx):
             r = float(ART_RADIUS)

@@ -200,6 +200,10 @@ hl.animation({ leaf = "borderangle", enabled = true, speed = 60, bezier = "linea
 hl.animation({ leaf = "fade",        enabled = true, speed = 5,  bezier = "kafkaSmooth" })
 hl.animation({ leaf = "workspaces",  enabled = true, speed = 5,  bezier = "kafkaSnap",   style = "slidefade 20%" })
 
+-- Kính mờ cho popup nhạc: Hyprland làm nhòe phía sau khung; ignore_alpha để lớp phủ trong suốt
+-- (alpha ~0) quanh khung không bị nhòe cả màn hình.
+hl.layer_rule({ name = "kafka-glass-media", match = { namespace = "^kafka-media-popup$" }, blur = true, ignore_alpha = 0.05 })
+
 -- Cử chỉ kiểu niri: vuốt 3 ngón ngang = cuộn dải cột, 3 ngón dọc = đổi workspace
 hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
 hl.gesture({ fingers = 3, direction = "vertical",   action = "workspace" })

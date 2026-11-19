@@ -42,27 +42,37 @@ FRAMES = {
 }
 PANEL_ALPHA = {"panel": 242}     # độ đục nền panel (0..255)
 
+# Ảnh cỡ cố định (không 9-slice) cho màn hình khoá hyprlock (hypr/hyprlock-pixel.conf):
+# tên: (rộng, cao, bán kính, độ đục nền, màu như FRAMES)
+FIXED = {
+    "lock-card":  (460, 420, 16, 215, ("#140e1a", "#56466a", "#1d1626", "#261e30")),
+    "lock-clock": (420, 150, 14, 190, ("#140e1a", "#56466a", "#1d1626", "#261e30")),
+}
 
-def inside(px, py, n, r):
-    """Điểm (px, py) (toạ độ thực) có nằm trong hình chữ nhật bo góc n×n bán kính r không."""
+
+def inside(px, py, n, r, nh=None):
+    """Điểm (px, py) (toạ độ thực) có nằm trong hình chữ nhật bo góc n×nh (mặc định vuông) bán kính r không."""
+    nh = n if nh is None else nh
     qx = min(px, n - px)
-    qy = min(py, n - py)
+    qy = min(py, nh - py)
     if qx >= r or qy >= r:
         return True
     return (r - qx) ** 2 + (r - qy) ** 2 <= r * r
 
 
-def coverage(x, y, n, r):
+def coverage(x, y, n, r, nh=None):
     """Tỉ lệ điểm ảnh (x, y) nằm trong hình (lấy mẫu SS×SS) → khử răng cưa mép ngoài."""
-    hit = sum(inside(x + (i + 0.5) / SS, y + (j + 0.5) / SS, n, r) for i in range(SS) for j in range(SS))
+    hit = sum(inside(x + (i + 0.5) / SS, y + (j + 0.5) / SS, n, r, nh) for i in range(SS) for j in range(SS))
     return hit / (SS * SS)
 
 
-def render(outline, hi, sh, fill, n, r, fill_alpha=255):
-    ins = [[inside(x + 0.5, y + 0.5, n, r) for x in range(n)] for y in range(n)]
+def render(outline, hi, sh, fill, n, r, fill_alpha=255, nh=None):
+    """Ảnh RGBA n×nh (nh mặc định = n)."""
+    nh = n if nh is None else nh
+    ins = [[inside(x + 0.5, y + 0.5, n, r, nh) for x in range(n)] for y in range(nh)]
 
     def inn(x, y):
-        return 0 <= x < n and 0 <= y < n and ins[y][x]
+        return 0 <= x < n and 0 <= y < nh and ins[y][x]
 
     def depth(x, y):
         """0 = điểm viền (sát ngoài), 1 = lớp thứ hai, 2 = bên trong."""
@@ -71,10 +81,10 @@ def render(outline, hi, sh, fill, n, r, fill_alpha=255):
                    if abs(dx) + abs(dy) <= d):
                 return d - 1
         return 2
-    buf = bytearray(n * n * 4)
-    for y in range(n):
+    buf = bytearray(n * nh * 4)
+    for y in range(nh):
         for x in range(n):
-            cov = coverage(x, y, n, r)
+            cov = coverage(x, y, n, r, nh)
             if cov <= 0:
                 continue
             d = depth(x, y) if ins[y][x] else 0
@@ -82,7 +92,7 @@ def render(outline, hi, sh, fill, n, r, fill_alpha=255):
                 col = (*outline[:3], round(255 * cov))
             elif d == 1:
                 # mép sáng nửa trên-trái, bóng nửa dưới-phải (chia theo đường chéo phụ)
-                col = hi if (x + y) < n - 1 else sh
+                col = hi if (x * nh + y * n) < n * nh - min(n, nh) else sh   # vuông: x + y < n - 1
             else:
                 col = (*fill[:3], fill_alpha)
             buf[(y * n + x) * 4:(y * n + x) * 4 + 4] = bytes(col)
@@ -96,7 +106,10 @@ def main():
         r = PANEL_RADIUS if panel else RADIUS
         rgba = render(*(hexc(c) for c in cols), n, r, PANEL_ALPHA.get(name, 255))
         xw._write_png(os.path.join(HERE, f"{name}.png"), n, n, rgba)
-    print(f"Đã sinh {len(FRAMES)} khung vào {HERE} (cụm: bo {RADIUS} cắt {SLICE}; popup: bo {PANEL_RADIUS} cắt {PANEL_SLICE})")
+    for name, (w, h, r, a, cols) in FIXED.items():
+        rgba = render(*(hexc(c) for c in cols), w, r, a, h)
+        xw._write_png(os.path.join(HERE, f"{name}.png"), w, h, rgba)
+    print(f"Đã sinh {len(FRAMES)} khung + {len(FIXED)} ảnh cố định vào {HERE} (cụm: bo {RADIUS} cắt {SLICE}; popup: bo {PANEL_RADIUS} cắt {PANEL_SLICE})")
 
 
 if __name__ == "__main__":

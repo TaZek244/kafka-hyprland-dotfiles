@@ -47,5 +47,5 @@ case "$choice" in
        fi ;;
     4) "$scripts/closemenu.sh" ;;
     5) "$scripts/tile-menu.sh" ;;
-    6) pidof hyprlock >/dev/null || hyprlock ;;
+    6) "$(dirname "$0")/lock.sh" ;;
 esac

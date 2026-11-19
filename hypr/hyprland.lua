@@ -237,7 +237,7 @@ hl.bind(key("O"),              hl.dsp.exec_cmd(scripts .. "hide-windows.py menu"
 hl.bind(key("I"),              hl.dsp.exec_cmd(scripts .. "hide-windows.py hide-active")) -- ẩn cửa sổ đang chọn (vào special:hidden)
 hl.bind(key("SHIFT + I"),      hl.dsp.exec_cmd(scripts .. "hide-windows.py show-all"))  -- hiện lại mọi cửa sổ đã ẩn
 hl.bind(key("M"),              hl.dsp.exec_cmd(powerMenu))
-hl.bind(key("Escape"),         hl.dsp.exec_cmd("pidof hyprlock || hyprlock"))
+hl.bind(key("Escape"),         hl.dsp.exec_cmd(scripts .. "lock.sh"))   -- hyprlock theo giao diện (pixel/phẳng)
 hl.bind(key("E"),              hl.dsp.exec_cmd(fileManager))
 hl.bind(key("Space"),          hl.dsp.exec_cmd(menu))
 hl.bind(key("R"),              hl.dsp.exec_cmd(menu))

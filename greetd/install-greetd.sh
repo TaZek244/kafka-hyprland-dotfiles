@@ -3,6 +3,8 @@
 # install-greetd.sh --switch   : như trên, rồi tắt GDM (nếu còn) và bật greetd (có hiệu lực từ lần khởi động sau)
 # install-greetd.sh --cursors  : chỉ chép bộ con trỏ Kafka (~/.local/share/icons/Kafka-BEN, Kafka-Cursor) vào
 #                                /usr/share/icons + cấu hình greetd/ReGreet dùng nó (không cài gói, không đổi trình đăng nhập)
+# install-greetd.sh --theme    : chỉ chép lại giao diện ReGreet theo giao diện đang dùng (ui-theme.sh):
+#                                pixel → regreet-pixel.css + ảnh khung pixel-panel.png ; phẳng → regreet.css
 # install-greetd.sh --revert   : bỏ ReGreet, dùng màn hình đăng nhập dạng chữ agreety (vẫn là greetd,
 #                                không cần GDM nên dùng được cả khi đã gỡ GNOME)
 #
@@ -30,6 +32,24 @@ install_cursors() {
     done
     echo "Đã chép $n bộ con trỏ vào /usr/share/icons (${CURSOR_THEMES[*]})"
 }
+
+# Giao diện ReGreet theo ~/.local/state/kafka/ui-theme (đổi theme xong chạy lại `--theme`, cần sudo)
+install_greeter_theme() {
+    local mode css="$REPO_DIR/greetd/regreet.css"
+    mode=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/kafka/ui-theme" 2>/dev/null || echo flat)
+    if [ "$mode" = "pixel" ] && [ -f "$REPO_DIR/greetd/regreet-pixel.css" ]; then
+        css="$REPO_DIR/greetd/regreet-pixel.css"
+        sudo install -Dm644 "$REPO_DIR/waybar/pixel/panel.png" /etc/greetd/pixel-panel.png
+    fi
+    [ -f /etc/greetd/regreet.css ] && [ ! -f /etc/greetd/regreet.css.bak ] && sudo cp /etc/greetd/regreet.css /etc/greetd/regreet.css.bak
+    sudo install -Dm644 "$css" /etc/greetd/regreet.css
+    echo "Giao diện màn hình đăng nhập: $mode ($(basename "$css"))"
+}
+
+if [ "${1:-}" = "--theme" ]; then
+    install_greeter_theme
+    exit 0
+fi
 
 if [ "${1:-}" = "--cursors" ]; then
     install_cursors
@@ -59,11 +79,12 @@ fi
 
 sudo pacman -S --needed greetd greetd-regreet cage
 
-for f in config.toml regreet.toml regreet.css config-fallback.toml; do
+for f in config.toml regreet.toml config-fallback.toml; do
     [ -f "/etc/greetd/$f" ] && [ ! -f "/etc/greetd/$f.bak" ] && sudo cp "/etc/greetd/$f" "/etc/greetd/$f.bak"
     sudo install -Dm644 "$REPO_DIR/greetd/$f" "/etc/greetd/$f"
 done
 sudo install -Dm644 "$REPO_DIR/greetd/greeter-bg.jpg" /usr/share/backgrounds/kafka-greeter.jpg
+install_greeter_theme
 install_cursors
 echo "Đã chép cấu hình vào /etc/greetd/ và ảnh nền vào /usr/share/backgrounds/kafka-greeter.jpg"
 

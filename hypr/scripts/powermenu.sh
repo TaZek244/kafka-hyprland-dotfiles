@@ -41,7 +41,7 @@ choice=$(show 5 "Esc hoặc bấm ra ngoài để đóng" \
     "$(item '󰐥' 'Shutdown')")
 
 case "$choice" in
-    0) pidof hyprlock >/dev/null || hyprlock ;;
+    0) "$(dirname "$0")/lock.sh" ;;
     1) systemctl suspend ;;
     2) confirm "đăng xuất" && hyprctl dispatch "hl.dsp.exit()" ;;
     3) confirm "khởi động lại" && systemctl reboot ;;

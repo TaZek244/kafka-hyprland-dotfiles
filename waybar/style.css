@@ -138,11 +138,8 @@ window#waybar.topbar > box {
     background: transparent;
     transition: background-color 120ms ease, color 120ms ease;
 }
-#workspaces button.empty {     /* Focus Hint: workspace trống mờ + nhỏ */
-    min-width: 18px;
-    padding: 0 4px;
+#workspaces button.empty {     /* workspace trống: chỉ mờ, GIỮ cùng cỡ ô (người dùng chọn 2026-11-19: ô đều nhau, thanh không xô lệch) */
     color: @faint;
-    font-size: 11px;
 }
 #workspaces button:hover {
     background-color: @surface_hi;

@@ -272,9 +272,20 @@ step_system() {
     if command -v gsettings >/dev/null; then
         run gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'
         run gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-        run gsettings set org.gnome.desktop.interface icon-theme 'Papirus'
-        ok "GTK: Adwaita + prefer-dark, icon Papirus"
+        ok "GTK: Adwaita + prefer-dark"
     fi
+    # Icon "Kafka" (Papirus-Dark + thư mục hồng tím, mạng nhện) và con trỏ "Kafka-Cursor": dựng từ script trong repo
+    run python3 "$REPO_DIR/icons/build-kafka-icons.py"
+    run python3 "$REPO_DIR/cursors/build-kafka-cursor.py"
+    if command -v gsettings >/dev/null; then
+        run gsettings set org.gnome.desktop.interface icon-theme 'Kafka'
+        run gsettings set org.gnome.desktop.interface cursor-theme 'Kafka-Cursor'
+        run gsettings set org.gnome.desktop.interface cursor-size 24
+    fi
+    # app X/XWayland đọc con trỏ mặc định ở ~/.icons/default
+    if (( DRY )); then info "\$ ghi ~/.icons/default/index.theme (Inherits=Kafka-Cursor)"
+    else mkdir -p "$HOME/.icons/default"; printf '[Icon Theme]\nInherits=Kafka-Cursor\n' > "$HOME/.icons/default/index.theme"; fi
+    ok "Icon Kafka + con trỏ Kafka-Cursor"
     if command -v xdg-mime >/dev/null; then
         local m
         for m in image/jpeg image/png image/gif image/webp image/bmp image/tiff image/svg+xml image/avif image/heif image/jxl; do

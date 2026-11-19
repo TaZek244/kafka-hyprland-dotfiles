@@ -94,6 +94,9 @@ end
 -- ----------------
 -- 4. ENVIRONMENT VARIABLES
 -- ----------------
+-- Con trỏ Kafka (thiết kế riêng, dựng bằng cursors/build-kafka-cursor.py: hyprcursor + Xcursor)
+hl.env("XCURSOR_THEME", "Kafka-Cursor")
+hl.env("HYPRCURSOR_THEME", "Kafka-Cursor")
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")

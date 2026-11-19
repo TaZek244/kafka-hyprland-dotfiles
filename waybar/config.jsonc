@@ -17,7 +17,7 @@
     ],
     "modules-center": [
         "clock",
-        "mpris"
+        "custom/media-slot"
     ],
     "modules-right": [
         "group/system",
@@ -126,6 +126,18 @@
     },
 
 
+    // Ô trống giữ chỗ cho ô "Đang phát": nội dung do hypr/scripts/media-pill.py vẽ đè (lớp overlay) để bắt
+    // được rê chuột (Waybar không có sự kiện hover). Rộng cố định = PILL_W trong media-pill.py.
+    // Không có nhạc thì media-pill ghi "off" + signal 17 → chữ rỗng → ô ẩn, đồng hồ về giữa.
+    "custom/media-slot": {
+        "exec": "[ \"$(cat \"$XDG_RUNTIME_DIR/kafka-media-slot\" 2>/dev/null)\" = on ] && echo '{\"text\":\" \",\"class\":\"on\"}' || echo '{\"text\":\"\"}'",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 17,
+        "tooltip": false
+    },
+
+    // (không dùng nữa, thay bằng custom/media-slot + media-pill.py; giữ lại để quay về nếu cần)
     "mpris": {
         "format": "{status_icon}  {dynamic}",
         "format-paused": "{status_icon}  <i>{dynamic}</i>",

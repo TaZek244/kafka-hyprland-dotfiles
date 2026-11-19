@@ -13,6 +13,8 @@ Cách dùng:
   cava-wallpaper.py --status    In "on" nếu đang chạy, "off" nếu không
   cava-wallpaper.py --mode overlay|wallpaper   Đổi chế độ (đang chạy thì chạy lại ngay)
   cava-wallpaper.py --cycle-mode               Đổi qua lại hai chế độ (Super + Alt + A)
+  cava-wallpaper.py --style wave|bars          Kiểu vẽ: sóng cực quang (mặc định) hoặc cột cũ
+  cava-wallpaper.py --overlay                  Chạy ở chế độ nổi bất kể chế độ đã lưu (rê chuột lên ô nhạc)
   cava-wallpaper.py --selftest  Kiểm tra logic thuần không cần màn hình (in PASS/FAIL)
 """
 
@@ -47,6 +49,9 @@ MODES = ("overlay", "wallpaper")
 MODE_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
                          "kafka", "cava-mode")
 MODE = "overlay"
+WAVE_DOWNSCALE = 3   # sóng vẽ ở 1/3 độ phân giải rồi phóng lên (vẽ thẳng ~56% CPU, 1/2 ~20%, 1/3 ~10%)
+WAVE_FPS = 30        # sóng mềm, 30 khung/giây là đủ mượt
+STYLE = os.environ.get("KAFKA_CAVA_STYLE", "wave")   # "wave" (sóng cực quang) | "bars" (cột cũ)
 
 
 def read_mode():
@@ -302,7 +307,7 @@ def run_visualizer():
             """Tạo file cấu hình tạm và khởi chạy tiến trình con cava."""
             fd, self.cfg_path = tempfile.mkstemp(prefix="kafka-cava-", suffix=".conf")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(build_cava_config(BARS, FRAMERATE))
+                f.write(build_cava_config(BARS, WAVE_FPS if STYLE == "wave" else FRAMERATE))
 
             try:
                 self.cava_proc = subprocess.Popen(
@@ -385,7 +390,7 @@ def run_visualizer():
                     self.queue_draw()
 
         def on_draw(self, _widget, ctx):
-            """Vẽ các cột sóng bo tròn đầu với màu gradient dọc bằng Cairo."""
+            """Vẽ sóng nhạc. Kiểu mặc định "wave" (sóng cực quang), "bars" = cột bo tròn cũ."""
             ctx.set_operator(cairo.OPERATOR_CLEAR)
             ctx.paint()
             ctx.set_operator(cairo.OPERATOR_OVER)
@@ -398,38 +403,146 @@ def run_visualizer():
             n = len(self.bars)
             if n == 0 or width <= 0 or height <= 0:
                 return True
+            if STYLE == "bars":
+                return self._draw_bars(ctx, width, height)
+            # Sóng vẽ ở nửa độ phân giải rồi phóng lên: tô ít điểm ảnh hơn 4 lần (vẽ thẳng ~56% CPU),
+            # hình mềm nên phóng lên không thấy khác.
+            sw, sh = max(1, width // WAVE_DOWNSCALE), max(1, height // WAVE_DOWNSCALE)
+            surf = getattr(self, "_wave_surf", None)
+            if surf is None or surf.get_width() != sw or surf.get_height() != sh:
+                surf = self._wave_surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, sw, sh)
+            c2 = cairo.Context(surf)
+            c2.set_operator(cairo.OPERATOR_CLEAR)
+            c2.paint()
+            c2.set_operator(cairo.OPERATOR_OVER)
+            self._draw_wave(c2, sw, sh)
+            ctx.save()
+            ctx.scale(width / sw, height / sh)
+            ctx.set_source_surface(surf, 0, 0)
+            ctx.get_source().set_filter(cairo.FILTER_BILINEAR)
+            ctx.paint()
+            ctx.restore()
+            return True
 
+        def _draw_wave(self, ctx, width, height):
+            """Sóng cực quang: 3 lớp sóng cong (Catmull-Rom) màu hồng→tím đổi sắc theo thời gian,
+            viền phát sáng và chấm đỉnh rơi chậm."""
+            vals = [min(v, float(ASCII_MAX)) / float(ASCII_MAX) for v in self.bars]
+            k_px = 1.0 / WAVE_DOWNSCALE           # đơn vị nét/chấm theo độ phân giải vẽ
+            max_h = max(1.0, float(height - 12 * k_px))
+            t = time.monotonic()
+            # chấm đỉnh: giữ đỉnh rồi rơi dần
+            peaks = getattr(self, "_peaks", None)
+            if not peaks or len(peaks) != len(vals):
+                peaks = [0.0] * len(vals)
+            peaks = [max(v, p - 0.012) for v, p in zip(vals, peaks)]
+            self._peaks = peaks
+
+            shift = 0.5 + 0.5 * math.sin(t * 0.35)          # sắc màu trôi chậm
+            pink = (0xE0 / 255, 0x55 / 255, 0x9A / 255)
+            violet = (0xC7 / 255, 0x7D / 255, 0xFF / 255)
+            rose = (0xFF / 255, 0x7A / 255, 0xA2 / 255)
+
+            def mix(a, b, k):
+                return tuple(a[i] + (b[i] - a[i]) * k for i in range(3))
+
+            c_left, c_mid, c_right = mix(pink, violet, shift), mix(rose, pink, shift), mix(violet, rose, shift)
+            a_top = TOP_COLOR[3]
+            a_bot = BOT_COLOR[3]
+
+            def points(scale, phase):
+                n = len(vals)
+                pts = []
+                for i, v in enumerate(vals):
+                    wob = 0.06 * math.sin(t * 2.2 + i * 0.45 + phase) * (0.3 + v)
+                    h = max(0.0, (v * scale + wob * scale)) * max_h
+                    x = (i + 0.5) * width / n
+                    pts.append((x, height - h))
+                return [(0.0, pts[0][1])] + pts + [(float(width), pts[-1][1])]
+
+            def curve(pts):
+                ctx.move_to(*pts[0])
+                for i in range(len(pts) - 1):
+                    p0 = pts[i - 1] if i > 0 else pts[i]
+                    p1, p2 = pts[i], pts[i + 1]
+                    p3 = pts[i + 2] if i + 2 < len(pts) else p2
+                    ctx.curve_to(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6,
+                                 p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6,
+                                 p2[0], p2[1])
+
+            def hgrad(alpha):
+                g = cairo.LinearGradient(0, 0, width, 0)
+                g.add_color_stop_rgba(0.0, *c_left, alpha)
+                g.add_color_stop_rgba(0.5, *c_mid, alpha)
+                g.add_color_stop_rgba(1.0, *c_right, alpha)
+                return g
+
+            # 3 lớp: sau (to, mờ) → trước (vừa, đậm hơn)
+            for scale, phase, k in ((1.05, 1.7, 0.45), (0.85, 3.1, 0.7), (0.65, 0.0, 1.0)):
+                pts = points(scale, phase)
+                curve(pts)
+                ctx.line_to(width, height)
+                ctx.line_to(0, height)
+                ctx.close_path()
+                fill = cairo.LinearGradient(0, height - max_h, 0, height)
+                cl = mix(c_left, c_right, 0.5)
+                fill.add_color_stop_rgba(0.0, *cl, a_top * 0.55 * k)
+                fill.add_color_stop_rgba(1.0, *cl, a_bot * k)
+                ctx.set_source(fill)
+                ctx.fill()
+                # viền sáng: lớp mờ rộng (phát quang) + nét mảnh
+                curve(pts)
+                ctx.set_line_join(cairo.LINE_JOIN_ROUND)
+                ctx.set_source(hgrad(a_top * 0.3 * k))
+                ctx.set_line_width(4.0 * k_px)
+                ctx.stroke_preserve()
+                ctx.set_source(hgrad(min(1.0, a_top * 1.1) * k))
+                ctx.set_line_width(1.8 * k_px)
+                ctx.stroke()
+
+            # chấm đỉnh
+            n = len(peaks)
+            for i, pk in enumerate(peaks):
+                if pk < 0.04:
+                    continue
+                x = (i + 0.5) * width / n
+                y = height - pk * max_h * 1.05 - 5 * k_px
+                col = mix(c_left, c_right, i / max(1, n - 1))
+                ctx.set_source_rgba(*col, a_top * 0.35)
+                ctx.arc(x, y, 3.2 * k_px, 0, 2 * math.pi)
+                ctx.fill()
+                ctx.set_source_rgba(1, 1, 1, min(1.0, a_top * 0.9))
+                ctx.arc(x, y, 1.4 * k_px, 0, 2 * math.pi)
+                ctx.fill()
+            return True
+
+        def _draw_bars(self, ctx, width, height):
+            """Kiểu cũ: cột bo tròn đầu, gradient dọc."""
+            n = len(self.bars)
             max_bar_h = max(1.0, float(height - 10))
             total_gaps = BAR_GAP * (n - 1)
             bar_w = max(1.0, (width - total_gaps) / float(n))
             step = bar_w + BAR_GAP
             radius = bar_w / 2.0
-
-            # Gradient dọc từ đỉnh (y = height - max_bar_h) xuống đáy (y = height)
             grad = cairo.LinearGradient(0, height - max_bar_h, 0, height)
             grad.add_color_stop_rgba(0.0, *TOP_COLOR)
             grad.add_color_stop_rgba(1.0, *BOT_COLOR)
             ctx.set_source(grad)
-
             for i, val in enumerate(self.bars):
                 if val <= 0.5:
                     continue
                 bar_h = (min(val, float(ASCII_MAX)) / float(ASCII_MAX)) * max_bar_h
                 if bar_h < 1.0:
                     continue
-
                 x = i * step
                 y_top = height - bar_h
                 r = min(radius, bar_h / 2.0)
-
-                # Cột có đỉnh bo tròn nửa hình tròn, chân phẳng sát mép dưới
                 ctx.new_sub_path()
                 ctx.move_to(x, height)
                 ctx.line_to(x, y_top + r)
                 ctx.arc(x + radius, y_top + r, r, math.pi, 0.0)
                 ctx.line_to(x + bar_w, height)
                 ctx.close_path()
-
             ctx.fill()
             return True
 
@@ -529,7 +642,13 @@ def main():
         print(f"cava-wallpaper.py đã chạy (pid {pid})", file=sys.stderr)
         return 0
 
-    apply_mode(read_mode())
+    global STYLE
+    if "--style" in args:
+        i = args.index("--style")
+        if i + 1 < len(args) and args[i + 1] in ("wave", "bars"):
+            STYLE = args[i + 1]
+    # --overlay: luôn nổi trên cửa sổ, không theo chế độ đã lưu (media-pill.py dùng khi rê chuột lên ô nhạc)
+    apply_mode("overlay" if "--overlay" in args else read_mode())
     write_pidfile()
     try:
         run_visualizer()

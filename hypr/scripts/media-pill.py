@@ -1,0 +1,373 @@
+#!/usr/bin/env python3
+"""media-pill.py — ô "Đang phát" trên thanh trên, tự vẽ để bắt được rê chuột.
+
+Waybar (0.16) không có sự kiện rê chuột cho module, Hyprland cũng không báo di chuột. Nên Waybar chỉ
+giữ một ô trống rộng cố định (`custom/media-slot`, sau đồng hồ), còn script này vẽ đè đúng chỗ đó một
+cửa sổ GTK3 layer-shell lớp OVERLAY (lớp top luôn nằm dưới Waybar) — cùng cách với corner-fillet.py.
+
+  • Hiện: icon trạng thái, tên bài — ca sĩ (chữ dài thì chạy ngang), 4 vạch nhún nhảy khi đang phát.
+  • Rê chuột: bật sóng nhạc nổi trên màn hình (cava-wallpaper.py --overlay), rời chuột thì tắt
+    (trừ khi bạn đã tự bật bằng Super + Shift + A).
+  • Bấm trái: popup "Đang phát" (media-popup.py: ảnh bìa, điều khiển, sóng nhạc, lời bài hát).
+    Bấm phải: phát/dừng. Lăn: bài sau/trước.
+  • Không có nhạc: ẩn ô và báo Waybar ẩn ô trống (file $XDG_RUNTIME_DIR/kafka-media-slot + signal 17).
+  • Tự ẩn khi workspace có cửa sổ toàn màn hình thật.
+Vị trí (SLOT_X…) đo bằng grim cho màn 1920 — đổi đồng hồ/độ rộng ô thì đo lại (xem CLAUDE.md).
+
+Dùng: media-pill.py (chạy, 1 bản) · --stop · --selftest
+"""
+
+import os
+import signal
+import subprocess
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+RUN = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
+PIDFILE = os.path.join(RUN, "kafka-media-pill.pid")
+SLOT_FILE = os.path.join(RUN, "kafka-media-slot")
+SLOT_SIGNAL = 17
+
+PILL_W, PILL_H = 289, 27          # đo bằng grim: ô trống #custom-media-slot (min-width 300px) ra 289x27 tại y = 6..32
+TOP = 6                           # mép trên ô trống (đo bằng grim)
+SLOT_X_1920 = 936                 # mép trái ô trống khi màn rộng 1920 (đo bằng grim, có nhạc: đồng hồ + ô trống canh giữa)
+HOVER_DELAY_MS = 180              # rê vào bao lâu mới bật sóng (lướt qua thì thôi)
+LEAVE_DELAY_MS = 450
+
+BG = (1, 1, 1, 0.08)              # @surface
+BG_HI = (1, 1, 1, 0.17)           # @surface_hi
+RING = (1, 1, 1, 0.22)            # @ring
+TEXT = (0xfb / 255, 0xf7 / 255, 0xfd / 255)
+DIM = (0xd4 / 255, 0xca / 255, 0xde / 255)
+ACCENT = (0xe0 / 255, 0x55 / 255, 0x9a / 255)
+
+
+def parse_status_line(line):
+    """'Playing\\tTên\\tCa sĩ' → dict; dòng rỗng/thiếu → trạng thái Stopped."""
+    parts = (line.rstrip("\n").split("\t") + ["", "", ""])[:3]
+    status, title, artist = (p.strip() for p in parts)
+    if status not in ("Playing", "Paused"):
+        status = "Stopped"
+    return {"status": status, "title": title, "artist": artist}
+
+
+def visible_for(info):
+    return info["status"] in ("Playing", "Paused") and bool(info["title"])
+
+
+def label_for(info):
+    return f"{info['title']} — {info['artist']}" if info["artist"] else info["title"]
+
+
+def write_slot(on):
+    try:
+        with open(SLOT_FILE, "w") as f:
+            f.write("on\n" if on else "off\n")
+    except OSError:
+        pass
+    subprocess.Popen(["pkill", f"-RTMIN+{SLOT_SIGNAL}", "waybar"],
+                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def selftest():
+    ok = True
+
+    def check(name, cond):
+        nonlocal ok
+        print(("PASS: " if cond else "FAIL: ") + name)
+        ok = ok and cond
+    i = parse_status_line("Playing\tSài Gòn Hôm Nay Mưa\tJSOL, Hoàng Duyên\n")
+    check("parse playing", i == {"status": "Playing", "title": "Sài Gòn Hôm Nay Mưa", "artist": "JSOL, Hoàng Duyên"})
+    check("label có ca sĩ", label_for(i) == "Sài Gòn Hôm Nay Mưa — JSOL, Hoàng Duyên")
+    check("hiện khi phát", visible_for(i))
+    check("dòng rỗng = Stopped", parse_status_line("")["status"] == "Stopped")
+    check("ẩn khi dừng", not visible_for(parse_status_line("Stopped\tx\ty")))
+    check("ẩn khi không có tên (Chromium chưa phát)", not visible_for(parse_status_line("Paused\t\t")))
+    check("label không ca sĩ", label_for(parse_status_line("Paused\tBài\t")) == "Bài")
+    return 0 if ok else 1
+
+
+def read_pid():
+    try:
+        pid = int(open(PIDFILE).read().strip())
+        os.kill(pid, 0)
+        if b"media-pill" in open(f"/proc/{pid}/cmdline", "rb").read():
+            return pid
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def main():
+    if "--selftest" in sys.argv:
+        return selftest()
+    if "--stop" in sys.argv:
+        pid = read_pid()
+        if pid:
+            os.kill(pid, signal.SIGTERM)
+        return 0
+    if read_pid():
+        print("media-pill.py đã chạy", file=sys.stderr)
+        return 0
+    with open(PIDFILE, "w") as f:
+        f.write(str(os.getpid()))
+    try:
+        return run()
+    finally:
+        try:
+            if open(PIDFILE).read().strip() == str(os.getpid()):
+                os.unlink(PIDFILE)
+        except OSError:
+            pass
+        write_slot(False)
+
+
+def run():
+    import math
+    import threading
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    gi.require_version("GtkLayerShell", "0.1")
+    gi.require_version("PangoCairo", "1.0")
+    from gi.repository import Gtk, Gdk, GLib, GtkLayerShell, Pango, PangoCairo
+    import cairo
+
+    sys.path.insert(0, HERE)
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("corner_fillet", os.path.join(HERE, "corner-fillet.py"))
+    cf = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cf)            # dùng lại co_fullscreen_that / theo_doi_fullscreen
+
+    class Pill(Gtk.Window):
+        def __init__(self):
+            super().__init__()
+            self.info = {"status": "Stopped", "title": "", "artist": ""}
+            self.hover = False
+            self.scroll_x = 0.0
+            self.hover_proc = None
+            self._hover_src = None
+            self._leave_src = None
+            self.fullscreen = False
+            GtkLayerShell.init_for_window(self)
+            GtkLayerShell.set_namespace(self, "kafka-media-pill")
+            GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
+            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.TOP, True)
+            GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
+            GtkLayerShell.set_exclusive_zone(self, -1)
+            GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.NONE)
+            screen = self.get_screen()
+            visual = screen.get_rgba_visual()
+            if visual:
+                self.set_visual(visual)
+            self.set_app_paintable(True)
+            self.set_size_request(PILL_W, PILL_H)
+            GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, TOP)
+            GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, self.slot_x())
+            self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
+                            | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.SCROLL_MASK
+                            | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+            self.connect("draw", self.on_draw)
+            self.connect("enter-notify-event", self.on_enter)
+            self.connect("leave-notify-event", self.on_leave)
+            self.connect("button-press-event", self.on_button)
+            self.connect("scroll-event", self.on_scroll)
+            self._anim = GLib.timeout_add(50, self.tick)   # chạy chữ + vạch nhún (20 khung/giây)
+
+        def slot_x(self):
+            disp = Gdk.Display.get_default()
+            mon = disp.get_monitor(0)
+            w = mon.get_geometry().width if mon else 1920
+            return int(SLOT_X_1920 + (w - 1920) / 2)   # khối giữa canh giữa thanh
+
+        # ---- dữ liệu ----
+        def set_info(self, info):
+            changed = info != self.info
+            was = visible_for(self.info)
+            self.info = info
+            vis = visible_for(info)
+            if vis != was:
+                write_slot(vis)
+            self.update_visible()
+            if changed:
+                self.scroll_x = 0.0
+                self.queue_draw()
+            return False
+
+        def update_visible(self):
+            if visible_for(self.info) and not self.fullscreen:
+                self.show_all()
+            else:
+                self.stop_hover_fx()
+                self.hide()
+
+        # ---- vẽ ----
+        def tick(self):
+            if self.get_visible():
+                self.scroll_x += 1.2
+                self.queue_draw()
+            return True
+
+        def on_draw(self, _w, ctx):
+            ctx.set_operator(cairo.OPERATOR_SOURCE)
+            ctx.set_source_rgba(0, 0, 0, 0)
+            ctx.paint()
+            ctx.set_operator(cairo.OPERATOR_OVER)
+            w, h, r = PILL_W, PILL_H, 10
+            ctx.new_sub_path()
+            ctx.arc(w - r, r, r, -math.pi / 2, 0)
+            ctx.arc(w - r, h - r, r, 0, math.pi / 2)
+            ctx.arc(r, h - r, r, math.pi / 2, math.pi)
+            ctx.arc(r, r, r, math.pi, 3 * math.pi / 2)
+            ctx.close_path()
+            ctx.set_source_rgba(*(BG_HI if self.hover else BG))
+            ctx.fill_preserve()
+            if self.hover:
+                ctx.set_source_rgba(*RING)
+                ctx.set_line_width(1)
+                ctx.stroke()
+            else:
+                ctx.new_path()
+            playing = self.info["status"] == "Playing"
+            # 4 vạch nhún nhảy (giả lập, không tốn cava) — dừng thì đứng yên thấp
+            t = time.monotonic()
+            for i in range(4):
+                amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
+                bh = 4 + amp * 12
+                ctx.set_source_rgb(*ACCENT)
+                x = 12 + i * 4.5
+                ctx.rectangle(x, h / 2 + 8 - bh, 2.6, bh)
+                ctx.fill()
+            # chữ chạy ngang
+            layout = PangoCairo.create_layout(ctx)
+            layout.set_font_description(Pango.FontDescription("Sans 10.5"))
+            text = label_for(self.info)
+            layout.set_markup(f"<i>{GLib.markup_escape_text(text)}</i>" if not playing
+                              else GLib.markup_escape_text(text), -1)
+            tw, th = layout.get_pixel_size()
+            x0, avail = 38, w - 38 - 12
+            ctx.save()
+            ctx.rectangle(x0, 0, avail, h)
+            ctx.clip()
+            ctx.set_source_rgb(*(TEXT if (playing or self.hover) else DIM))
+            if tw <= avail:
+                ctx.move_to(x0, (h - th) / 2)
+                PangoCairo.show_layout(ctx, layout)
+            else:
+                gap = 48
+                off = self.scroll_x % (tw + gap)
+                for k in (0, 1):
+                    ctx.move_to(x0 - off + k * (tw + gap), (h - th) / 2)
+                    PangoCairo.show_layout(ctx, layout)
+            ctx.restore()
+            return True
+
+        # ---- chuột ----
+        def on_enter(self, *_a):
+            self.hover = True
+            self.queue_draw()
+            if self._leave_src:
+                GLib.source_remove(self._leave_src)
+                self._leave_src = None
+            if not self._hover_src:
+                self._hover_src = GLib.timeout_add(HOVER_DELAY_MS, self.start_hover_fx)
+            return False
+
+        def on_leave(self, _w, ev):
+            if ev.detail == Gdk.NotifyType.INFERIOR:
+                return False
+            self.hover = False
+            self.queue_draw()
+            if self._hover_src:
+                GLib.source_remove(self._hover_src)
+                self._hover_src = None
+            if not self._leave_src:
+                self._leave_src = GLib.timeout_add(LEAVE_DELAY_MS, self._leave_now)
+            return False
+
+        def _leave_now(self):
+            self._leave_src = None
+            self.stop_hover_fx()
+            return False
+
+        def start_hover_fx(self):
+            self._hover_src = None
+            # đã tự bật sóng (Super + Shift + A) thì để yên
+            r = subprocess.run([os.path.join(HERE, "cava-wallpaper.py"), "--status"],
+                               capture_output=True, text=True)
+            if r.stdout.strip() == "on" or self.info["status"] != "Playing":
+                return False
+            self.hover_proc = subprocess.Popen([sys.executable, os.path.join(HERE, "cava-wallpaper.py"), "--overlay"],
+                                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                               stderr=subprocess.DEVNULL, start_new_session=True)
+            return False
+
+        def stop_hover_fx(self):
+            p, self.hover_proc = self.hover_proc, None
+            if p and p.poll() is None:
+                p.terminate()
+
+        def on_button(self, _w, ev):
+            if ev.type != Gdk.EventType.BUTTON_PRESS:
+                return True
+            if ev.button == 1:
+                self.stop_hover_fx()
+                cx = self.slot_x() + PILL_W // 2
+                subprocess.Popen([sys.executable, os.path.join(HERE, "media-popup.py"), "--x", str(cx)],
+                                 start_new_session=True, stdin=subprocess.DEVNULL,
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            elif ev.button == 3:
+                subprocess.Popen(["playerctl", "play-pause"])
+            elif ev.button == 2:
+                subprocess.Popen(["playerctl", "stop"])
+            return True
+
+        def on_scroll(self, _w, ev):
+            d = ev.direction
+            if d == Gdk.ScrollDirection.SMOOTH:
+                ok, dx, dy = ev.get_scroll_deltas()
+                d = Gdk.ScrollDirection.UP if dy < 0 else Gdk.ScrollDirection.DOWN
+            subprocess.Popen(["playerctl", "next" if d == Gdk.ScrollDirection.UP else "previous"])
+            return True
+
+    win = Pill()
+    win.realize()
+
+    # Theo dõi trạng thái bằng playerctl --follow (đẩy sự kiện, không phải hỏi liên tục)
+    def follow():
+        while True:
+            p = subprocess.Popen(["playerctl", "--follow", "metadata", "--format",
+                                  "{{status}}\t{{title}}\t{{artist}}"],
+                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            for line in p.stdout:
+                GLib.idle_add(win.set_info, parse_status_line(line))
+            p.wait()
+            GLib.idle_add(win.set_info, parse_status_line(""))
+            time.sleep(2)
+    threading.Thread(target=follow, daemon=True).start()
+
+    # Toàn màn hình thật → ẩn (dùng lại logic của corner-fillet, thay show/hide bằng cờ)
+    class Proxy:
+        def hide(self_):
+            win.fullscreen = True
+            win.update_visible()
+
+        def show(self_):
+            win.fullscreen = False
+            win.update_visible()
+    cf.theo_doi_fullscreen(Proxy(), GLib)
+
+    def quit_(*_a):
+        win.stop_hover_fx()
+        Gtk.main_quit()
+        return False
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, quit_)
+    win.update_visible()
+    Gtk.main()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

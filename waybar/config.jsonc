@@ -129,6 +129,8 @@
     "mpris": {
         "format": "{status_icon}  {dynamic}",
         "format-paused": "{status_icon}  <i>{dynamic}</i>",
+        // Dừng / không có bài (vd Chromium đăng ký trình phát nhưng chưa phát gì) → ẩn ô, khỏi hiện viên thuốc trống
+        "format-stopped": "",
         "dynamic-order": ["title", "artist"],
         "dynamic-len": 40,
         "status-icons": {

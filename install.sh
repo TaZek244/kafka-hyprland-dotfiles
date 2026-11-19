@@ -24,7 +24,7 @@
 #              không có ảnh nền thì tạo ảnh gradient màu Kafka để mọi thứ vẫn chạy
 #    system    quyền chạy script, file tự sinh, GTK tối, app mặc định (xdg-mime)
 #    fcitx     cấu hình fcitx5 + Unikey (tiếng Việt) — không nằm trong repo vì fcitx5 tự ghi đè file
-#    services  bật NetworkManager, bluetooth, power-profiles-daemon, elephant (nguồn dữ liệu của walker)
+#    services  bật NetworkManager, bluetooth, power-profiles-daemon, warp-svc (VPN), elephant (nguồn dữ liệu của walker)
 #    check     Hyprland --verify-config + selftest các script, liệt kê lệnh còn thiếu
 # ==============================================================================
 set -euo pipefail
@@ -112,6 +112,7 @@ PKGS_AUR=(
     walker-bin elephant-bin  # trình mở app + nguồn dữ liệu (plugin phải cùng loại -bin)
     elephant-desktopapplications-bin elephant-runner-bin elephant-windows-bin
     elephant-calc-bin elephant-symbols-bin   # walker: "=" máy tính (libqalculate), "." emoji/ký tự
+    cloudflare-warp-bin      # VPN có sẵn của nút VPN (miễn phí, không cần tài khoản)
 )
 
 # Thư mục cấu hình được symlink nguyên khối vào ~/.config/<tên>
@@ -354,7 +355,7 @@ EOF
 step_services() {
     step "[services] Dịch vụ hệ thống"
     local s
-    for s in NetworkManager bluetooth power-profiles-daemon; do
+    for s in NetworkManager bluetooth power-profiles-daemon warp-svc; do
         if systemctl list-unit-files "$s.service" >/dev/null 2>&1; then
             run sudo systemctl enable --now "$s.service" && ok "$s"
         else
@@ -365,6 +366,14 @@ step_services() {
         run systemctl --user enable elephant.service && ok "elephant (user) — Hyprland tự start khi đăng nhập"
     else
         warn "Không có elephant.service (cài elephant-bin từ AUR)"
+    fi
+    # WARP: đăng ký thiết bị miễn phí 1 lần (không cần tài khoản), chế độ toàn máy
+    if command -v warp-cli >/dev/null 2>&1; then
+        if warp-cli --accept-tos registration show >/dev/null 2>&1; then
+            ok "WARP đã đăng ký"
+        else
+            run warp-cli --accept-tos registration new && run warp-cli --accept-tos mode warp && ok "WARP đã đăng ký (bật/tắt bằng nút VPN)"
+        fi
     fi
 }
 

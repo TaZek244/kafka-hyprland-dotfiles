@@ -173,6 +173,8 @@ window#waybar.topbar > box {
 #clock { padding: 0 16px; }
 #mpris { color: @dim; }
 #mpris.playing { color: @text; }
+/* Dừng/không có bài: chữ rỗng (format-stopped) nhưng khung vẫn còn nền + đệm → xoá hẳn. Lúc này Waybar KHÔNG gắn class .stopped nên phải dùng :not() */
+#mpris:not(.playing):not(.paused) { padding: 0; margin: 0; border: none; background: transparent; min-width: 0; }
 
 /* Thông số máy: 1 cụm CPU · RAM · nhiệt độ, chữ một màu */
 #system { padding: 0 4px; }

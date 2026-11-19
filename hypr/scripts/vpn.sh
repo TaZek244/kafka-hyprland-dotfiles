@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # vpn.sh : nút VPN trên Waybar (custom/vpn, signal 16) — bật/tắt VPN để vào các trang chặn IP Việt Nam.
 #
-# Hai backend, ưu tiên NetworkManager rồi mới đến Cloudflare WARP:
+# Hai backend: Cloudflare WARP = VPN "có sẵn" dùng chung (mặc định khi chưa chọn), NetworkManager = VPN tự cài:
 #   A. NetworkManager: chỉ xét kết nối kiểu 'wireguard' hoặc 'vpn'. Tên kết nối đang dùng được lưu ở
 #      ${XDG_STATE_HOME:-$HOME/.local/state}/kafka/vpn-connection (1 dòng); chưa chọn thì lấy kết nối đầu tiên.
 #      Lưu ý: nmcli -t escape dấu ':' trong NAME thành '\:' (và '\' thành '\\') → phải giải mã trước khi dùng.
-#   B. Cloudflare WARP: dùng khi có warp-cli mà không có kết nối NM nào, hoặc file chọn ghi đúng chữ 'warp'.
+#   B. Cloudflare WARP: dùng khi có warp-cli và chưa chọn kết nối NM nào (hoặc file chọn ghi 'warp').
 #      "warp-cli status" chứa "Connected" là đang bật (chú ý "Disconnected" không được tính là bật).
 #
 # Không gọi mạng ngoài: script chỉ hỏi trạng thái/điều khiển backend có sẵn. Sau mọi lệnh đổi trạng
@@ -141,13 +141,14 @@ resolve() {
         BACKEND=warp; BACK_NAME="Cloudflare WARP"; BACK_STATE=$(warp_state)
         return 0
     fi
+    # Chưa chọn: WARP là VPN "có sẵn" dùng chung → ưu tiên; VPN tự cài (NM) chỉ khi không có WARP
+    if warp_available; then
+        BACKEND=warp; BACK_NAME="Cloudflare WARP"; BACK_STATE=$(warp_state)
+        return 0
+    fi
     if (( ${#CONNS[@]} )); then
         IFS=$'\t' read -r name type active state <<<"${CONNS[0]}"
         BACKEND=nm; BACK_NAME=$name; BACK_STATE=$(state_class "$active" "$state")
-        return 0
-    fi
-    if warp_available; then
-        BACKEND=warp; BACK_NAME="Cloudflare WARP"; BACK_STATE=$(warp_state)
         return 0
     fi
     BACKEND=none; BACK_NAME=""; BACK_STATE=none
@@ -164,7 +165,7 @@ cmd_status() {
     esac
     if [[ $BACKEND == none ]]; then
         cls=none
-        tooltip='Chưa có VPN. Nhập file WireGuard: vpn.sh import <file.conf>'
+        tooltip='Chưa có VPN. Cài WARP: yay -S cloudflare-warp-bin (xem README) hoặc nhập file WireGuard: vpn.sh import <file.conf>'
     else
         tooltip=$(printf '%s — %s\nTrái: bật/tắt · Phải: chọn kết nối' "$BACK_NAME" "$label")
     fi
@@ -400,6 +401,14 @@ FAKE
     export FAKE_WARP_STATUS=Connected
     : > "$warp_log"; cmd_toggle >/dev/null 2>&1
     if grep -Fq disconnect "$warp_log"; then ok 'toggle WARP: disconnect'; else bad 'toggle WARP: disconnect'; fi
+    # có cả WARP lẫn kết nối NM, chưa chọn → WARP (VPN có sẵn)
+    set_nm 'KafkaVPN:wireguard:no:deactivated'; clear_sel
+    out=$(cmd_status)
+    if has "$(jfield "$out" tooltip)" WARP; then ok 'chưa chọn + có WARP → WARP mặc định'; else bad 'chưa chọn + có WARP → WARP mặc định' "$out"; fi
+    # chọn kết nối NM thì dùng NM dù có WARP
+    printf 'KafkaVPN\n' > "$SELECT_FILE"
+    out=$(cmd_status)
+    if has "$(jfield "$out" tooltip)" KafkaVPN; then ok 'chọn VPN tự cài → dùng NM'; else bad 'chọn VPN tự cài → dùng NM' "$out"; fi
     # file chọn 'warp' được ưu tiên dù vẫn còn kết nối NM
     set_nm 'KafkaVPN:wireguard:no:deactivated'
     printf 'warp\n' > "$SELECT_FILE"

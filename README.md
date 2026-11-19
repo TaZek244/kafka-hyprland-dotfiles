@@ -25,7 +25,7 @@ Bộ cấu hình **Hyprland 0.57+** (viết bằng Lua tại `hypr/hyprland.lua`
   * **Trang Wi-Fi**: Quét mạng nền, bấm để kết nối/ngắt, nhập mật khẩu mạng mới ngay tại chỗ, chuột phải để quên mạng.
   * **Trang Bluetooth**: Quản lý thiết bị đã ghép, quét tìm thiết bị mới trong 20s, bấm để kết nối/ghép, chuột phải để gỡ.
   * **Trang Âm thanh**: Chọn thiết bị đầu ra (loa/tai nghe) & đầu vào (micro), chỉnh âm lượng tổng và âm lượng riêng từng ứng dụng.
-* **Nút VPN (`vpn.sh`)**: Nằm giữa Wi-Fi và Bluetooth trên thanh trên. Bấm trái để bật/tắt, bấm phải để chọn kết nối. Dùng mọi kết nối WireGuard/VPN của NetworkManager (khuyên dùng **Proton VPN Free**: ra Internet bằng IP nước ngoài nên vào được các trang chặn IP Việt Nam), hoặc Cloudflare WARP nếu có `warp-cli`. Icon màu hồng = đang bật, vàng = đang nối, mờ = tắt/chưa có. Xem mục [Cài VPN](#3b-cài-vpn-proton-vpn-free).
+* **Nút VPN (`vpn.sh`)**: Nằm giữa Wi-Fi và Bluetooth trên thanh trên. Bấm trái để bật/tắt, bấm phải để chọn kết nối. Mặc định dùng **Cloudflare WARP** (VPN có sẵn, miễn phí, không cần tài khoản); thêm VPN tự cài bất kỳ (WireGuard/VPN của NetworkManager, vd **Proton VPN Free** có IP nước ngoài). Icon màu hồng = đang bật, vàng = đang nối, mờ = tắt/chưa có. Xem mục [Cài VPN](#3b-cài-vpn).
 * **Popup công cụ khi rê chuột (`tools-popup.py`)**: Rê chuột vào nút tiện ích `󱁤` trên dock để mở nhanh thanh ngang bên trái dock: **Clipboard**, **Chụp/Quay màn hình** (chuyển ngay sang 6 chế độ chụp toàn màn / cửa sổ / vùng / vùng + vẽ Satty / quay toàn màn / quay vùng, có tuỳ chọn thu tiếng máy hoặc ghép tiếng máy + micro qua sink ảo), **Phím tắt**, **Không làm phiền**. Khi đang quay, nút trên dock chuyển sang báo đỏ (`REC`), bấm vào để dừng.
 * **Lịch Âm lịch Việt Nam (`clock-popup.py`)**: Bấm vào đồng hồ giữa thanh trên để mở popup lịch tháng (bắt đầu từ thứ Hai) kèm **ngày âm lịch** dưới mỗi ngày dương (thuật toán Hồ Ngọc Đức UTC+7, đánh dấu mùng 1 `1/tháng` và ngày Tết).
 
@@ -200,14 +200,25 @@ killall -SIGUSR2 waybar
 ### 2. Thêm hoặc sửa phím tắt riêng
 Mở **Trình sửa phím tắt** từ nút `󰌌` trong popup công cụ trên dock (hoặc chạy `~/.config/hypr/scripts/keybinds-editor.py`). Mọi thay đổi sẽ được ghi vào `hypr/keybinds.lua` dưới dạng bảng Lua và tự động ghi đè lên phím mặc định khi `hyprctl reload` mà không làm bẩn `hypr/hyprland.lua`.
 
-### 3b. Cài VPN (Proton VPN Free)
+### 3b. Cài VPN
+Nút VPN có 2 loại, bấm phải vào nút để chọn dùng loại nào:
+
+**VPN có sẵn: Cloudflare WARP** (mặc định, miễn phí, không cần tài khoản, vào được các trang bị nhà mạng chặn như Wattpad, Reddit):
+```bash
+yay -S cloudflare-warp-bin
+sudo systemctl enable --now warp-svc
+warp-cli --accept-tos registration new     # đăng ký thiết bị 1 lần
+```
+(`./install.sh` tự làm các bước này.) Sau đó bấm trái vào nút VPN để bật/tắt.
+
+**VPN tự cài** (vd **Proton VPN Free**: IP nước ngoài, dùng khi trang chặn theo vị trí Việt Nam):
 1. Tạo tài khoản miễn phí tại [account.protonvpn.com](https://account.protonvpn.com), vào **Downloads → WireGuard configuration**.
-2. Chọn **Platform: GNU/Linux**, chọn một máy chủ **Free** (Hà Lan/Mỹ/Nhật...), bấm **Create** rồi **Download** để tải file `.conf` (ví dụ `~/Downloads/proton-free.conf`).
-3. Nhập vào NetworkManager và chọn làm VPN mặc định của nút:
+2. Chọn **Platform: GNU/Linux**, một máy chủ **Free**, bấm **Create** rồi **Download** để tải file `.conf`.
+3. Nhập vào NetworkManager (đồng thời chọn luôn làm VPN của nút):
    ```bash
    ~/.config/hypr/scripts/vpn.sh import ~/Downloads/proton-free.conf
    ```
-4. Bấm nút VPN trên thanh trên để bật/tắt. Kiểm tra: `~/.config/hypr/scripts/vpn.sh list`. Muốn đổi máy chủ thì tải thêm file `.conf` khác, nhập tương tự rồi bấm phải vào nút để chọn.
+4. Muốn quay về WARP: bấm phải vào nút VPN, chọn `warp`. Xem danh sách: `~/.config/hypr/scripts/vpn.sh list`.
 
 File `.conf` chứa khoá riêng của bạn: **đừng** đưa vào repo.
 

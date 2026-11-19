@@ -6,5 +6,5 @@ vt = 1
 [default_session]
 # cage: compositor kiosk nhỏ chỉ để hiện ReGreet; -s cho phép đổi TTY, -m last dùng màn hình cắm sau cùng.
 # ReGreet tự đọc /etc/greetd/regreet.toml và /etc/greetd/regreet.css.
-command = "cage -s -m last -- regreet"
+command = "env XCURSOR_THEME=Kafka-BEN XCURSOR_SIZE=32 cage -s -m last -- regreet"   # con trỏ Kafka (cần /usr/share/icons/Kafka-BEN)
 user = "greeter"

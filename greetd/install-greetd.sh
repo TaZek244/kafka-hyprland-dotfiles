@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # install-greetd.sh            : cài greetd + ReGreet + cage, chép cấu hình/theme Kafka vào /etc/greetd
 # install-greetd.sh --switch   : như trên, rồi tắt GDM (nếu còn) và bật greetd (có hiệu lực từ lần khởi động sau)
+# install-greetd.sh --cursors  : chỉ chép bộ con trỏ Kafka (~/.local/share/icons/Kafka-BEN, Kafka-Cursor) vào
+#                                /usr/share/icons + cấu hình greetd/ReGreet dùng nó (không cài gói, không đổi trình đăng nhập)
 # install-greetd.sh --revert   : bỏ ReGreet, dùng màn hình đăng nhập dạng chữ agreety (vẫn là greetd,
 #                                không cần GDM nên dùng được cả khi đã gỡ GNOME)
 #
@@ -8,6 +10,35 @@
 #   sudo cp /etc/greetd/config-fallback.toml /etc/greetd/config.toml && sudo systemctl restart greetd
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CURSOR_THEMES=(Kafka-Cursor Kafka-BEN)   # Kafka-BEN kế thừa Kafka-Cursor → chép cả hai
+
+# Con trỏ cho màn hình đăng nhập: user greeter không đọc được ~/ nên chép bộ con trỏ (sinh bởi install.sh /
+# cursors/*.py) vào /usr/share/icons. Chỉ xoá/ghi đè đúng các thư mục tên trong CURSOR_THEMES.
+install_cursors() {
+    local t src n=0
+    for t in "${CURSOR_THEMES[@]}"; do
+        src="$HOME/.local/share/icons/$t"
+        if [ ! -f "$src/index.theme" ]; then
+            echo "Bỏ qua $t: chưa có $src (chạy ./install.sh trước)" >&2
+            continue
+        fi
+        sudo rm -rf -- "/usr/share/icons/$t"
+        sudo cp -a -- "$src" "/usr/share/icons/$t"
+        sudo chown -R root:root "/usr/share/icons/$t"
+        sudo chmod -R a+rX "/usr/share/icons/$t"
+        n=$((n + 1))
+    done
+    echo "Đã chép $n bộ con trỏ vào /usr/share/icons (${CURSOR_THEMES[*]})"
+}
+
+if [ "${1:-}" = "--cursors" ]; then
+    install_cursors
+    for f in config.toml regreet.toml; do
+        sudo install -Dm644 "$REPO_DIR/greetd/$f" "/etc/greetd/$f"
+    done
+    echo "Đã cập nhật /etc/greetd (config.toml, regreet.toml). Màn hình đăng nhập dùng con trỏ mới từ lần khởi động sau."
+    exit 0
+fi
 
 if [ "${1:-}" = "--revert" ]; then
     [ -f /etc/greetd/config.toml ] && [ ! -f /etc/greetd/config.toml.bak ] && sudo cp /etc/greetd/config.toml /etc/greetd/config.toml.bak
@@ -33,6 +64,7 @@ for f in config.toml regreet.toml regreet.css config-fallback.toml; do
     sudo install -Dm644 "$REPO_DIR/greetd/$f" "/etc/greetd/$f"
 done
 sudo install -Dm644 "$REPO_DIR/greetd/greeter-bg.jpg" /usr/share/backgrounds/kafka-greeter.jpg
+install_cursors
 echo "Đã chép cấu hình vào /etc/greetd/ và ảnh nền vào /usr/share/backgrounds/kafka-greeter.jpg"
 
 if [ "${1:-}" = "--switch" ]; then

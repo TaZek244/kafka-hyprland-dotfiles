@@ -9,7 +9,7 @@ fit = "Cover"
 [GTK]
 # Giao diện tối, phông chữ và theme GTK.
 application_prefer_dark_theme = true
-cursor_theme_name = "Adwaita"
+cursor_theme_name = "Kafka-BEN"   # chép vào /usr/share/icons bằng install-greetd.sh; thiếu thì GTK tự về mặc định
 font_name = "FiraCode Nerd Font 13"
 icon_theme_name = "Adwaita"
 theme_name = "Adwaita"

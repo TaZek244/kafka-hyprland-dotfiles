@@ -118,7 +118,8 @@ Nếu bạn **chưa bỏ ảnh** vào `wallpapers/`, bước `assets` sẽ tự 
 | **`Alt + Tab`** / **`Super + Tab`** | Chuyển nhanh giữa các cửa sổ (**hyprshell**): giữ phím bổ trợ, bấm Tab để sang tiếp, thả ra để nhảy tới (`Shift` = đi ngược) |
 | **`Super + V`** | Mở lịch sử Clipboard (`cliphist` + Rofi) |
 | **`Super + A`** | Bật/tắt cửa sổ nổi chạy sóng nhạc `cava` (`kitty --class kafka-cava`) |
-| **`Super + Shift + A`** | Bật/tắt **sóng nhạc làm hình nền** (`cava-wallpaper.py`: lớp layer-shell nằm dưới mọi cửa sổ, bấm xuyên qua, tự ngủ khi im lặng) |
+| **`Super + Shift + A`** | Bật/tắt **sóng nhạc ở đáy màn hình** (`cava-wallpaper.py`, bấm xuyên qua, chỉ hiện khi có tiếng) |
+| **`Super + Alt + A`** | Đổi kiểu sóng nhạc: **nổi trên cửa sổ** (mặc định, mỏng, trong mờ) ⇄ **làm hình nền** (cao hơn, nằm dưới cửa sổ, chỉ thấy ở chỗ trống) |
 | **`Super + Ctrl + cuộn`** / **`Super + Ctrl + = / -`** / **`Super + Ctrl + 0`** | Kính lúp: phóng to / thu nhỏ / về bình thường |
 | **`Super + Escape`** | Khóa màn hình ngay lập tức (`hyprlock`) |
 | **`Super + M`** | Mở menu nguồn (`powermenu.sh`) |

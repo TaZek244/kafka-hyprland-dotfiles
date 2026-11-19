@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """cava-wallpaper.py — Sóng nhạc cava vẽ như "hình nền động" phong cách Kafka.
 
-Các cột sóng nằm trên lớp ảnh nền (lớp BOTTOM của layer-shell) nhưng DƯỚI mọi cửa sổ,
-cho phép chuột bấm xuyên qua hoàn toàn.
+Hai chế độ (chuột luôn bấm xuyên qua):
+  overlay    (mặc định) dải sóng thấp, trong mờ, NỔI TRÊN cửa sổ (lớp TOP) → luôn thấy khi có nhạc
+  wallpaper  cột sóng cao nằm trên ảnh nền nhưng DƯỚI mọi cửa sổ (lớp BOTTOM) → chỉ thấy ở chỗ trống
+Chế độ lưu ở ${XDG_STATE_HOME:-~/.local/state}/kafka/cava-mode. Khi im lặng không vẽ gì.
 
 Cách dùng:
   cava-wallpaper.py             Chạy sóng nhạc nền (nếu chưa chạy)
   cava-wallpaper.py --toggle    Bật/tắt sóng nhạc nền
   cava-wallpaper.py --stop      Dừng bản đang chạy
   cava-wallpaper.py --status    In "on" nếu đang chạy, "off" nếu không
+  cava-wallpaper.py --mode overlay|wallpaper   Đổi chế độ (đang chạy thì chạy lại ngay)
+  cava-wallpaper.py --cycle-mode               Đổi qua lại hai chế độ (Super + Alt + A)
   cava-wallpaper.py --selftest  Kiểm tra logic thuần không cần màn hình (in PASS/FAIL)
 """
 
@@ -34,6 +38,39 @@ DECAY = 0.85
 # Màu gradient dọc: từ đỉnh #e0559a (alpha 0.85) xuống đáy #c94785 (alpha 0.35)
 TOP_COLOR = (0xE0 / 255.0, 0x55 / 255.0, 0x9A / 255.0, 0.85)
 BOT_COLOR = (0xC9 / 255.0, 0x47 / 255.0, 0x85 / 255.0, 0.35)
+
+# Chế độ overlay: thấp hơn, mờ hơn để không che nội dung khi nổi trên cửa sổ
+OVERLAY_HEIGHT = 150
+OVERLAY_TOP_COLOR = (0xE0 / 255.0, 0x55 / 255.0, 0x9A / 255.0, 0.60)
+OVERLAY_BOT_COLOR = (0xC9 / 255.0, 0x47 / 255.0, 0x85 / 255.0, 0.12)
+MODES = ("overlay", "wallpaper")
+MODE_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
+                         "kafka", "cava-mode")
+MODE = "overlay"
+
+
+def read_mode():
+    try:
+        with open(MODE_FILE, encoding="utf-8") as f:
+            m = f.read().strip()
+        return m if m in MODES else "overlay"
+    except OSError:
+        return "overlay"
+
+
+def write_mode(m):
+    os.makedirs(os.path.dirname(MODE_FILE), exist_ok=True)
+    with open(MODE_FILE, "w", encoding="utf-8") as f:
+        f.write(m + "\n")
+
+
+def apply_mode(m):
+    """Đặt các hằng hình dạng/màu theo chế độ (gọi trước khi dựng cửa sổ)."""
+    global MODE, HEIGHT, TOP_COLOR, BOT_COLOR
+    MODE = m
+    if m == "overlay":
+        HEIGHT, TOP_COLOR, BOT_COLOR = OVERLAY_HEIGHT, OVERLAY_TOP_COLOR, OVERLAY_BOT_COLOR
+
 
 RUNDIR = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
 PIDFILE = os.path.join(RUNDIR, "kafka-cava-wallpaper.pid")
@@ -232,7 +269,8 @@ def run_visualizer():
             # Cấu hình Layer Shell: lớp BOTTOM (trên hình nền, dưới mọi cửa sổ)
             GtkLayerShell.init_for_window(self)
             GtkLayerShell.set_namespace(self, NAMESPACE)
-            GtkLayerShell.set_layer(self, GtkLayerShell.Layer.BOTTOM)
+            GtkLayerShell.set_layer(
+                self, GtkLayerShell.Layer.TOP if MODE == "overlay" else GtkLayerShell.Layer.BOTTOM)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
@@ -457,6 +495,30 @@ def main():
         stop_running()
         return 0
 
+    if "--mode" in args or "--cycle-mode" in args:
+        if "--cycle-mode" in args:
+            m = "wallpaper" if read_mode() == "overlay" else "overlay"
+        else:
+            i = args.index("--mode")
+            m = args[i + 1] if i + 1 < len(args) else ""
+            if m not in MODES:
+                print("Dùng: --mode overlay|wallpaper", file=sys.stderr)
+                return 2
+        write_mode(m)
+        print(m)
+        if running_pid():  # đang chạy → chạy lại với chế độ mới
+            stop_running()
+            for _ in range(30):
+                if not running_pid():
+                    break
+                time.sleep(0.1)
+            subprocess.Popen([sys.executable, os.path.abspath(__file__)], start_new_session=True,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if subprocess.call(["which", "notify-send"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+            subprocess.Popen(["notify-send", "-a", "Sóng nhạc",
+                              "Sóng nhạc: " + ("nổi trên cửa sổ" if m == "overlay" else "làm hình nền")])
+        return 0
+
     if "--toggle" in args:
         if running_pid():
             stop_running()
@@ -467,6 +529,7 @@ def main():
         print(f"cava-wallpaper.py đã chạy (pid {pid})", file=sys.stderr)
         return 0
 
+    apply_mode(read_mode())
     write_pidfile()
     try:
         run_visualizer()

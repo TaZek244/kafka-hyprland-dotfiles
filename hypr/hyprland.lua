@@ -237,7 +237,8 @@ hl.bind(key("R"),              hl.dsp.exec_cmd(menu))
 hl.bind(key("SHIFT + B"),      hl.dsp.exec_cmd("killall -SIGUSR2 waybar || waybar &"))
 hl.bind(key("V"),              hl.dsp.exec_cmd(clipMenu))
 hl.bind(key("A"),              hl.dsp.exec_cmd(scripts .. "toggle-app.sh kafka-cava kitty --class kafka-cava -e cava")) -- bấm lần nữa để tắt
-hl.bind(key("SHIFT + A"),      hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --toggle"))  -- sóng nhạc làm hình nền (lớp dưới cửa sổ, bấm xuyên)
+hl.bind(key("SHIFT + A"),      hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --toggle"))  -- sóng nhạc ở đáy màn hình (bấm xuyên), chỉ hiện khi có tiếng
+hl.bind(key("ALT + A"),        hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --cycle-mode"))  -- sóng nhạc: nổi trên cửa sổ ⇄ làm hình nền
 
 -- Window States
 hl.bind(key("SHIFT + V"),      function()                           -- nổi/xếp; vừa nổi thì thu cho vừa vùng nội dung

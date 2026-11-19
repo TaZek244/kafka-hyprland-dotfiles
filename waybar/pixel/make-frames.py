@@ -3,7 +3,8 @@
 
 Khung = hình chữ nhật bo góc bán kính RADIUS tính theo từng điểm ảnh 1px (bậc thang nhỏ, không khử răng cưa):
   viền ngoài tối (OUTLINE) → mép sáng trên-trái (HI) / bóng dưới-phải (SH) → nền (FILL).
-Ảnh SIZE×SIZE, CSS cắt 9 mảnh bằng `border-image: url(...) SLICE stretch` với `border-width: SLICE px`.
+Ảnh SIZE×SIZE, CSS cắt 9 mảnh bằng `border-image: url(...) SLICE stretch` với `border-width: SLICE px`
+(cụm Waybar: frame*.png, cắt 7; popup: panel*.png, cắt 14). Mép ngoài khử răng cưa nhẹ (SS), viền trong sắc.
 Đổi màu/bán kính ở bảng FRAMES rồi chạy lại; SLICE phải khớp theme-pixel.css.
 """
 
@@ -14,9 +15,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "cursors"))
 import xcursor_write as xw  # noqa: E402  (bộ ghi PNG thuần Python)
 
-RADIUS = 5.0
-SLICE = 6          # px cắt mỗi cạnh (≥ bán kính + viền)
+RADIUS = 6.0       # khung cụm (Waybar): bo 6, cắt 7
+SLICE = 7          # px cắt mỗi cạnh (≥ bán kính + viền)
 SIZE = 2 * SLICE + 1
+PANEL_RADIUS = 12.0   # khung popup lớn ("panel-*"): bo 12, cắt 14
+PANEL_SLICE = 14
+SS = 4             # lấy mẫu 4×4 cho mép NGOÀI (khử răng cưa nhẹ = "mượt hơn xíu"); viền trong vẫn sắc
 
 
 def hexc(h, a=255):
@@ -31,22 +35,31 @@ FRAMES = {
     "frame-active": ("#3d1028", "#f08cbb", "#962f62", "#c94785"),   # đang chọn / khối Kafka
     "frame-dark":   ("#140e1a", "#3f3350", "#1f1827", "#2a2134"),   # ô chìm (tooltip)
     "frame-crit":   ("#3d0f1a", "#ff9aae", "#a8344c", "#e0506e"),
+    # khung popup (trung tâm điều khiển, lịch, nhạc, tiện ích…): nền đậm hơn cụm, hơi trong để thấy nền mờ
+    "panel":        ("#140e1a", "#56466a", "#1d1626", "#261e30"),
+    "panel-card":   ("#140e1a", "#4a3c5c", "#241c2e", "#30263c"),   # thẻ/ô bên trong popup
+    "panel-active": ("#3d1028", "#f08cbb", "#962f62", "#c94785"),
 }
+PANEL_ALPHA = {"panel": 242}     # độ đục nền panel (0..255)
 
 
-def inside(x, y, n, r):
-    """Tâm điểm ảnh (x+.5, y+.5) có nằm trong hình chữ nhật bo góc n×n bán kính r không."""
-    cx, cy = x + 0.5, y + 0.5
-    qx = min(cx, n - cx)
-    qy = min(cy, n - cy)
+def inside(px, py, n, r):
+    """Điểm (px, py) (toạ độ thực) có nằm trong hình chữ nhật bo góc n×n bán kính r không."""
+    qx = min(px, n - px)
+    qy = min(py, n - py)
     if qx >= r or qy >= r:
         return True
     return (r - qx) ** 2 + (r - qy) ** 2 <= r * r
 
 
-def render(outline, hi, sh, fill):
-    n = SIZE
-    ins = [[inside(x, y, n, RADIUS) for x in range(n)] for y in range(n)]
+def coverage(x, y, n, r):
+    """Tỉ lệ điểm ảnh (x, y) nằm trong hình (lấy mẫu SS×SS) → khử răng cưa mép ngoài."""
+    hit = sum(inside(x + (i + 0.5) / SS, y + (j + 0.5) / SS, n, r) for i in range(SS) for j in range(SS))
+    return hit / (SS * SS)
+
+
+def render(outline, hi, sh, fill, n, r, fill_alpha=255):
+    ins = [[inside(x + 0.5, y + 0.5, n, r) for x in range(n)] for y in range(n)]
 
     def inn(x, y):
         return 0 <= x < n and 0 <= y < n and ins[y][x]
@@ -61,27 +74,29 @@ def render(outline, hi, sh, fill):
     buf = bytearray(n * n * 4)
     for y in range(n):
         for x in range(n):
-            if not ins[y][x]:
+            cov = coverage(x, y, n, r)
+            if cov <= 0:
                 continue
-            d = depth(x, y)
+            d = depth(x, y) if ins[y][x] else 0
             if d == 0:
-                col = outline
+                col = (*outline[:3], round(255 * cov))
             elif d == 1:
-                # mép sáng phía trên/trái, bóng phía dưới/phải (theo nửa nào gần hơn)
-                col = hi if (y < n / 2 and y <= x + 1 and y <= n - x) or (x < n / 2 and x < y) else sh
-                if y >= n / 2 and x >= n / 2:
-                    col = sh
+                # mép sáng nửa trên-trái, bóng nửa dưới-phải (chia theo đường chéo phụ)
+                col = hi if (x + y) < n - 1 else sh
             else:
-                col = fill
+                col = (*fill[:3], fill_alpha)
             buf[(y * n + x) * 4:(y * n + x) * 4 + 4] = bytes(col)
-    return n, bytes(buf)
+    return bytes(buf)
 
 
 def main():
     for name, cols in FRAMES.items():
-        n, rgba = render(*(hexc(c) for c in cols))
+        panel = name.startswith("panel")
+        n = 2 * PANEL_SLICE + 1 if panel else SIZE
+        r = PANEL_RADIUS if panel else RADIUS
+        rgba = render(*(hexc(c) for c in cols), n, r, PANEL_ALPHA.get(name, 255))
         xw._write_png(os.path.join(HERE, f"{name}.png"), n, n, rgba)
-    print(f"Đã sinh {len(FRAMES)} khung {SIZE}x{SIZE} (bán kính {RADIUS}, cắt {SLICE}) vào {HERE}")
+    print(f"Đã sinh {len(FRAMES)} khung vào {HERE} (cụm: bo {RADIUS} cắt {SLICE}; popup: bo {PANEL_RADIUS} cắt {PANEL_SLICE})")
 
 
 if __name__ == "__main__":

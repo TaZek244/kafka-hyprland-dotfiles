@@ -361,6 +361,21 @@ def main():
     prov.load_from_data(CSS)
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
                                              Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    import kafka_theme as kt              # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+    kt.apply(kt.panel(".panel", "6px 6px 2px 6px") + f"""
+.secs, .head, .foot, .day .lun {{ color: {kt.FAINT}; }}
+.lunar, .day .lun.first {{ color: {kt.PINK_FG}; }}
+.head.sun, .day.sun .num {{ color: #ff9aae; }}
+.sep {{ background-color: #3a2f46; }}
+.nav, .today-btn {{ {kt.CARD} }}
+.nav:hover, .today-btn:hover {{ {kt.CARD_HOVER} }}
+.day {{ background-color: transparent; border-color: transparent; border-radius: 7px; box-shadow: none; }}
+.day:hover {{ {kt.CARD_HOVER} border-color: transparent; }}
+.day.other .num, .day.other .lun {{ color: #55486a; }}
+.day.picked {{ border-color: transparent; box-shadow: inset 0 0 0 1px {kt.PINK}, inset 0 0 0 2px {kt.EDGE}; }}
+.day.today {{ {kt.CARD_ON} border-color: transparent; }}
+.day.today .num, .day.today .lun {{ color: #ffffff; }}
+""")
     win = ClockPopup()
     try:  # PyGObject mới: GLibUnix; bản cũ: GLib.unix_signal_add
         gi.require_version("GLibUnix", "2.0")

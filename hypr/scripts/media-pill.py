@@ -422,7 +422,7 @@ def run():
             ctx.restore()
             return True
 
-        def _nine(self, ctx, name, w, h, sl=6):
+        def _nine(self, ctx, name, w, h, sl=7):
             """Vẽ ảnh 9-slice (góc giữ nguyên, cạnh/giữa kéo giãn, lọc nearest)."""
             cache = getattr(self, "_nine_cache", None)
             if cache is None:

@@ -164,3 +164,6 @@ scrollbar slider {
 .keybind-label {
   color: @lavender_muted;
 }
+
+@import url("theme-current.css");
+

@@ -1,0 +1,137 @@
+/* ============================================================================
+ *  THEME "PIXEL MỀM" CHO WALKER (ghi đè style.css)
+ *  Bật/tắt qua hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U).
+ * ============================================================================ */
+
+* {
+  font-weight: 700;
+}
+
+window {
+  color: #fbf7fd;
+}
+
+.box-wrapper {
+  background-color: #261e30;
+  background-image: linear-gradient(rgba(38, 30, 48, 0.88), rgba(38, 30, 48, 0.88)), url("bg.jpg");
+  background-size: cover, cover;
+  background-position: center, center;
+  background-clip: padding-box;
+  border-style: solid;
+  border-width: 14px;
+  border-image: url("../../../waybar/pixel/panel.png") 14 stretch;
+  border-radius: 0;
+}
+
+/* Giảm 12px mỗi cạnh (tương ứng +12px từ border 2px -> 14px) để giữ nguyên tổng kích thước khung */
+.box {
+  padding: 12px 12px 4px 12px;
+}
+
+.mode-hint,
+.elephant-hint,
+.placeholder,
+.keybind-button,
+.keybind-bind,
+.keybind-label {
+  color: #9a8bab;
+}
+
+.search-container {
+  background: #30263c;
+  border: 1px solid #140e1a;
+  border-radius: 8px;
+  box-shadow: inset 1px 1px 0 #56466a, inset -1px -1px 0 #1d1626;
+}
+
+.input {
+  color: #fbf7fd;
+  caret-color: #f08cbb;
+  background: transparent;
+}
+
+.input placeholder {
+  color: #9a8bab;
+}
+
+.input selection {
+  color: #ffffff;
+  background: #c94785;
+}
+
+.list {
+  color: #fbf7fd;
+}
+
+child {
+  border-radius: 8px;
+}
+
+.item-box {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: #fbf7fd;
+}
+
+child:hover .item-box {
+  background: #4a3c59;
+  border-color: #140e1a;
+  box-shadow: inset 1px 1px 0 #56466a, inset -1px -1px 0 #1d1626;
+}
+
+child:selected .item-box,
+row:selected .item-box {
+  color: #ffffff;
+  background: #c94785;
+  border-color: transparent;
+  box-shadow: inset 1px 1px 0 #f08cbb, inset -1px -1px 0 #962f62, 0 0 0 1px #3d1028;
+}
+
+.item-text {
+  color: #fbf7fd;
+}
+
+child:selected .item-text,
+row:selected .item-text {
+  color: #ffffff;
+}
+
+.item-image,
+.item-image-text {
+  color: #f08cbb;
+}
+
+child:selected .item-image,
+child:selected .item-image-text,
+row:selected .item-image,
+row:selected .item-image-text {
+  color: #ffffff;
+}
+
+.item-subtext,
+.providerlist .item-subtext {
+  color: #d4cade;
+}
+
+child:selected .item-subtext,
+row:selected .item-subtext,
+.providerlist child:selected .item-subtext,
+.providerlist row:selected .item-subtext {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.item-quick-activation {
+  color: #fbf7fd;
+  background: #30263c;
+  border: 1px solid #140e1a;
+  border-radius: 6px;
+}
+
+scrollbar {
+  background: #1d1626;
+}
+
+scrollbar slider {
+  background: #c94785;
+  border-radius: 4px;
+}

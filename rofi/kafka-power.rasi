@@ -112,3 +112,6 @@ element selected.normal {
 inputbar {
     enabled: false;
 }
+
+@import "theme-current.rasi"
+

@@ -23,10 +23,11 @@
 }
 
 tooltip {
-    background: transparent;
+    background-color: #2a2134;
+    background-clip: padding-box;
     border-style: solid;
-    border-width: 6px;
-    border-image: url("pixel/frame-dark.png") 6 stretch;
+    border-width: 7px;
+    border-image: url("pixel/frame-dark.png") 7 stretch;
     border-radius: 0;
 }
 
@@ -47,11 +48,12 @@ window#waybar.topbar > box {
 #custom-columns,
 #custom-notifications,
 #kafka {
-    background-color: transparent;
+    background-color: #3a2f46;          /* GTK3 không vẽ phần giữa border-image → tô nền trong padding-box */
+    background-clip: padding-box;
     border-radius: 0;
     border-style: solid;
-    border-width: 6px;
-    border-image: url("pixel/frame.png") 6 stretch;
+    border-width: 7px;
+    border-image: url("pixel/frame.png") 7 stretch;
     margin: 3px 0;
     padding: 0 5px;
     color: @px_text;
@@ -62,14 +64,14 @@ window#waybar.topbar > box {
 #custom-ime:hover,
 #custom-columns:hover,
 #custom-notifications:hover {
-    background-color: transparent;
-    border-image: url("pixel/frame-hover.png") 6 stretch;
+    background-color: #4a3c59;
+    border-image: url("pixel/frame-hover.png") 7 stretch;
     box-shadow: none;
 }
 #custom-columns.hidden-cols { box-shadow: none; }
 
 /* Khối Kafka: khung hồng */
-#kafka { border-image: url("pixel/frame-active.png") 6 stretch; padding: 0; }
+#kafka { border-image: url("pixel/frame-active.png") 7 stretch; background-color: #c94785; padding: 0; }
 #kafka #custom-launcher,
 #kafka #custom-layoutmode { border-radius: 0; padding: 0 7px; }
 #kafka #custom-layoutmode { border-left: 1px solid rgba(61, 16, 40, 0.8); box-shadow: inset 1px 0 rgba(255, 255, 255, 0.18); }

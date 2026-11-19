@@ -122,6 +122,15 @@ class ToolsPopup:
         provider.load_from_data(CSS)
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+        kt.apply(kt.panel(".panel", "2px") + f"""
+.item {{ {kt.CARD} }}
+.item:hover {{ {kt.CARD_HOVER} }}
+.item.on {{ {kt.CARD_ON} }}
+.item.rec {{ background-color: {kt.CRIT}; box-shadow: inset 0 0 0 1px #3d0f1a, inset 2px 2px 0 -1px #ff9aae; }}
+.item.back {{ background-color: transparent; box-shadow: none; }}
+.item.back:hover {{ {kt.CARD_HOVER} }}
+""")
 
         # Đang ở trong vùng nào (nút / popup); ẩn khi rời cả hai
         self.in_hot = False

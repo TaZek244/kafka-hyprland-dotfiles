@@ -653,6 +653,17 @@ def run_app(arg_x=None):
                 prov,
                 Gtk.STYLE_PROVIDER_PRIORITY_USER + 1,
             )
+            import kafka_theme as kt      # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật; đè cả ánh màu ảnh bìa
+            self._pixel = kt.apply(kt.panel(".panel", "8px 8px 4px 8px") + f"""
+button.ctrl-btn {{ {kt.CARD} border-radius: 8px; }}
+button.ctrl-btn:hover {{ {kt.CARD_HOVER} }}
+button.play-btn {{ {kt.CARD_ON} border-radius: 10px; }}
+button.play-btn:hover {{ background-color: #d9568f; }}
+.lyrics-box {{ border: none; border-radius: 8px; {kt.CARD_FLAT} }}
+.lyric-line.active {{ text-shadow: 1px 1px 0 rgba(10, 6, 14, 0.6), 0 0 10px rgba(201, 71, 133, 0.7); }}
+button.lyric-btn {{ border-radius: 6px; }}
+button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shadow: none; }}
+""")
 
             self.set_app_paintable(True)
             vis = self.get_screen().get_rgba_visual()
@@ -1107,6 +1118,8 @@ def run_app(arg_x=None):
 
         def _apply_tint(self, pixbuf):
             """Ánh màu khung kính theo ảnh bìa: lấy màu trung bình, đẩy độ bão hoà lên cho tươi."""
+            if getattr(self, "_pixel", False):
+                return
             import colorsys
             rgb = None
             if pixbuf is not None:

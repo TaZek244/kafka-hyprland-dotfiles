@@ -13,6 +13,9 @@ example/
 # File tự sinh lúc chạy
 waybar/dock-density.css
 waybar/theme.css
+rofi/theme-current.rasi
+walker/themes/kafka/theme-current.css
+dunst/dunstrc.d/
 hypr/wallpapers
 __pycache__/
 *.pyc

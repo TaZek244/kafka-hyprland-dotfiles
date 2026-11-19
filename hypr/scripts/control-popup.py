@@ -191,6 +191,22 @@ class ControlPopup(Gtk.Window):
         prov.load_from_data(CSS.encode())
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)   # trên ~/.config/gtk-3.0/gtk.css (màu nhấn hồng chung) để thanh trượt ra màu tím
+        import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+        kt.apply(kt.panel(".panel", "2px") + f"""
+.section {{ color: {kt.PINK_FG}; }}
+.tile {{ {kt.CARD} }}
+.tile.on {{ {kt.CARD_ON} }}
+.tile button {{ border-radius: 7px; }}
+.tile button:hover {{ background-color: rgba(255, 255, 255, 0.08); box-shadow: none; }}
+.tile button.half-left {{ border-radius: 7px 0 0 7px; }}
+.tile button.half-right {{ border-radius: 0 7px 7px 0; border-left: 1px solid {kt.EDGE};
+                           box-shadow: inset 1px 0 0 0 rgba(255, 255, 255, 0.10); }}
+.row {{ {kt.CARD} }}
+.row:hover {{ {kt.CARD_HOVER} }}
+.row.active {{ {kt.CARD_ON} }}
+.sub, .status {{ color: {kt.DIM}; }}
+.tile.on .sub {{ color: #fff0f6; }}
+""")
         self.set_app_paintable(True)
         vis = self.get_screen().get_rgba_visual()
         if vis:

@@ -1,0 +1,166 @@
+/*******************************************************************************
+ * ROFI THEME PIXEL MỀM (SOFT PIXEL OVERRIDE)
+ * Ghi đè màu sắc, viền, bo góc và độ đậm chữ cho cả 3 theme Rofi:
+ *   - kafka.rasi (khung chính: mainbox = imagebox + listbox)
+ *   - kafka-power.rasi (khung chính: panel; mainbox chỉ là vùng căn giữa)
+ *   - kafka-actions.rasi (khung chính: panel; mainbox chỉ là vùng căn giữa)
+ *
+ * Lưu ý quan trọng:
+ *   - KHÔNG ghi đè bố cục, vị trí (margin calc(...)), kích thước, fullscreen,
+ *     hover-select, scroll-method, kb-cancel hay me-accept-entry.
+ *   - KHÔNG thêm widget textbox-* tùy biến (rofi 2.x làm biến mất listview).
+ *   - Được nạp động qua @import "theme-current.rasi" ở cuối mỗi file .rasi.
+ *
+ * Bảng màu "pixel mềm":
+ *   - Nền popup/panel : #261e30 (độ đục ~95%: #261e30f2)
+ *   - Nền thẻ/ô con   : #30263c
+ *   - Rê chuột        : #4a3c59
+ *   - Viền ngoài tối  : #140e1a
+ *   - Mép sáng        : #56466a
+ *   - Bóng            : #1d1626
+ *   - Chữ chính       : #fbf7fd | Chữ phụ: #d4cade | Chữ mờ: #9a8bab
+ *   - Màu nhấn        : #c94785 | Viền tối ô nhấn: #3d1028 | Mép sáng/chữ nhấn: #f08cbb
+ *   - Cảnh báo        : #e0506e
+ *******************************************************************************/
+
+/* KHÔNG ghi đè `font` ở đây: mỗi theme tự đặt cỡ chữ và chiều cao ô (-eh) tính theo nó;
+   đổi cỡ làm nhãn menu nguồn bị cắt. */
+
+* {
+    bg-obsidian:                #261e30f2;
+    bg-card:                    #30263c;
+    bg-selected:                #c94785;
+    fg-main:                    #fbf7fd;
+    fg-muted:                   #9a8bab;
+    accent-lilac:               #f08cbb;
+    accent-gold:                #f08cbb;
+
+    base:                       #261e30f2;
+    surface:                    #30263c;
+    muted-border:               #140e1a;
+    burgundy:                   #c94785;
+    wine:                       #c94785;
+    lilac:                      #f08cbb;
+    gold:                       #f08cbb;
+    ivory:                      #fbf7fd;
+    lavender:                   #d4cade;
+
+    text-color:                 #fbf7fd;
+}
+
+/* Khung chính của kafka.rasi (trong power/actions, mainbox không có border/nền
+   và panel vẽ đè bên trong nên giữ mainbox chỉ định dạng khung khi là hộp chính;
+   tuy nhiên để không tạo khung thừa cho power/actions nơi mainbox phủ toàn màn,
+   mainbox chỉ đổi màu/bo góc khi có viền, còn panel định dạng khung popup). */
+mainbox {
+    border-color:               #140e1a;
+    border-radius:              12px;
+}
+
+/* Khung chính của kafka-power.rasi và kafka-actions.rasi */
+panel {
+    background-color:           #261e30f2;
+    border:                     2px solid;
+    border-color:               #140e1a;
+    border-radius:              12px;
+}
+
+/* Ảnh banner cột trái (kafka.rasi): giữ nguyên ảnh, bo góc 8px + viền tối 2px */
+imagebox {
+    border:                     2px solid;
+    border-color:               #140e1a;
+    border-radius:              8px;
+}
+
+/* Thanh chuyển chế độ & nút (kafka.rasi) */
+mode-switcher {
+    background-color:           #30263c;
+    border:                     1px solid;
+    border-color:               #140e1a;
+    border-radius:              8px;
+}
+
+button {
+    border-radius:              8px;
+    background-color:           transparent;
+    text-color:                 #d4cade;
+}
+
+button selected {
+    background-color:           #c94785;
+    text-color:                 #fbf7fd;
+    border:                     1px solid;
+    border-color:               #3d1028;
+}
+
+/* Ô nhập liệu (kafka.rasi) */
+inputbar {
+    background-color:           #30263c;
+    border:                     1px solid;
+    border-color:               #140e1a;
+    border-radius:              8px;
+}
+
+prompt {
+    text-color:                 #fbf7fd;
+}
+
+entry {
+    text-color:                 #fbf7fd;
+    placeholder-color:          #9a8bab;
+}
+
+/* Nhãn phụ / thông điệp tiêu đề */
+textbox {
+    text-color:                 #d4cade;
+}
+
+/* Thanh cuộn (kafka.rasi) */
+scrollbar {
+    handle-color:               #c94785;
+    background-color:           #30263c;
+    border-radius:              6px;
+}
+
+/* Các mục danh sách (element) & trạng thái thường / xen kẽ / đang chọn */
+element {
+    border-radius:              8px;
+    background-color:           transparent;
+    border-color:               #140e1a;
+    text-color:                 #fbf7fd;
+}
+
+element normal.normal,
+element alternate.normal {
+    background-color:           transparent;
+    text-color:                 #fbf7fd;
+}
+
+element normal.active,
+element alternate.active {
+    background-color:           #c94785;
+    text-color:                 #fbf7fd;
+    border:                     1px solid;
+    border-color:               #3d1028;
+}
+
+element normal.urgent,
+element alternate.urgent,
+element selected.urgent {
+    background-color:           #e0506e;
+    text-color:                 #fbf7fd;
+    border:                     1px solid;
+    border-color:               #3d1028;
+}
+
+element selected.normal,
+element selected.active {
+    background-color:           #c94785;
+    text-color:                 #fbf7fd;
+    border:                     1px solid;
+    border-color:               #3d1028;
+}
+
+element-text {
+    text-color:                 inherit;
+}

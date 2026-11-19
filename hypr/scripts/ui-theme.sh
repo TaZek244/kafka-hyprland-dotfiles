@@ -62,18 +62,31 @@ get_status() {
 }
 
 # Ghi file waybar/theme.css tương ứng với chế độ
+ROFI_CSS="$REPO/rofi/theme-current.rasi"
+WALKER_CSS="$REPO/walker/themes/kafka/theme-current.css"
+DUNST_DROPIN="$REPO/dunst/dunstrc.d/50-ui-theme.conf"
+
+# Ghi mọi file "theme-current" (Waybar, rofi, walker) + file bổ sung của dunst theo chế độ.
+# Các file này tự sinh (gitignore); thiếu file nào thì Waybar/rofi/walker có thể lỗi CSS → `ensure` tạo lại.
 write_theme_css() {
     local mode="$1"
     if [[ "$mode" == "pixel" ]]; then
         atomic_write "$THEME_CSS" "$HEADER_COMMENT
 @import \"theme-pixel.css\";"
+        atomic_write "$ROFI_CSS" "$HEADER_COMMENT
+@import \"theme-pixel.rasi\""
+        atomic_write "$WALKER_CSS" "$HEADER_COMMENT
+@import url(\"theme-pixel.css\");"
+        mkdir -p "$(dirname "$DUNST_DROPIN")"
+        cp -f "$REPO/dunst/theme-pixel.conf" "$DUNST_DROPIN" 2>/dev/null || true
     else
         atomic_write "$THEME_CSS" "$HEADER_COMMENT"
+        atomic_write "$ROFI_CSS" "$HEADER_COMMENT"
+        atomic_write "$WALKER_CSS" "$HEADER_COMMENT"
+        rm -f "$DUNST_DROPIN"
     fi
 }
 
-# Kiểm tra pidfile có trỏ tới tiến trình đang sống và khớp chuỗi cmdline không.
-# Nếu khớp, in ra PID và trả về 0.
 check_pidfile_proc() {
     local pidfile="$1"
     local needle="$2"
@@ -135,7 +148,25 @@ apply_side_effects() {
         fi
     fi
 
-    # 3. Thông báo Dunst
+    # 2b. Popup tiện ích (chạy nền, CSS pixel chỉ nạp lúc khởi động) → khởi động lại nếu đang chạy
+    if pid=$(check_pidfile_proc "$runtime_dir/kafka-tools-popup.pid" "tools-popup"); then
+        kill "$pid" 2>/dev/null || true
+        sleep 0.3
+        command -v hyprctl >/dev/null 2>&1 && \
+            hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/tools-popup.py')" >/dev/null 2>&1 || true
+    fi
+
+    # 3. dunst nạp lại cấu hình (đọc dunstrc.d/), walker khởi động lại dịch vụ (CSS chỉ nạp lúc chạy)
+    command -v dunstctl >/dev/null 2>&1 && dunstctl reload >/dev/null 2>&1 || true
+    if pgrep -x walker >/dev/null 2>&1; then
+        local wp
+        for wp in $(pgrep -x walker); do kill "$wp" 2>/dev/null || true; done
+        sleep 0.3
+        command -v hyprctl >/dev/null 2>&1 && \
+            hyprctl dispatch "hl.dsp.exec_cmd('walker --gapplication-service')" >/dev/null 2>&1 || true
+    fi
+
+    # 4. Thông báo Dunst
     if command -v notify-send >/dev/null 2>&1; then
         if [[ "$mode" == "pixel" ]]; then
             notify-send -a "Giao diện" "Giao diện: Pixel" "Super + Alt + U để đổi lại" 2>/dev/null || true
@@ -262,7 +293,7 @@ case "$cmd" in
         ;;
     ensure)
         mkdir -p "$STATE_DIR"
-        if [[ ! -e "$THEME_CSS" ]]; then
+        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" ]]; then
             current=$(get_status)
             write_theme_css "$current"
         fi

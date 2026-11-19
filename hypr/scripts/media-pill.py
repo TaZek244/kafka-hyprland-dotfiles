@@ -29,9 +29,30 @@ PIDFILE = os.path.join(RUN, "kafka-media-pill.pid")
 SLOT_FILE = os.path.join(RUN, "kafka-media-slot")
 SLOT_SIGNAL = 17
 
-PILL_W, PILL_H = 289, 27          # đo bằng grim: ô trống #custom-media-slot (min-width 300px) ra 289x27 tại y = 6..32
-TOP = 6                           # mép trên ô trống (đo bằng grim)
-SLOT_X_1920 = 936                 # mép trái ô trống khi màn rộng 1920 (đo bằng grim, có nhạc: đồng hồ + ô trống canh giữa)
+PILL_W, PILL_H = 229, 26          # cỡ mặc định trước khi dò được; ô trống (min-width 240px) ra ~229x27 tại y = 6..32
+TOP = 6                           # mép trên ô trống
+SLOT_X_1920 = 998                 # vị trí đoán ban đầu; vị trí thật dò bằng vạch đánh dấu (xem dưới)
+# Vị trí ô trống KHÔNG cố định: cụm trái (workspace, bản đồ cột, tốc độ mạng) dài ra thì GTK đẩy cụm giữa
+# sang phải. Nên Waybar kẻ ở đáy ô trống một vạch 1px màu riêng MARKER (CSS #custom-media-slot border-bottom,
+# hàng y = MARKER_Y, nằm ngay dưới viên thuốc nên không bị che) và script chụp đúng hàng đó mỗi 1.5s để tìm.
+MARKER = (0x2d, 0x25, 0x35)
+MARKER_Y = TOP + PILL_H           # = 32
+CALIBRATE_MS = 1500
+
+
+def find_marker(row_rgb, color=MARKER, min_run=40):
+    """Hàng điểm ảnh (bytes RGB) → (x, độ dài) của đoạn liền màu color dài nhất (≥ min_run), hoặc None."""
+    best, start = None, None
+    n = len(row_rgb) // 3
+    for x in range(n + 1):
+        hit = x < n and tuple(row_rgb[3 * x:3 * x + 3]) == color
+        if hit and start is None:
+            start = x
+        elif not hit and start is not None:
+            if x - start >= min_run and (best is None or x - start > best[1]):
+                best = (start, x - start)
+            start = None
+    return best
 HOVER_DELAY_MS = 180              # rê vào bao lâu mới bật sóng (lướt qua thì thôi)
 LEAVE_DELAY_MS = 450
 
@@ -81,6 +102,9 @@ def selftest():
     check("dòng rỗng = Stopped", parse_status_line("")["status"] == "Stopped")
     check("ẩn khi dừng", not visible_for(parse_status_line("Stopped\tx\ty")))
     check("ẩn khi không có tên (Chromium chưa phát)", not visible_for(parse_status_line("Paused\t\t")))
+    row = bytes([1, 2, 3] * 10) + bytes(MARKER) * 50 + bytes([0, 0, 0] * 5) + bytes(MARKER) * 60 + bytes([9, 9, 9])
+    check("dò vạch đánh dấu: lấy đoạn dài nhất", find_marker(row) == (65, 60))
+    check("dò vạch: không có → None", find_marker(bytes([1, 2, 3] * 100)) is None)
     check("label không ca sĩ", label_for(parse_status_line("Paused\tBài\t")) == "Bài")
     return 0 if ok else 1
 
@@ -148,6 +172,9 @@ def run():
             self._hover_src = None
             self._leave_src = None
             self.fullscreen = False
+            self.slot = None              # (x, rộng) của ô trống Waybar, dò bằng vạch đánh dấu
+            self.pw = PILL_W
+            self._cal_busy = False
             GtkLayerShell.init_for_window(self)
             GtkLayerShell.set_namespace(self, "kafka-media-pill")
             GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
@@ -172,12 +199,50 @@ def run():
             self.connect("button-press-event", self.on_button)
             self.connect("scroll-event", self.on_scroll)
             self._anim = GLib.timeout_add(50, self.tick)   # chạy chữ + vạch nhún (20 khung/giây)
+            GLib.timeout_add(CALIBRATE_MS, self.calibrate)
 
         def slot_x(self):
+            if self.slot is not None:
+                return self.slot[0]
             disp = Gdk.Display.get_default()
             mon = disp.get_monitor(0)
             w = mon.get_geometry().width if mon else 1920
-            return int(SLOT_X_1920 + (w - 1920) / 2)   # khối giữa canh giữa thanh
+            return int(SLOT_X_1920 + (w - 1920) / 2)
+
+        # ---- dò vị trí ô trống của Waybar ----
+        def calibrate(self):
+            if visible_for(self.info) and not self.fullscreen and not self._cal_busy:
+                self._cal_busy = True
+                threading.Thread(target=self._cal_worker, daemon=True).start()
+            return True
+
+        def _cal_worker(self):
+            res = None
+            try:
+                mon = Gdk.Display.get_default().get_monitor(0)
+                sw = mon.get_geometry().width if mon else 1920
+                out = subprocess.run(["grim", "-g", f"0,{MARKER_Y} {sw}x1", "-t", "ppm", "-"],
+                                     capture_output=True, timeout=3).stdout
+                # PPM: "P6\n<w> <h>\n255\n" + RGB
+                parts = out.split(b"\n", 3)
+                if len(parts) == 4 and parts[0] == b"P6":
+                    res = find_marker(parts[3])
+            except Exception:
+                res = None
+            GLib.idle_add(self._apply_slot, res)
+
+        def _apply_slot(self, res):
+            self._cal_busy = False
+            if res != self.slot:
+                self.slot = res
+                if res:
+                    GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, res[0])
+                    self.pw = res[1]
+                    self.set_size_request(self.pw, PILL_H)
+                    self.resize(self.pw, PILL_H)
+                self.update_visible()
+                self.queue_draw()
+            return False
 
         # ---- dữ liệu ----
         def set_info(self, info):
@@ -187,6 +252,8 @@ def run():
             vis = visible_for(info)
             if vis != was:
                 write_slot(vis)
+                if vis:
+                    GLib.timeout_add(400, lambda: (self.calibrate(), False)[1])
             self.update_visible()
             if changed:
                 self.scroll_x = 0.0
@@ -194,7 +261,8 @@ def run():
             return False
 
         def update_visible(self):
-            if visible_for(self.info) and not self.fullscreen:
+            # chỉ hiện khi đã thấy ô trống của Waybar (chưa dò được = có thể đè lên module khác)
+            if visible_for(self.info) and not self.fullscreen and self.slot is not None:
                 self.show_all()
             else:
                 self.stop_hover_fx()
@@ -214,7 +282,7 @@ def run():
             ctx.set_source_rgba(0, 0, 0, 0)
             ctx.paint()
             ctx.set_operator(cairo.OPERATOR_OVER)
-            w, h = PILL_W, PILL_H
+            w, h = self.pw, PILL_H
             r = h / 2.0                                   # bo tròn hẳn hai đầu (viên thuốc mềm)
 
             def pill_path(inset=0.0):
@@ -339,7 +407,7 @@ def run():
                 return True
             if ev.button == 1:
                 self.stop_hover_fx()
-                cx = self.slot_x() + PILL_W // 2
+                cx = self.slot_x() + self.pw // 2
                 subprocess.Popen([sys.executable, os.path.join(HERE, "media-popup.py"), "--x", str(cx)],
                                  start_new_session=True, stdin=subprocess.DEVNULL,
                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

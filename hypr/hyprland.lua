@@ -95,8 +95,10 @@ end
 -- 4. ENVIRONMENT VARIABLES
 -- ----------------
 -- Con trỏ Kafka (thiết kế riêng, dựng bằng cursors/build-kafka-cursor.py: hyprcursor + Xcursor)
-hl.env("XCURSOR_THEME", "Kafka-Cursor")
-hl.env("HYPRCURSOR_THEME", "Kafka-Cursor")
+-- Kafka-BEN = bộ con trỏ người dùng tự tải (example/Kafka.zip, chuyển bằng cursors/ani2theme.py, chỉ có trên máy này);
+-- thiếu thì đổi lại "Kafka-Cursor" (theme tự vẽ, install.sh luôn dựng)
+hl.env("XCURSOR_THEME", "Kafka-BEN")
+hl.env("HYPRCURSOR_THEME", "Kafka-BEN")
 hl.env("XCURSOR_SIZE", "32")
 hl.env("HYPRCURSOR_SIZE", "32")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")

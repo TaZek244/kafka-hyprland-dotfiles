@@ -175,7 +175,8 @@ window#waybar.topbar > box {
 #mpris.playing { color: @text; }
 /* Dừng/không có bài: chữ rỗng (format-stopped) nhưng khung vẫn còn nền + đệm → xoá hẳn. Lúc này Waybar KHÔNG gắn class .stopped nên phải dùng :not() */
 /* Ô trống giữ chỗ cho media-pill.py (vẽ đè lớp overlay): đúng PILL_W = 300px, không nền (pill tự vẽ nền + hover) */
-#custom-media-slot { min-width: 300px; padding: 0; margin: 6px 0 6px 8px; background: transparent; }
+/* border-bottom = vạch đánh dấu cho media-pill.py dò vị trí (MARKER, phải đúng màu #2d2535, gần trùng nền) */
+#custom-media-slot { min-width: 240px; padding: 0; margin: 6px 0 6px 8px; background: transparent; border-bottom: 1px solid #2d2535; }
 #mpris:not(.playing):not(.paused) { padding: 0; margin: 0; border: none; background: transparent; min-width: 0; }
 
 /* Thông số máy: 1 cụm CPU · RAM · nhiệt độ, chữ một màu */

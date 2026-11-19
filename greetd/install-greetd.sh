@@ -5,6 +5,10 @@
 #                                /usr/share/icons + cấu hình greetd/ReGreet dùng nó (không cài gói, không đổi trình đăng nhập)
 # install-greetd.sh --theme    : chỉ chép lại giao diện ReGreet theo giao diện đang dùng (ui-theme.sh):
 #                                pixel → regreet-pixel.css + ảnh khung pixel-panel.png ; phẳng → regreet.css
+# install-greetd.sh --kafka    : dùng trình đăng nhập pixel tự viết "KAFKA.SYS" (greetd/kafka-greeter/) thay ReGreet:
+#                                tạo ảnh (nền pixel hoá + mặt Kafka) từ wallpapers/, chép vào /usr/local/share/kafka-greeter,
+#                                đặt /etc/greetd/config.toml = config-kafka.toml (lỗi thì tự mở ReGreet)
+# install-greetd.sh --regreet  : quay lại ReGreet (config.toml thường)
 # install-greetd.sh --revert   : bỏ ReGreet, dùng màn hình đăng nhập dạng chữ agreety (vẫn là greetd,
 #                                không cần GDM nên dùng được cả khi đã gỡ GNOME)
 #
@@ -45,6 +49,50 @@ install_greeter_theme() {
     sudo install -Dm644 "$css" /etc/greetd/regreet.css
     echo "Giao diện màn hình đăng nhập: $mode ($(basename "$css"))"
 }
+
+KG_SRC="$REPO_DIR/greetd/kafka-greeter"
+KG_DST=/usr/local/share/kafka-greeter
+
+# Ảnh cho kafka-greeter sinh từ wallpapers/ (bản quyền, không nằm trong repo); thiếu thì greeter tự vẽ nền/biểu tượng thay.
+make_kafka_assets() {
+    local wp="$REPO_DIR/wallpapers"
+    if [ -f "$wp/kafka_landscape_3.jpg" ]; then
+        magick "$wp/kafka_landscape_3.jpg" -resize 240x135^ -gravity center -extent 240x135 -modulate 95,115 \
+            -dither FloydSteinberg -colors 40 -fill "#140e1c" -colorize 35% "$KG_SRC/bg-pixel.png"
+    fi
+    if [ -f "$wp/Kafka_thumbail.jpg" ]; then
+        magick "$wp/Kafka_thumbail.jpg" -crop 500x500+118+10 +repage -filter Lanczos -resize 400x400 \
+            -unsharp 0x0.5 "$KG_SRC/avatar.png"
+    fi
+}
+
+install_kafka_greeter() {
+    command -v magick >/dev/null && make_kafka_assets
+    python3 "$KG_SRC/kafka-greeter.py" --selftest >/dev/null || { echo "kafka-greeter --selftest lỗi, không cài" >&2; exit 1; }
+    python3 "$KG_SRC/greetd_ipc.py" --selftest >/dev/null || { echo "greetd_ipc --selftest lỗi, không cài" >&2; exit 1; }
+    sudo pacman -S --needed greetd greetd-regreet cage python-gobject python-cairo
+    sudo rm -rf -- "$KG_DST"
+    sudo install -d "$KG_DST"
+    sudo install -m644 "$KG_SRC"/*.py "$KG_DST"/
+    for f in "$KG_SRC"/*.png; do [ -f "$f" ] && sudo install -m644 "$f" "$KG_DST"/; done
+    sudo install -d -o greeter -g greeter /var/cache/kafka-greeter     # nhớ người dùng/phiên lần trước
+    [ -f /etc/greetd/config.toml ] && [ ! -f /etc/greetd/config.toml.bak ] && sudo cp /etc/greetd/config.toml /etc/greetd/config.toml.bak
+    sudo install -Dm644 "$REPO_DIR/greetd/config-fallback.toml" /etc/greetd/config-fallback.toml
+    sudo install -Dm644 "$REPO_DIR/greetd/config-kafka.toml" /etc/greetd/config.toml
+    echo "Đã cài KAFKA.SYS vào $KG_DST và đặt làm màn hình đăng nhập (từ lần khởi động sau)."
+    echo "Lỗi thì tự mở ReGreet; quay lại hẳn: $0 --regreet"
+}
+
+if [ "${1:-}" = "--kafka" ]; then
+    install_kafka_greeter
+    exit 0
+fi
+
+if [ "${1:-}" = "--regreet" ]; then
+    sudo install -Dm644 "$REPO_DIR/greetd/config.toml" /etc/greetd/config.toml
+    echo "Đã quay lại ReGreet (từ lần khởi động sau)."
+    exit 0
+fi
 
 if [ "${1:-}" = "--theme" ]; then
     install_greeter_theme

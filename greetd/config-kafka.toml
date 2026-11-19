@@ -1,0 +1,9 @@
+# greetd — trình đăng nhập pixel "KAFKA.SYS" (greetd/kafka-greeter/, cài vào /usr/local/share/kafka-greeter
+# bằng greetd/install-greetd.sh --kafka). Nếu nó lỗi/thoát bất thường thì tự mở ReGreet thay (|| exec regreet).
+# Quay lại ReGreet hẳn: install-greetd.sh --regreet. Hỏng hết: Ctrl+Alt+F2 rồi install-greetd.sh --revert.
+[terminal]
+vt = 1
+
+[default_session]
+command = "env XCURSOR_THEME=Kafka-BEN XCURSOR_SIZE=32 cage -s -m last -- sh -c 'python3 /usr/local/share/kafka-greeter/kafka-greeter.py || exec regreet'"
+user = "greeter"

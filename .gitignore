@@ -21,3 +21,6 @@ __pycache__/
 *.pyc
 *.bak
 *.bak-*
+greetd/kafka-greeter/bg-pixel.png
+greetd/kafka-greeter/avatar.png
+greetd/kafka-greeter/__pycache__/

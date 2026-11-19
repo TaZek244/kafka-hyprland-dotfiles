@@ -111,6 +111,7 @@ PKGS_AUR=(
     hyprshell-bin            # chế độ tổng quan (nhấn-thả Super) + Alt+Tab
     walker-bin elephant-bin  # trình mở app + nguồn dữ liệu (plugin phải cùng loại -bin)
     elephant-desktopapplications-bin elephant-runner-bin elephant-windows-bin
+    elephant-calc-bin elephant-symbols-bin   # walker: "=" máy tính (libqalculate), "." emoji/ký tự
 )
 
 # Thư mục cấu hình được symlink nguyên khối vào ~/.config/<tên>

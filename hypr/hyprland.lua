@@ -36,11 +36,14 @@ hl.on("hyprland.start", function()
     -- Phiên Hyprland lồng để thử cấu hình: đặt KAFKA_NESTED_TEST=1 để không chạy lại các daemon.
     if os.getenv("KAFKA_NESTED_TEST") then return end
 
+    -- Bộ gõ chạy ĐẦU TIÊN, trước Waybar: ô VI/EN gọi fcitx5-remote, nếu fcitx5 chưa có thì D-Bus tự bật
+    -- một bản thiếu môi trường Wayland → gõ không dấu. ime-guard xuất môi trường cho D-Bus, bật fcitx5
+    -- và giám sát (chết/mất Wayland thì tự bật lại). Xem hypr/scripts/ime-guard.sh.
+    hl.exec_cmd(scripts .. "ime-guard.sh daemon")
     hl.exec_cmd("waybar")
     hl.exec_cmd("dunst")
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("nm-applet --indicator")
-    hl.exec_cmd("fcitx5 -d")
     -- awww-daemon chạy mãi không thoát, nên không nối bằng && (vế sau sẽ không bao giờ chạy)
     hl.exec_cmd("awww-daemon")
     hl.exec_cmd("sleep 1 && " .. wallScript .. " set " .. wallpaper)
@@ -55,6 +58,8 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start elephant.service; walker --gapplication-service")
     -- Popup ngang cho nút công cụ trên đầu dock (rê chuột vào là hiện)
     hl.exec_cmd(scripts .. "tools-popup.py")
+    -- Viền xoay màu tự tắt khi dùng pin / power-saver, bật lại khi cắm sạc (power-watch.sh set on|off|auto để ghi đè)
+    hl.exec_cmd(scripts .. "power-watch.sh daemon")
     hl.exec_cmd(scripts .. "corner-fillet.py")   -- góc lõm chỗ nối thanh trên + dock (overlay, tự ẩn khi toàn màn hình)
     -- Phase 3: Lưu lịch sử clipboard (văn bản + hình ảnh)
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -197,6 +202,12 @@ hl.animation({ leaf = "workspaces",  enabled = true, speed = 5,  bezier = "kafka
 -- Cử chỉ kiểu niri: vuốt 3 ngón ngang = cuộn dải cột, 3 ngón dọc = đổi workspace
 hl.gesture({ fingers = 3, direction = "horizontal", action = "scroll_move" })
 hl.gesture({ fingers = 3, direction = "vertical",   action = "workspace" })
+-- 4 ngón: lên = tổng quan hyprshell (như nhấn-thả Super), xuống = chế độ Desktop ⇄ cuộn (như Super + D).
+-- action nhận hàm Lua (chuỗi "dispatcher" không hợp lệ ở 0.57).
+hl.gesture({ fingers = 4, direction = "up",   action = function() hl.exec_cmd("hyprshell socat '\"OpenOverview\"'") end })
+hl.gesture({ fingers = 4, direction = "down", action = function() hl.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/desktop-mode.sh toggle") end })
+-- Chụm 3 ngón = kính lúp (phóng to quanh con trỏ), xem thêm kafka_zoom() ở phần phím tắt
+hl.gesture({ fingers = 3, direction = "pinch", action = "cursorZoom" })
 
 -- ----------------
 -- 7. KEYBINDINGS
@@ -226,6 +237,7 @@ hl.bind(key("R"),              hl.dsp.exec_cmd(menu))
 hl.bind(key("SHIFT + B"),      hl.dsp.exec_cmd("killall -SIGUSR2 waybar || waybar &"))
 hl.bind(key("V"),              hl.dsp.exec_cmd(clipMenu))
 hl.bind(key("A"),              hl.dsp.exec_cmd(scripts .. "toggle-app.sh kafka-cava kitty --class kafka-cava -e cava")) -- bấm lần nữa để tắt
+hl.bind(key("SHIFT + A"),      hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --toggle"))  -- sóng nhạc làm hình nền (lớp dưới cửa sổ, bấm xuyên)
 
 -- Window States
 hl.bind(key("SHIFT + V"),      function()                           -- nổi/xếp; vừa nổi thì thu cho vừa vùng nội dung
@@ -240,6 +252,12 @@ hl.bind(key("SHIFT + F"),      hl.dsp.window.fullscreen({ mode = 1 }))   -- phó
 hl.bind(key("G"),              hl.dsp.layout("colresize +conf"))      -- xoay vòng độ rộng cột: 1/3 → 1/2 → 2/3 → toàn màn
 hl.bind(key("SHIFT + G"),      hl.dsp.exec_cmd(scripts .. "tile-menu.sh")) -- bảng chia ô cố định cho workspace này (Auto = về cuộn)
 hl.bind(key("D"),              hl.dsp.exec_cmd(scripts .. "desktop-mode.sh toggle")) -- chuyển chế độ cuộn ↔ Desktop (cửa sổ tự do), mọi workspace
+-- Super + Tab = chuyển cửa sổ bằng bộ chuyển của hyprshell (giữ Super, Tab để sang tiếp, thả Super = nhảy tới).
+-- hyprshell chỉ tự gán Alt + Tab; đặt nó sang "super" thì mất phím tổng quan. Xem scripts/window-switch.sh.
+hl.bind(key("Tab"),            hl.dsp.exec_cmd(scripts .. "window-switch.sh open"),     { repeating = true })
+hl.bind(key("SHIFT + Tab"),    hl.dsp.exec_cmd(scripts .. "window-switch.sh open-rev"), { repeating = true })
+hl.bind(key("code:133"),       hl.dsp.exec_cmd(scripts .. "window-switch.sh release"),  { release = true, transparent = true })   -- Super_L theo mã phím: hyprshell gỡ mọi bind tên "super_l" khi gán phím tổng quan
+hl.bind(key("Super_R"),        hl.dsp.exec_cmd(scripts .. "window-switch.sh release"),  { release = true, transparent = true })
 hl.bind(key("minus"),          hl.dsp.layout("colresize -0.1"),  { repeating = true })  -- thu hẹp cột
 hl.bind(key("equal"),          hl.dsp.layout("colresize +0.1"),  { repeating = true })  -- nới rộng cột
 hl.bind(key("CTRL + left"),    hl.dsp.layout("swapcol l"))            -- dời cột sang trái
@@ -276,6 +294,19 @@ hl.bind(key("SHIFT + Z"), hl.dsp.window.move({ workspace = "special:magic" }))
 -- Mouse Bindings (Move/Resize/Scroll Workspaces)
 hl.bind(key("mouse_down"), hl.dsp.focus({ workspace = "e+1" }))
 hl.bind(key("mouse_up"),   hl.dsp.focus({ workspace = "e-1" }))
+-- Kính lúp (zoom quanh con trỏ, tính năng có sẵn của Hyprland, thay plugin macos-zoom):
+-- Super + Ctrl + cuộn / = / - phóng to/thu nhỏ, Super + Ctrl + 0 về 1x. Mức 1..6, bước 0.25.
+function kafka_zoom(step)
+    local cur = tonumber(hl.get_config("cursor.zoom_factor")) or 1
+    local z = (step == 0) and 1 or math.max(1, math.min(6, cur + step))
+    hl.config({ cursor = { zoom_factor = z } })
+    return z
+end
+hl.bind(key("CTRL + mouse_down"), function() kafka_zoom(0.25) end)
+hl.bind(key("CTRL + mouse_up"),   function() kafka_zoom(-0.25) end)
+hl.bind(key("CTRL + equal"),      function() kafka_zoom(0.25) end,  { repeating = true })
+hl.bind(key("CTRL + minus"),      function() kafka_zoom(-0.25) end, { repeating = true })
+hl.bind(key("CTRL + 0"),          function() kafka_zoom(0) end)
 hl.bind(key("mouse:272"),  hl.dsp.window.drag(),   { mouse = true })
 hl.bind(key("mouse:273"),  hl.dsp.window.resize(), { mouse = true })
 

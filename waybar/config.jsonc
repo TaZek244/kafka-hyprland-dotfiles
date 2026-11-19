@@ -214,7 +214,17 @@
     // Bấm bất kỳ ô nào = popup Trung tâm điều khiển (hypr/scripts/control-popup.py), mở đúng trang tương ứng.
     "group/control": {
         "orientation": "inherit",
-        "modules": ["network#top", "bluetooth#top", "pulseaudio", "backlight", "battery"]
+        "modules": ["network#top", "custom/vpn", "bluetooth#top", "pulseaudio", "backlight", "battery"]
+    },
+    // VPN (hypr/scripts/vpn.sh): kết nối WireGuard/VPN của NetworkManager hoặc Cloudflare WARP.
+    // Trái: bật/tắt · Phải: chọn kết nối. Nhập file WireGuard: vpn.sh import <file.conf>
+    "custom/vpn": {
+        "exec": "~/.config/hypr/scripts/vpn.sh status",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 16,
+        "on-click": "~/.config/hypr/scripts/vpn.sh toggle",
+        "on-click-right": "~/.config/hypr/scripts/vpn.sh select"
     },
     "network#top": {
         "format-wifi": "{icon}",
@@ -248,7 +258,8 @@
         "exec": "~/.config/hypr/scripts/ime-status.sh",
         "return-type": "json",
         "restart-interval": 5,
-        "on-click": "pgrep -x fcitx5 >/dev/null && fcitx5-remote -t || setsid -f fcitx5 -d",
+        "on-click": "pgrep -x fcitx5 >/dev/null && fcitx5-remote -t || ~/.config/hypr/scripts/ime-guard.sh restart",
+        "on-click-middle": "~/.config/hypr/scripts/ime-guard.sh restart",
         "on-click-right": "setsid -f fcitx5-configtool >/dev/null 2>&1"
     },
 

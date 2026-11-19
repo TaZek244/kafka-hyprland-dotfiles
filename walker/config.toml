@@ -59,7 +59,7 @@ show_actions = ["alt j"]
 
 [providers]
 default = [
-  "desktopapplications",   # chỉ cài desktopapplications/runner/windows; calc, websearch chưa cài
+  "desktopapplications",   # plugin: desktopapplications/runner/windows/calc/symbols (calc, symbols chỉ qua tiền tố "=", ".")
 ] # providers to be queried by default
 empty = ["desktopapplications"] # providers to be queried when query is empty
 ignore_preview = [] # providers that should not show previews

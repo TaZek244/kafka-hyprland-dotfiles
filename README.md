@@ -13,6 +13,8 @@ Bộ cấu hình **Hyprland 0.57+** (viết bằng Lua tại `hypr/hyprland.lua`
 * **Chia khu theo tỉ lệ (`lua:kafka`)**: Bảng chọn bố cục chia ô cố định cho từng workspace (`Super + Shift + G`), chọn `Auto` để quay về layout cuộn.
 * **Bản đồ cột (`custom/columns`)**: Hiển thị ngay bên cạnh số workspace (La Mã `I, II, III...`) trên thanh trên; vẽ **icon ứng dụng** của từng cột trong workspace hiện tại, báo số lượng cửa sổ xếp chồng, phân biệt màu cột đang dùng / đang thấy / bị khuất và hỗ trợ lăn chuột để chuyển cột.
 * **Tổng quan & Chuyển cửa sổ (`hyprshell`)**: Nhấn-thả riêng phím `Super` (hoặc bấm ô góc mạng nhện `󰯊` ở góc trên phải) để mở chế độ tổng quan kiểu GNOME; `Alt + Tab` để chuyển nhanh cửa sổ.
+* **Cử chỉ touchpad**: 3 ngón ngang = cuộn cột, 3 ngón dọc = đổi workspace, **4 ngón lên = tổng quan**, **4 ngón xuống = chế độ Desktop ⇄ cuộn**, **chụm 3 ngón = kính lúp**.
+* **Kính lúp màn hình**: `Super + Ctrl + cuộn chuột` hoặc `Super + Ctrl + =/-` phóng to/thu nhỏ quanh con trỏ (1x–6x), `Super + Ctrl + 0` về bình thường. Dùng tính năng zoom có sẵn của Hyprland, không cần plugin.
 * **Ẩn / Hiện & Treo cửa sổ**: Giấu cửa sổ đang dùng vào ngăn ẩn `special:hidden` (`Super + I`), mở bảng quản lý cửa sổ ẩn (`Super + O`), hoặc treo cửa sổ nổi cố định ở góc đi theo mọi workspace (`Super + T`).
 
 ### 🎛️ Khung chữ L, Dock & Hệ thống Popup (GTK3 Layer-Shell)
@@ -23,14 +25,16 @@ Bộ cấu hình **Hyprland 0.57+** (viết bằng Lua tại `hypr/hyprland.lua`
   * **Trang Wi-Fi**: Quét mạng nền, bấm để kết nối/ngắt, nhập mật khẩu mạng mới ngay tại chỗ, chuột phải để quên mạng.
   * **Trang Bluetooth**: Quản lý thiết bị đã ghép, quét tìm thiết bị mới trong 20s, bấm để kết nối/ghép, chuột phải để gỡ.
   * **Trang Âm thanh**: Chọn thiết bị đầu ra (loa/tai nghe) & đầu vào (micro), chỉnh âm lượng tổng và âm lượng riêng từng ứng dụng.
+* **Nút VPN (`vpn.sh`)**: Nằm giữa Wi-Fi và Bluetooth trên thanh trên. Bấm trái để bật/tắt, bấm phải để chọn kết nối. Dùng mọi kết nối WireGuard/VPN của NetworkManager (khuyên dùng **Proton VPN Free**: ra Internet bằng IP nước ngoài nên vào được các trang chặn IP Việt Nam), hoặc Cloudflare WARP nếu có `warp-cli`. Icon màu hồng = đang bật, vàng = đang nối, mờ = tắt/chưa có. Xem mục [Cài VPN](#3b-cài-vpn-proton-vpn-free).
 * **Popup công cụ khi rê chuột (`tools-popup.py`)**: Rê chuột vào nút tiện ích `󱁤` trên dock để mở nhanh thanh ngang bên trái dock: **Clipboard**, **Chụp/Quay màn hình** (chuyển ngay sang 6 chế độ chụp toàn màn / cửa sổ / vùng / vùng + vẽ Satty / quay toàn màn / quay vùng, có tuỳ chọn thu tiếng máy hoặc ghép tiếng máy + micro qua sink ảo), **Phím tắt**, **Không làm phiền**. Khi đang quay, nút trên dock chuyển sang báo đỏ (`REC`), bấm vào để dừng.
 * **Lịch Âm lịch Việt Nam (`clock-popup.py`)**: Bấm vào đồng hồ giữa thanh trên để mở popup lịch tháng (bắt đầu từ thứ Hai) kèm **ngày âm lịch** dưới mỗi ngày dương (thuật toán Hồ Ngọc Đức UTC+7, đánh dấu mùng 1 `1/tháng` và ngày Tết).
 
 ### 🚀 Trình khởi chạy, Giao diện & Hệ thống
-* **Trình mở ứng dụng `walker` (GTK4 + `elephant`)**: Giao diện một khung 600px giữa màn hình với nền ảnh Kafka làm mờ, gợi ý tiếng Việt; hỗ trợ tiền tố `>` để chạy lệnh shell, `$` để chuyển cửa sổ, `;` để liệt kê chế độ.
+* **Tiết kiệm pin (`power-watch.sh`)**: Viền cửa sổ xoay màu (~3–4% CPU) tự tắt khi rút sạc hoặc ở chế độ `power-saver`, tự bật lại khi cắm sạc. Ghi đè: `~/.config/hypr/scripts/power-watch.sh set on|off|auto`.
+* **Trình mở ứng dụng `walker` (GTK4 + `elephant`)**: Giao diện một khung 600px giữa màn hình với nền ảnh Kafka làm mờ, gợi ý tiếng Việt; hỗ trợ tiền tố `>` để chạy lệnh shell, `$` để chuyển cửa sổ, `=` để tính toán (vd `=2+3*4`, plugin `elephant-calc`), `.` để tìm emoji/ký tự (vd `.heart`, plugin `elephant-symbols`), `;` để liệt kê chế độ.
 * **Bảng chọn `rofi`**: Thiết kế 2 cột kèm banner dọc của Kafka (`rofi/kafka.rasi`) cho lịch sử clipboard (`cliphist`), menu đóng ứng dụng và danh sách cửa sổ ẩn; cùng các popup `kafka-power.rasi` (menu nguồn) và `kafka-actions.rasi` (hộp thao tác nhanh ở đáy dock).
 * **Trình sửa phím tắt đồ hoạ (`keybinds-editor.py`)**: Ứng dụng GTK4 cho phép xem toàn bộ phím tắt, thêm mới, ghi đè hoặc vô hiệu hoá phím mặc định. Cấu hình riêng được lưu tách biệt vào `hypr/keybinds.lua` và nạp bằng `pcall` sau phím mặc định nên không cần chạm vào `hypr/hyprland.lua`.
-* **Gõ tiếng Việt ổn định (`fcitx5-unikey`)**: Cấu hình sẵn biến môi trường Wayland/XWayland, tự bật tiếng Việt (`ActiveByDefault=True`, `ShareInputState=All`) kèm chế độ tự khôi phục từ tiếng Anh (`AutoNonVnRestore`) và nút chỉ báo `VI / EN` trên thanh trên.
+* **Gõ tiếng Việt ổn định (`fcitx5-unikey`)**: Cấu hình sẵn biến môi trường Wayland/XWayland, tự bật tiếng Việt (`ActiveByDefault=True`, `ShareInputState=All` — một trạng thái dùng chung cho mọi app) kèm chế độ tự khôi phục từ tiếng Anh (`AutoNonVnRestore`) và nút chỉ báo `VI / EN` trên thanh trên. Bộ giám sát `ime-guard.sh` chạy đầu tiên khi Hyprland khởi động (trước Waybar): xuất môi trường phiên (`WAYLAND_DISPLAY`, `GTK_IM_MODULE`, `QT_IM_MODULE`, `XMODIFIERS`...) cho D-Bus/systemd, bật sẵn tiếng Việt và tự hồi phục sau mỗi 5 giây nếu `fcitx5` chết, chạy nhiều bản, sai `WAYLAND_DISPLAY` hoặc chưa nối frontend Wayland (báo qua `dunst`). Các lệnh hỗ trợ: `ime-guard.sh status` (mã `0` = khỏe), `restart`, `daemon`, `env`.
 * **Màn hình khóa & Đăng nhập đồng bộ**:
   * **Khóa màn hình (`hyprlock` + `hypridle`)**: Đồng bộ hình nền hiện tại qua `~/.cache/kafka_current_wallpaper`, tự giảm sáng, khóa màn hình và tắt màn hình khi nghỉ.
   * **Đăng nhập (`greetd` + `ReGreet`)**: Giao diện đăng nhập tối giản chạy trong `cage` với nền Kafka phủ mờ tối và cơ chế dự phòng an toàn (`agreety`).
@@ -111,9 +115,11 @@ Nếu bạn **chưa bỏ ảnh** vào `wallpapers/`, bước `assets` sẽ tự 
 | :--- | :--- |
 | **`Super + Space`** / **`Super + R`** | Mở trình tìm & khởi chạy ứng dụng **Walker** |
 | **`Nhấn-thả riêng Super`** | Bật/tắt chế độ tổng quan cửa sổ & workspace (**hyprshell**) |
-| **`Alt + Tab`** | Chuyển nhanh giữa các cửa sổ (**hyprshell**) |
+| **`Alt + Tab`** / **`Super + Tab`** | Chuyển nhanh giữa các cửa sổ (**hyprshell**): giữ phím bổ trợ, bấm Tab để sang tiếp, thả ra để nhảy tới (`Shift` = đi ngược) |
 | **`Super + V`** | Mở lịch sử Clipboard (`cliphist` + Rofi) |
 | **`Super + A`** | Bật/tắt cửa sổ nổi chạy sóng nhạc `cava` (`kitty --class kafka-cava`) |
+| **`Super + Shift + A`** | Bật/tắt **sóng nhạc làm hình nền** (`cava-wallpaper.py`: lớp layer-shell nằm dưới mọi cửa sổ, bấm xuyên qua, tự ngủ khi im lặng) |
+| **`Super + Ctrl + cuộn`** / **`Super + Ctrl + = / -`** / **`Super + Ctrl + 0`** | Kính lúp: phóng to / thu nhỏ / về bình thường |
 | **`Super + Escape`** | Khóa màn hình ngay lập tức (`hyprlock`) |
 | **`Super + M`** | Mở menu nguồn (`powermenu.sh`) |
 
@@ -194,6 +200,17 @@ killall -SIGUSR2 waybar
 ### 2. Thêm hoặc sửa phím tắt riêng
 Mở **Trình sửa phím tắt** từ nút `󰌌` trong popup công cụ trên dock (hoặc chạy `~/.config/hypr/scripts/keybinds-editor.py`). Mọi thay đổi sẽ được ghi vào `hypr/keybinds.lua` dưới dạng bảng Lua và tự động ghi đè lên phím mặc định khi `hyprctl reload` mà không làm bẩn `hypr/hyprland.lua`.
 
+### 3b. Cài VPN (Proton VPN Free)
+1. Tạo tài khoản miễn phí tại [account.protonvpn.com](https://account.protonvpn.com), vào **Downloads → WireGuard configuration**.
+2. Chọn **Platform: GNU/Linux**, chọn một máy chủ **Free** (Hà Lan/Mỹ/Nhật...), bấm **Create** rồi **Download** để tải file `.conf` (ví dụ `~/Downloads/proton-free.conf`).
+3. Nhập vào NetworkManager và chọn làm VPN mặc định của nút:
+   ```bash
+   ~/.config/hypr/scripts/vpn.sh import ~/Downloads/proton-free.conf
+   ```
+4. Bấm nút VPN trên thanh trên để bật/tắt. Kiểm tra: `~/.config/hypr/scripts/vpn.sh list`. Muốn đổi máy chủ thì tải thêm file `.conf` khác, nhập tương tự rồi bấm phải vào nút để chọn.
+
+File `.conf` chứa khoá riêng của bạn: **đừng** đưa vào repo.
+
 ### 3. Đổi hình nền
 * Đặt ảnh ngang 16:9 mới vào `wallpapers/` (tên bắt đầu bằng `kafka_`, ví dụ `kafka_custom_1080p.jpg`) rồi đặt làm hình nền hiện tại:
   ```bash
@@ -211,8 +228,17 @@ Mở **Trình sửa phím tắt** từ nút `󰌌` trong popup công cụ trên 
   killall waybar
   hyprctl dispatch "hl.dsp.exec_cmd('waybar')"
   ```
-* **Gõ tiếng Việt trong Kitty bị mất dấu sau khi khởi động lại `fcitx5`**:
-  Cửa sổ Kitty đang mở từ trước có thể bị kẹt kết nối Input Context cũ với daemon `fcitx5`. Chỉ cần **mở một cửa sổ Kitty mới** là gõ tiếng Việt có dấu bình thường. Nếu file `profile` của `fcitx5` bị ghi đè sai thứ tự bộ gõ, chạy lại `./install.sh --only fcitx --force-fcitx`.
+* **Không gõ được dấu**:
+  Kiểm tra tình trạng bộ gõ trước tiên (mã thoát `0` nghĩa là khỏe):
+  ```bash
+  ~/.config/hypr/scripts/ime-guard.sh status
+  ```
+  Nếu báo lỗi, **bấm giữa ô `VI / EN`** trên thanh trên để khởi động lại bộ gõ (bên trái để chuyển `VI / EN`, bên phải để cấu hình `fcitx5`), hoặc chạy tay:
+  ```bash
+  ~/.config/hypr/scripts/ime-guard.sh restart
+  ```
+  Terminal mở từ trước nếu vẫn gõ không dấu thì **mở cửa sổ mới**, vì cửa sổ cũ còn giữ Input Context cũ. Nếu file `profile` của `fcitx5` bị ghi đè sai thứ tự bộ gõ, chạy lại `./install.sh --only fcitx --force-fcitx`.
+  Nguyên nhân gốc đã được xử lý: trước đây Waybar chạy trước `fcitx5`, ô `VI / EN` gọi `fcitx5-remote` khiến D-Bus tự bật một bản `fcitx5` có thể thiếu môi trường Wayland, rồi lệnh `fcitx5 -d` của Hyprland thấy đã có bản chạy nên thoát — nên có lúc đăng nhập gõ được, lúc không. Nay `ime-guard.sh` xuất môi trường cho D-Bus ngay từ đầu, còn `ime-status.sh` chỉ gọi `fcitx5-remote` khi `fcitx5` đã chạy; trạng thái gõ dùng chung cho mọi app (`ShareInputState=All`).
 * **Màn hình đăng nhập `greetd` / `ReGreet` gặp sự cố không đăng nhập được**:
   Nhấn `Ctrl + Alt + F2` để chuyển sang TTY, đăng nhập bằng tài khoản của bạn và chạy:
   ```bash

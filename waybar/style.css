@@ -203,7 +203,11 @@ window#waybar.topbar > box {
     transition: background-color 120ms ease, color 120ms ease;
 }
 #control > widget > *:hover { background-color: @surface_hi; color: #ffffff; }
-#network.top, #bluetooth.top { font-family: "FiraCode Nerd Font Propo"; font-size: 16px; }
+#network.top, #bluetooth.top, #custom-vpn { font-family: "FiraCode Nerd Font Propo"; font-size: 16px; }
+/* VPN: bật = màu nhấn (chữ), đang nối = vàng, tắt/chưa có = mờ */
+#custom-vpn.on { color: @accent_fg; }
+#custom-vpn.connecting { color: @warn; }
+#custom-vpn.off, #custom-vpn.none { color: @faint; }
 #pulseaudio, #backlight, #battery, #cpu, #memory, #temperature { font-size: 14px; }
 #network.top.disconnected, #network.top.disabled,
 #bluetooth.top.off, #bluetooth.top.disabled,

@@ -1,0 +1,185 @@
+/* ============================================================================
+ *  THEME PIXEL (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
+ *
+ *  Phong cách pixel art: khung vuông góc bậc thang, viền tối ngoài + viền trắng trong + bóng đáy-phải,
+ *  tông tím lavender, chữ trắng có bóng pixel 1px. Khung = ảnh 9-slice trong waybar/pixel/ (sinh bằng
+ *  waybar/pixel/make-frames.py; đổi màu thì sửa ở đó). border-image cần border-width = 6px (3 điểm × 2px).
+ *  Lưu ý GTK3: border-image cộng 6px mỗi cạnh vào kích thước module → đệm dọc phải nhỏ lại.
+ * ============================================================================ */
+
+@define-color px_bar    #6e5c82;   /* nền thanh */
+@define-color px_dark   #2a1f33;   /* viền tối */
+@define-color px_tile   #5d4c70;   /* ô chìm */
+@define-color px_text   #ffffff;
+@define-color px_dim    #e6dcf2;
+@define-color px_faint  #b9aacb;
+@define-color px_pink   #c94785;
+@define-color px_pinkfg #ffb3d6;
+
+* {
+    text-shadow: 1px 1px 0 @px_dark;     /* bóng chữ kiểu pixel (không blur) */
+    font-weight: 800;
+}
+
+tooltip {
+    background: @px_tile;
+    border-style: solid;
+    border-width: 6px;
+    border-image: url("pixel/frame-dark.png") 6 stretch;
+    border-radius: 0;
+}
+
+/* ---------- nền thanh trên: dải tím, đáy viền tối 2px + vạch trắng 2px ---------- */
+window#waybar.topbar > box {
+    background-color: @px_bar;
+    border-bottom: 2px solid @px_dark;
+    box-shadow: inset 0 -2px @px_tile;
+}
+
+/* ---------- mọi cụm: khung pixel ---------- */
+#workspaces,
+#network.speed,
+#clock,
+#system,
+#control,
+#custom-ime,
+#custom-columns,
+#custom-notifications,
+#kafka {
+    background-color: transparent;
+    border-radius: 0;
+    border-style: solid;
+    border-width: 6px;
+    border-image: url("pixel/frame.png") 6 stretch;
+    margin: 2px 0;
+    padding: 0 6px;
+    color: @px_text;
+    box-shadow: none;
+}
+#network.speed:hover,
+#clock:hover,
+#custom-ime:hover,
+#custom-columns:hover,
+#custom-notifications:hover {
+    background-color: transparent;
+    border-image: url("pixel/frame-hover.png") 6 stretch;
+    box-shadow: none;
+}
+#custom-columns.hidden-cols { box-shadow: none; }
+
+/* Khối Kafka: khung hồng */
+#kafka { border-image: url("pixel/frame-active.png") 6 stretch; padding: 0; }
+#kafka #custom-launcher,
+#kafka #custom-layoutmode { border-radius: 0; padding: 0 8px; }
+#kafka #custom-layoutmode { border-left: 2px solid @px_dark; }
+#kafka #custom-launcher:hover,
+#kafka #custom-layoutmode:hover { background-color: rgba(42, 31, 51, 0.25); }
+
+/* Workspace: ô vuông, đang chọn = ô hồng có khung */
+#workspaces { padding: 0 2px; }
+#workspaces button {
+    border-radius: 0;
+    margin: 0 1px;
+    padding: 0 6px;
+    color: @px_dim;
+    border: none;
+}
+#workspaces button.empty { color: @px_faint; }
+#workspaces button:hover { background-color: rgba(255, 255, 255, 0.18); box-shadow: none; color: @px_text; }
+/* Ô đang chọn: nền hồng + viền pixel vẽ bằng box-shadow inset (không cộng kích thước như border-image,
+   lồng border-image trong cụm làm thanh cao 44px) */
+#workspaces button.active {
+    background-color: @px_pink;
+    box-shadow: inset 0 0 0 2px @px_text, inset -2px -2px 0 2px #8e2d5e;
+    color: @px_text;
+}
+#workspaces button.urgent {
+    background-color: #e64664;
+    box-shadow: inset 0 0 0 2px @px_text;
+}
+
+#network.speed { color: @px_dim; }
+#clock { padding: 0 10px; }
+
+/* Ô con bên trong cụm: vuông, rê chuột = ô sáng */
+#cpu, #memory, #temperature,
+#control > widget > * {
+    border-radius: 0;
+    margin: 0;
+    padding: 0 6px;
+    color: @px_text;
+}
+#cpu:hover, #memory:hover, #temperature:hover,
+#control > widget > *:hover { background-color: rgba(255, 255, 255, 0.18); }
+
+#custom-ime.vi  { color: @px_pinkfg; }
+#custom-ime.en  { color: @px_dim; }
+#custom-vpn.on  { color: @px_pinkfg; }
+#custom-vpn.off, #custom-vpn.none,
+#network.top.disconnected, #network.top.disabled,
+#bluetooth.top.off, #bluetooth.top.disabled,
+#pulseaudio.muted { color: @px_faint; }
+#custom-notifications { color: @px_dim; }
+#custom-notifications.has { color: @px_text; }
+
+/* Ô trống của ô nhạc: giữ nguyên vạch đánh dấu (media-pill.py dò vị trí bằng nó) */
+#custom-media-slot { margin: 6px 0 6px 8px; }
+
+/* Ô góc trên cột dock */
+#custom-corner {
+    border-left: 2px solid @px_dark;
+    color: @px_pinkfg;
+    background-color: transparent;
+}
+#custom-corner:hover { background-color: rgba(255, 255, 255, 0.18); color: @px_text; }
+
+/* ---------- dock: dải tím, mép trái viền tối 2px + vạch sáng ---------- */
+window#waybar.dockbar > box {
+    background-color: @px_bar;
+    border-left: 2px solid @px_dark;
+    box-shadow: inset 2px 0 @px_tile;
+}
+window#waybar.dockbar #pinned,
+window#waybar.dockbar #windows,
+window#waybar.dockbar #actions {
+    border-top: 2px solid @px_dark;
+}
+window#waybar.dockbar #pinned { border-bottom: 2px solid @px_dark; }
+
+/* Nút dock: vuông; rê chuột = khung pixel sáng */
+#custom-apps,
+#custom-pin-browser,
+#custom-pin-terminal,
+#custom-pin-files,
+#custom-pin-code,
+#custom-pin-editor,
+#custom-tools,
+#custom-hidden,
+#custom-actions,
+#custom-powermenu {
+    border-radius: 0;
+    color: @px_text;
+    box-shadow: none;
+}
+#custom-apps:hover,
+#custom-pin-browser:hover,
+#custom-pin-terminal:hover,
+#custom-pin-files:hover,
+#custom-pin-code:hover,
+#custom-pin-editor:hover,
+#custom-tools:hover,
+#custom-hidden:hover,
+#custom-actions:hover {
+    background-color: rgba(255, 255, 255, 0.20);
+    box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark;
+}
+#custom-apps { background-color: @px_pink; color: @px_text; box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark; }
+#custom-apps:hover { background-color: #e0559a; }
+#custom-powermenu { color: #ffd0dc; }
+#custom-powermenu:hover { background-color: rgba(230, 70, 100, 0.45); box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark; }
+#custom-hidden.has { background-color: @px_tile; }
+window#waybar.dockbar #windows #image { border-radius: 0; }
+window#waybar.dockbar #windows #image:hover {
+    background-color: rgba(255, 255, 255, 0.20);
+    box-shadow: inset 0 0 0 2px @px_text, inset 0 0 0 4px @px_dark;
+}

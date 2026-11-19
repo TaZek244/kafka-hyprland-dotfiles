@@ -267,7 +267,9 @@ step_system() {
         if (( DRY )); then info "\$ tạo hypr/keybinds.lua rỗng"
         else printf -- '-- Phím tắt riêng, do hypr/scripts/keybinds-editor.py ghi\nreturn {\n}\n' > "$REPO_DIR/hypr/keybinds.lua"; fi
     fi
-    ok "File tự sinh: waybar/dock-density.css, hypr/keybinds.lua"
+    # waybar/style.css @import theme.css (theme phẳng/pixel do ui-theme.sh chọn); thiếu file thì Waybar mất CSS
+    run "$REPO_DIR/hypr/scripts/ui-theme.sh" ensure
+    ok "File tự sinh: waybar/dock-density.css, waybar/theme.css, hypr/keybinds.lua"
     # GTK3 tối: theme PHẢI là "Adwaita" + prefer-dark (không có theme tên "Adwaita-dark" cho GTK3 → quay về sáng)
     if command -v gsettings >/dev/null; then
         run gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'

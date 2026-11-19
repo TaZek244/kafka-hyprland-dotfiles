@@ -40,7 +40,7 @@ hl.on("hyprland.start", function()
     -- một bản thiếu môi trường Wayland → gõ không dấu. ime-guard xuất môi trường cho D-Bus, bật fcitx5
     -- và giám sát (chết/mất Wayland thì tự bật lại). Xem hypr/scripts/ime-guard.sh.
     hl.exec_cmd(scripts .. "ime-guard.sh daemon")
-    hl.exec_cmd("waybar")
+    hl.exec_cmd(scripts .. "ui-theme.sh ensure; waybar")   -- theme.css (pixel/phẳng) phải có trước, thiếu thì Waybar mất hết CSS
     hl.exec_cmd("dunst")
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("nm-applet --indicator")
@@ -61,7 +61,7 @@ hl.on("hyprland.start", function()
     -- Viền xoay màu tự tắt khi dùng pin / power-saver, bật lại khi cắm sạc (power-watch.sh set on|off|auto để ghi đè)
     hl.exec_cmd(scripts .. "power-watch.sh daemon")
     hl.exec_cmd(scripts .. "media-pill.py")      -- ô "Đang phát" (rê chuột = sóng nhạc, bấm = popup lời bài hát)
-    hl.exec_cmd(scripts .. "corner-fillet.py")   -- góc lõm chỗ nối thanh trên + dock (overlay, tự ẩn khi toàn màn hình)
+    hl.exec_cmd("[ \"$(" .. scripts .. "ui-theme.sh status)\" = flat ] && " .. scripts .. "corner-fillet.py")   -- góc lõm (chỉ bản phẳng) chỗ nối thanh trên + dock (overlay, tự ẩn khi toàn màn hình)
     -- Phase 3: Lưu lịch sử clipboard (văn bản + hình ảnh)
     hl.exec_cmd("wl-paste --type text --watch cliphist store")
     hl.exec_cmd("wl-paste --type image --watch cliphist store")
@@ -248,6 +248,7 @@ hl.bind(key("SHIFT + B"),      hl.dsp.exec_cmd("killall -SIGUSR2 waybar || wayba
 hl.bind(key("V"),              hl.dsp.exec_cmd(clipMenu))
 hl.bind(key("A"),              hl.dsp.exec_cmd(scripts .. "toggle-app.sh kafka-cava kitty --class kafka-cava -e cava")) -- bấm lần nữa để tắt
 hl.bind(key("SHIFT + A"),      hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --toggle"))  -- sóng nhạc ở đáy màn hình (bấm xuyên), chỉ hiện khi có tiếng
+hl.bind(key("ALT + U"),        hl.dsp.exec_cmd(scripts .. "ui-theme.sh toggle"))         -- giao diện Waybar: phẳng ⇄ pixel
 hl.bind(key("ALT + A"),        hl.dsp.exec_cmd(scripts .. "cava-wallpaper.py --cycle-mode"))  -- sóng nhạc: nổi trên cửa sổ ⇄ làm hình nền
 
 -- Window States

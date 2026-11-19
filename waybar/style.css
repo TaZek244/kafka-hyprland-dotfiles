@@ -352,3 +352,6 @@ window#waybar.dockbar #actions {
 
 /* Mật độ thẻ app trên dock: file do hypr/scripts/dock-density.sh tự sinh theo số cửa sổ */
 @import "dock-density.css";
+
+/* Theme phụ (pixel…): file do hypr/scripts/ui-theme.sh tự sinh, đặt CUỐI để ghi đè */
+@import "theme.css";

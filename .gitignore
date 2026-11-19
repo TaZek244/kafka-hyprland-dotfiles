@@ -12,6 +12,7 @@ example/
 
 # File tự sinh lúc chạy
 waybar/dock-density.css
+waybar/theme.css
 hypr/wallpapers
 __pycache__/
 *.pyc

@@ -59,6 +59,15 @@ LEAVE_DELAY_MS = 450
 TEXT = (0xfb / 255, 0xf7 / 255, 0xfd / 255)
 DIM = (0xd4 / 255, 0xca / 255, 0xde / 255)
 ACCENT = (0xe0 / 255, 0x55 / 255, 0x9a / 255)
+UI_THEME_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "kafka", "ui-theme")
+
+
+def ui_theme():
+    """"pixel" nếu đang dùng theme pixel (hypr/scripts/ui-theme.sh), còn lại "flat"."""
+    try:
+        return "pixel" if open(UI_THEME_FILE).read().strip() == "pixel" else "flat"
+    except OSError:
+        return "flat"
 
 
 def parse_status_line(line):
@@ -173,7 +182,9 @@ def run():
             self._leave_src = None
             self.fullscreen = False
             self.slot = None              # (x, rộng) của ô trống Waybar, dò bằng vạch đánh dấu
+            self.pixel = ui_theme() == "pixel"
             self.pw = PILL_W
+            self.ph = PILL_H
             self._cal_busy = False
             GtkLayerShell.init_for_window(self)
             GtkLayerShell.set_namespace(self, "kafka-media-pill")
@@ -221,12 +232,19 @@ def run():
             try:
                 mon = Gdk.Display.get_default().get_monitor(0)
                 sw = mon.get_geometry().width if mon else 1920
-                out = subprocess.run(["grim", "-g", f"0,{MARKER_Y} {sw}x1", "-t", "ppm", "-"],
+                y0 = MARKER_Y - 4            # vạch ở y=32 (bản phẳng) hoặc 31 (bản pixel: thanh có viền đáy 2px)
+                rows = 6
+                out = subprocess.run(["grim", "-g", f"0,{y0} {sw}x{rows}", "-t", "ppm", "-"],
                                      capture_output=True, timeout=3).stdout
-                # PPM: "P6\n<w> <h>\n255\n" + RGB
+                # PPM: "P6\n<w> <h>\n255\n" + RGB, hàng nối tiếp
                 parts = out.split(b"\n", 3)
                 if len(parts) == 4 and parts[0] == b"P6":
-                    res = find_marker(parts[3])
+                    data = parts[3]
+                    for r in range(rows - 1, -1, -1):          # lấy hàng thấp nhất có vạch
+                        m = find_marker(data[r * sw * 3:(r + 1) * sw * 3])
+                        if m:
+                            res = (m[0], m[1], y0 + r)
+                            break
             except Exception:
                 res = None
             GLib.idle_add(self._apply_slot, res)
@@ -238,8 +256,9 @@ def run():
                 if res:
                     GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, res[0])
                     self.pw = res[1]
-                    self.set_size_request(self.pw, PILL_H)
-                    self.resize(self.pw, PILL_H)
+                    self.ph = max(16, res[2] - TOP)          # viên thuốc phủ từ TOP tới ngay trên vạch
+                    self.set_size_request(self.pw, self.ph)
+                    self.resize(self.pw, self.ph)
                 self.update_visible()
                 self.queue_draw()
             return False
@@ -281,8 +300,11 @@ def run():
             ctx.set_operator(cairo.OPERATOR_SOURCE)
             ctx.set_source_rgba(0, 0, 0, 0)
             ctx.paint()
+            if self.pixel:
+                ctx.set_operator(cairo.OPERATOR_OVER)
+                return self.draw_pixel(ctx)
             ctx.set_operator(cairo.OPERATOR_OVER)
-            w, h = self.pw, PILL_H
+            w, h = self.pw, self.ph
             r = h / 2.0                                   # bo tròn hẳn hai đầu (viên thuốc mềm)
 
             def pill_path(inset=0.0):
@@ -354,6 +376,60 @@ def run():
                 for k in (0, 1):
                     ctx.move_to(x0 - off + k * (tw + gap), (h - th) / 2)
                     PangoCairo.show_layout(ctx, layout)
+            ctx.restore()
+            return True
+
+        def draw_pixel(self, ctx):
+            """Kiểu pixel (theme pixel): khung bậc thang viền tối + viền trắng + bóng, vạch nhún dạng khối,
+            chữ trắng có bóng 1px, không khử răng cưa — khớp waybar/pixel/frame*.png."""
+            w, h, P = self.pw, self.ph, 2
+            ctx.set_antialias(cairo.ANTIALIAS_NONE)
+            hv = self.hover_k
+            dark, white, shade = (0x2a / 255, 0x1f / 255, 0x33 / 255), (1, 1, 1), (0x4a / 255, 0x3a / 255, 0x5c / 255)
+            base, hi = (0x8f / 255, 0x7f / 255, 0xa6 / 255), (0xa8 / 255, 0x97 / 255, 0xbf / 255)
+            fill = tuple(b + (c - b) * hv for b, c in zip(base, hi))
+
+            def rect(x, y, rw, rh, col):
+                ctx.set_source_rgb(*col)
+                ctx.rectangle(x, y, rw, rh)
+                ctx.fill()
+            # viền tối (khuyết góc) → viền trắng → nền → bóng đáy-phải
+            rect(P, 0, w - 2 * P, P, dark)
+            rect(P, h - P, w - 2 * P, P, dark)
+            rect(0, P, P, h - 2 * P, dark)
+            rect(w - P, P, P, h - 2 * P, dark)
+            rect(P, P, w - 2 * P, h - 2 * P, white)
+            rect(2 * P, 2 * P, w - 4 * P, h - 4 * P, fill)
+            rect(w - 2 * P, 2 * P, P, h - 3 * P, shade)
+            rect(2 * P, h - 2 * P, w - 3 * P, P, shade)
+            # vạch nhún: 4 cột khối 2px, nấc 2px
+            playing = self.info["status"] == "Playing"
+            t = time.monotonic()
+            for i in range(4):
+                amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
+                bh = int(2 + amp * 6) * P
+                x = 10 + i * 6
+                rect(x + 1, h - 3 * P - bh + 1, 4, bh, dark)        # bóng
+                rect(x, h - 3 * P - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
+            # chữ
+            layout = PangoCairo.create_layout(ctx)
+            layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 10"))
+            text = label_for(self.info)
+            layout.set_text(text, -1)
+            tw, th = layout.get_pixel_size()
+            x0, avail = 40, w - 40 - 3 * P
+            ctx.save()
+            ctx.rectangle(x0, 2 * P, avail, h - 4 * P)
+            ctx.clip()
+            ty = (h - th) // 2
+            offs = [0] if tw <= avail else [-(int(self.scroll_x) % (tw + 48)), -(int(self.scroll_x) % (tw + 48)) + tw + 48]
+            for off in offs:
+                ctx.set_source_rgb(*dark)
+                ctx.move_to(x0 + off + 1, ty + 1)
+                PangoCairo.show_layout(ctx, layout)
+                ctx.set_source_rgb(*(white if (playing or self.hover) else (0xe6 / 255, 0xdc / 255, 0xf2 / 255)))
+                ctx.move_to(x0 + off, ty)
+                PangoCairo.show_layout(ctx, layout)
             ctx.restore()
             return True
 

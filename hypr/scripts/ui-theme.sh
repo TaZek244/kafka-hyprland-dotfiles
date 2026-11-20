@@ -65,6 +65,7 @@ get_status() {
 ROFI_CSS="$REPO/rofi/theme-current.rasi"
 WALKER_CSS="$REPO/walker/themes/kafka/theme-current.css"
 DUNST_DROPIN="$REPO/dunst/dunstrc.d/50-ui-theme.conf"
+KITTY_CONF="$REPO/kitty/theme-current.conf"
 
 # Ghi mọi file "theme-current" (Waybar, rofi, walker) + file bổ sung của dunst theo chế độ.
 # Các file này tự sinh (gitignore); thiếu file nào thì Waybar/rofi/walker có thể lỗi CSS → `ensure` tạo lại.
@@ -77,12 +78,15 @@ write_theme_css() {
 @import \"theme-pixel.rasi\""
         atomic_write "$WALKER_CSS" "$HEADER_COMMENT
 @import url(\"theme-pixel.css\");"
+        atomic_write "$KITTY_CONF" "# Tự sinh bởi hypr/scripts/ui-theme.sh — đừng sửa tay.
+include theme-pixel.conf"
         mkdir -p "$(dirname "$DUNST_DROPIN")"
         cp -f "$REPO/dunst/theme-pixel.conf" "$DUNST_DROPIN" 2>/dev/null || true
     else
         atomic_write "$THEME_CSS" "$HEADER_COMMENT"
         atomic_write "$ROFI_CSS" "$HEADER_COMMENT"
         atomic_write "$WALKER_CSS" "$HEADER_COMMENT"
+        atomic_write "$KITTY_CONF" "# Tự sinh bởi hypr/scripts/ui-theme.sh — đừng sửa tay."
         rm -f "$DUNST_DROPIN"
     fi
 }
@@ -155,6 +159,11 @@ apply_side_effects() {
         command -v hyprctl >/dev/null 2>&1 && \
             hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/tools-popup.py')" >/dev/null 2>&1 || true
     fi
+
+    # 2c. Viền/góc/bóng cửa sổ Hyprland (hàm kafka_ui_theme trong hyprland.lua) + kitty nạp lại cấu hình (SIGUSR1)
+    command -v hyprctl >/dev/null 2>&1 && hyprctl eval "kafka_ui_theme(\"$mode\")" >/dev/null 2>&1 || true
+    local kp
+    for kp in $(pgrep -x kitty 2>/dev/null); do kill -USR1 "$kp" 2>/dev/null || true; done
 
     # 3. dunst nạp lại cấu hình (đọc dunstrc.d/), walker khởi động lại dịch vụ (CSS chỉ nạp lúc chạy)
     command -v dunstctl >/dev/null 2>&1 && dunstctl reload >/dev/null 2>&1 || true
@@ -293,7 +302,7 @@ case "$cmd" in
         ;;
     ensure)
         mkdir -p "$STATE_DIR"
-        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" ]]; then
+        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" || ! -e "$KITTY_CONF" ]]; then
             current=$(get_status)
             write_theme_css "$current"
         fi

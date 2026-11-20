@@ -54,7 +54,7 @@ window#waybar.topbar > box {
     border-style: solid;
     border-width: 7px;
     border-image: url("pixel/frame.png") 7 stretch;
-    margin: 3px 0;
+    margin: 2px 0;                      /* viền ảnh 7px mỗi cạnh: lề 3px làm thanh cao 41 (chuẩn 40) */
     padding: 0 5px;
     color: @px_text;
     box-shadow: none;

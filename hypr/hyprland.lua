@@ -191,6 +191,52 @@ hl.config({
     },
 })
 
+-- Viền/góc/bóng cửa sổ theo giao diện (hypr/scripts/ui-theme.sh, Super + Alt + U):
+--   flat  = như khối decoration trên (bo 14, viền 2 gradient đỏ-tím-vàng, bóng mờ lan 20)
+--   pixel = "pixel mềm": bo 6, viền 3 gradient hồng → tím, bóng CỨNG lệch xuống-phải (shadow.sharp)
+-- ui-theme.sh gọi `hyprctl eval 'kafka_ui_theme("pixel")'`; lúc nạp file đọc trạng thái để reload/đăng nhập vẫn giữ.
+-- Đổi giá trị bản flat ở khối hl.config trên thì sửa cả ở đây.
+function kafka_ui_theme(mode)
+    if mode == "pixel" then
+        hl.config({
+            general = {
+                border_size = 3,
+                col = {
+                    active_border   = { colors = { "rgba(f08cbbff)", "rgba(c94785ff)", "rgba(a37de0ff)" }, angle = 45 },
+                    inactive_border = "rgba(3a2f46ff)",
+                },
+            },
+            decoration = {
+                rounding       = 6,
+                rounding_power = 2.0,
+                shadow = { enabled = true, sharp = true, range = 1, offset = "6 6", color = "rgba(0b0710cc)" },
+            },
+        })
+    else
+        hl.config({
+            general = {
+                border_size = 2,
+                col = {
+                    active_border   = { colors = { "rgba(b8326aff)", "rgba(c77dffff)", "rgba(d4af6aff)" }, angle = 45 },
+                    inactive_border = "rgba(382b47aa)",
+                },
+            },
+            decoration = {
+                rounding       = 14,
+                rounding_power = 2.0,
+                shadow = { enabled = true, sharp = false, range = 20, offset = "0 0", color = "rgba(140d1cee)" },
+            },
+        })
+    end
+    return mode
+end
+do
+    local f = io.open((os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/kafka/ui-theme", "r")
+    local mode = f and f:read("*l") or "flat"
+    if f then f:close() end
+    if mode == "pixel" then kafka_ui_theme("pixel") end
+end
+
 -- Custom smooth "Spider Thread" bezier curves
 hl.curve("kafkaSnap",   { type = "bezier", points = { {0.05, 0.9}, {0.1, 1.05} } })
 hl.curve("kafkaSmooth", { type = "bezier", points = { {0.25, 1},   {0.5, 1}    } })

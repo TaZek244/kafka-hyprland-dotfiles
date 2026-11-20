@@ -270,6 +270,12 @@ step_system() {
     # waybar/style.css @import theme.css (theme phẳng/pixel do ui-theme.sh chọn); thiếu file thì Waybar mất CSS
     run "$REPO_DIR/hypr/scripts/ui-theme.sh" ensure
     ok "File tự sinh: waybar/dock-density.css, waybar/theme.css, hypr/keybinds.lua"
+    # Font "Kafka Pixel" (font 5×7 của trình đăng nhập KAFKA.SYS) cho theme pixel: dựng TTF rồi liên kết vào ~/.local/share/fonts
+    run python3 "$REPO_DIR/fonts/build-kafka-pixel-font.py"
+    run mkdir -p "$HOME/.local/share/fonts"
+    run ln -sfn "$REPO_DIR/fonts/KafkaPixel.ttf" "$HOME/.local/share/fonts/KafkaPixel.ttf"
+    command -v fc-cache >/dev/null && run fc-cache -f "$HOME/.local/share/fonts"
+    ok "Font Kafka Pixel"
     # GTK3 tối: theme PHẢI là "Adwaita" + prefer-dark (không có theme tên "Adwaita-dark" cho GTK3 → quay về sáng)
     if command -v gsettings >/dev/null; then
         run gsettings set org.gnome.desktop.interface gtk-theme 'Adwaita'

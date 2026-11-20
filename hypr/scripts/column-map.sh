@@ -4,6 +4,7 @@
 # Màu: hồng #e0559a = đang dùng, sáng #fbf7fd = đang thấy, mờ #9284a6 = khuất; cách 2 dấu cách.
 # Toàn bộ text bọc trong span font FiraCode Nerd Font Propo; cột xếp (Desktop / trống) -> ẩn.
 # Cột suy ra từ hình học: cửa sổ xếp (không nổi) cùng toạ độ x thuộc một cột; lộ < 50px coi như khuất.
+# Tối đa KAFKA_COLMAP_MAX (mặc định 5) cột quanh cột đang dùng, phần còn lại ghi "‹N"/"N›".
 # Thử: column-map.sh --selftest
 
 set -u
@@ -49,7 +50,7 @@ ICONS=$(jq -n \
 
 # $1 = clients JSON, $2 = monitors JSON, $3 = địa chỉ cửa sổ đang focus
 render() {
-    jq -cn --argjson c "$1" --argjson m "$2" --arg act "$3" --argjson icons "$ICONS" '
+    jq -cn --argjson c "$1" --argjson m "$2" --arg act "$3" --argjson icons "$ICONS" --argjson max "${KAFKA_COLMAP_MAX:-5}" '
         ($m | map(select(.focused)) | .[0] // $m[0] // {}) as $mon |
         ($mon.scale // 1) as $s |
         (($mon.x // 0) + ($mon.reserved[0] // 0)) as $left |
@@ -68,14 +69,23 @@ render() {
         map(. + {pos: (if .x + .w <= $left + 50 then "left" elif .x >= $right - 50 then "right" else "on" end)}) as $cols |
         ($cols | map(select(.pos == "left")) | length) as $nl |
         ($cols | map(select(.pos == "right")) | length) as $nr |
+        # Chỉ hiện tối đa $max cột quanh cột đang dùng (không thì nhiều cửa sổ làm cụm trái dài ra, đẩy đồng hồ
+        # và bóp ô trống của ô nhạc); cột bị bỏ bớt ghi gọn "‹N" / "N›". Tooltip vẫn liệt kê đủ.
+        ($cols | length) as $len |
+        (($cols | map(.focus) | index(true)) // ($cols | map(.pos == "on") | index(true)) // 0) as $fi |
+        ([0, ([($fi - (($max - 1) / 2 | floor)), ($len - $max)] | min)] | max) as $st |
+        ($cols[$st:$st + $max]) as $shown |
+        ($len - $st - ($shown | length)) as $after |
         {
             text: ("<span font_family=\"FiraCode Nerd Font Propo\">"
-                + ($cols | map(
+                + (if $st > 0 then "<span color=\"#9284a6\" size=\"small\">‹\($st)</span>  " else "" end)
+                + ($shown | map(
                     (.icon + (if .n > 1 then "<span size=\"small\" rise=\"4000\">\(.n)</span>" else "" end)) as $g |
                     if .focus then "<span color=\"#e0559a\">\($g)</span>"
                     elif .pos == "on" then "<span color=\"#fbf7fd\">\($g)</span>"
                     else "<span color=\"#9284a6\">\($g)</span>" end
                   ) | join("  "))
+                + (if $after > 0 then "  <span color=\"#9284a6\" size=\"small\">\($after)›</span>" else "" end)
                 + "</span>"),
             tooltip: ("\($cols | length) cột"
                 + (if $nl > 0 then " · \($nl) khuất trái" else "" end)
@@ -113,6 +123,16 @@ selftest() {
     jq -e '.tooltip | startswith("3 cột · 1 khuất trái · 1 khuất phải")' <<<"$out" >/dev/null || ok=0
     # (e) clients rỗng -> text ""
     [[ $(render '[]' "$mons" "" | jq -r '.text') == "" ]] || ok=0
+    # (f) 9 cột, focus ở cột 9 → hiện 5 cột cuối + "‹4", không có "›"
+    local many='[' i
+    for i in 1 2 3 4 5 6 7 8 9; do many+="{\"address\":\"0x$i\",\"class\":\"thunar\",\"workspace\":{\"id\":1},\"floating\":false,\"at\":[$((i*100)),62],\"size\":[90,500]},"; done
+    many="${many%,}]"
+    text=$(render "$many" "$mons" "0x9" | jq -r '.text')
+    [[ $text == *'‹4</span>'* && $text != *'›</span>'* ]] || ok=0
+    [[ $(grep -o "$icon_thunar" <<<"$text" | wc -l) -eq 5 ]] || ok=0
+    # (g) focus ở cột 1 → 5 cột đầu + "4›"
+    text=$(render "$many" "$mons" "0x1" | jq -r '.text')
+    [[ $text == *'4›</span>'* && $text != *'‹'* ]] || ok=0
     if (( ok )); then echo PASS; else echo FAIL; echo "$out" >&2; return 1; fi
 }
 

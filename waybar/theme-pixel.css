@@ -1,44 +1,67 @@
 /* ============================================================================
- *  THEME "PIXEL MỀM" (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
+ *  THEME PIXEL "KAFKA.SYS" (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
  *
- *  Chất pixel nhưng không gắt (người dùng chê bản lavender + viền trắng 2px là "màu xấu, quá pixel"):
- *  - Tông tím than đậm hoà với ảnh nền (như bản phẳng), màu nhấn hồng #c94785 giữ nguyên.
- *  - Khung bo góc bán kính 5px vẽ bằng bậc thang 1px (không khử răng cưa), viền ngoài tối mảnh,
- *    mép sáng trên-trái + bóng dưới-phải thay viền trắng. Ảnh 9-slice: waybar/pixel/make-frames.py.
- *  - border-image cộng 6px mỗi cạnh vào kích thước → KHÔNG lồng khung trong khung (ô con dùng box-shadow).
+ *  Cùng ngôn ngữ với màn hình đăng nhập greetd/kafka-greeter (người dùng 2026-11-20: "phải có tí pixel,
+ *  đừng chỉ là bo vào"):
+ *  - Khung vẽ trên LƯỚI Ô 2px: góc bậc thang 2 ô, viền tối 1 ô, mép sáng trên-trái / bóng dưới-phải,
+ *    BÓNG CỨNG lệch 1 ô xuống-phải. Ảnh 9-slice px*.png (waybar/pixel/make-frames.py), cắt 6 8 8 6.
+ *  - Ô con: vuông (radius 0), mép sáng/bóng + bóng cứng 2px bằng box-shadow (không blur).
+ *  - Chữ: font "Kafka Pixel" (fonts/build-kafka-pixel-font.py, dựng từ font 5×7 của trình đăng nhập),
+ *    cỡ 14px = mỗi điểm 2px (unitsPerEm 700); ký tự font không có (icon Nerd, dấu tiếng Việt) tự rơi về FiraCode.
+ *  - Nền thanh/dock: vân quét ngang (bar-tex.png) như nền màn hình đăng nhập.
+ *  - border-image cộng 6/8px vào kích thước → KHÔNG lồng khung trong khung.
  * ============================================================================ */
 
-@define-color px_bar     rgba(30, 23, 37, 0.95);  /* nền thanh + dock */
-@define-color px_edge    #140e1a;                 /* viền tối */
+@define-color px_bar     rgba(26, 20, 33, 0.96);
+@define-color px_edge    #140e1a;
 @define-color px_line    #3a2f46;
 @define-color px_text    #fbf7fd;
 @define-color px_dim     #d4cade;
 @define-color px_faint   #9a8bab;
 @define-color px_pink    #c94785;
 @define-color px_pinkfg  #f08cbb;
-@define-color px_hover   rgba(255, 255, 255, 0.10);
 
 * {
-    text-shadow: 1px 1px 0 rgba(10, 6, 14, 0.55);  /* bóng chữ 1px, không blur */
-}
-
-tooltip {
-    background-color: #2a2134;
-    background-clip: padding-box;
-    border-style: solid;
-    border-width: 7px;
-    border-image: url("pixel/frame-dark.png") 7 stretch;
+    text-shadow: 2px 2px 0 rgba(11, 7, 16, 0.85);   /* bóng chữ = 1 điểm pixel */
     border-radius: 0;
 }
 
-/* ---------- nền thanh trên: đáy viền tối 1px + vạch sáng mảnh ---------- */
-window#waybar.topbar > box {
-    background-color: @px_bar;
-    border-bottom: 1px solid @px_edge;
-    box-shadow: inset 0 -1px @px_line;
+/* style.css bo góc theo id (thắng luật *) → ép vuông theo id: ô vuông = chất pixel */
+#workspaces button, #cpu, #memory, #temperature, #control > widget > *, #custom-corner,
+#kafka #custom-launcher, #kafka #custom-layoutmode, #custom-media-slot,
+#custom-apps, #custom-pin-browser, #custom-pin-terminal, #custom-pin-files, #custom-pin-code,
+#custom-pin-editor, #custom-tools, #custom-hidden, #custom-actions, #custom-powermenu,
+window#waybar.dockbar #windows #image, #tray > widget, #tray > .passive, #tray > .active {
+    border-radius: 0;
 }
 
-/* ---------- mọi cụm: khung pixel mềm ---------- */
+/* chữ pixel cho các cụm có chữ/số; icon Nerd vẫn lấy từ FiraCode. Chữ pixel rộng 12px/ký tự (FiraCode ~8): chỉ dùng cho
+   chỗ nhận diện (Kafka, workspace, VI/EN, thông báo); đồng hồ + số liệu (mạng, CPU, pin…) giữ FiraCode đậm, không thì thanh tràn → GTK bóp ô trống của ô nhạc (media-pill.py mất vạch dò). */
+#workspaces button, #workspaces button label, #custom-ime, #custom-notifications,
+#custom-launcher, tooltip label {
+    font-family: "Kafka Pixel", "FiraCode Nerd Font Propo", "FiraCode Nerd Font";
+    font-size: 14px;
+    font-weight: normal;
+}
+
+tooltip {
+    background-color: #241c2d;
+    background-clip: padding-box;
+    border-style: solid;
+    border-width: 6px 8px 8px 6px;
+    border-image: url("pixel/px-dark.png") 6 8 8 6 stretch;
+}
+
+/* ---------- nền thanh trên: vân quét + viền đáy 2 điểm (tối + mép) ---------- */
+window#waybar.topbar > box {
+    background-color: @px_bar;
+    background-image: url("pixel/bar-tex.png");
+    background-repeat: repeat;
+    border-bottom: 2px solid @px_edge;
+    box-shadow: inset 0 -2px #4a3c59;
+}
+
+/* ---------- mọi cụm: khung lưới ô ---------- */
 #workspaces,
 #network.speed,
 #clock,
@@ -48,14 +71,14 @@ window#waybar.topbar > box {
 #custom-columns,
 #custom-notifications,
 #kafka {
-    background-color: #3a2f46;          /* GTK3 không vẽ phần giữa border-image → tô nền trong padding-box */
+    background-color: #33293f;          /* GTK3 không vẽ phần giữa border-image → tô nền trong padding-box */
+    background-image: none;
     background-clip: padding-box;
-    border-radius: 0;
     border-style: solid;
-    border-width: 7px;
-    border-image: url("pixel/frame.png") 7 stretch;
-    margin: 2px 0;                      /* viền ảnh 7px mỗi cạnh: lề 3px làm thanh cao 41 (chuẩn 40) */
-    padding: 0 5px;
+    border-width: 6px 8px 8px 6px;
+    border-image: url("pixel/px.png") 6 8 8 6 stretch;
+    margin: 1px 0 2px 0;
+    padding: 0 1px;                     /* viền ảnh đã có 6/8px; đệm lớn làm thanh tràn, ô nhạc bị bóp */
     color: @px_text;
     box-shadow: none;
 }
@@ -64,54 +87,62 @@ window#waybar.topbar > box {
 #custom-ime:hover,
 #custom-columns:hover,
 #custom-notifications:hover {
-    background-color: #4a3c59;
-    border-image: url("pixel/frame-hover.png") 7 stretch;
+    background-color: #463955;
+    border-image: url("pixel/px-hover.png") 6 8 8 6 stretch;
     box-shadow: none;
 }
 #custom-columns.hidden-cols { box-shadow: none; }
 
-/* Khối Kafka: khung hồng */
-#kafka { border-image: url("pixel/frame-active.png") 7 stretch; background-color: #c94785; padding: 0; }
+/* Khối Kafka: khung hồng như dải tiêu đề hộp đăng nhập */
+#kafka { border-image: url("pixel/px-active.png") 6 8 8 6 stretch; background-color: #c94785; padding: 0; }
 #kafka #custom-launcher,
-#kafka #custom-layoutmode { border-radius: 0; padding: 0 7px; }
-#kafka #custom-layoutmode { border-left: 1px solid rgba(61, 16, 40, 0.8); box-shadow: inset 1px 0 rgba(255, 255, 255, 0.18); }
+#kafka #custom-layoutmode { padding: 0 6px; color: #ffffff; text-shadow: 2px 2px 0 #3d1028; }
+#kafka #custom-layoutmode { border-left: 2px solid #3d1028; box-shadow: inset 2px 0 #f08cbb; }
 #kafka #custom-launcher:hover,
-#kafka #custom-layoutmode:hover { background-color: rgba(20, 14, 26, 0.22); }
+#kafka #custom-layoutmode:hover { background-color: #d9568f; }
 
-/* Workspace: ô bo nhẹ; đang chọn = ô hồng có mép sáng/bóng (box-shadow, không cộng kích thước) */
-#workspaces { padding: 0 1px; }
+/* Workspace: ô vuông; đang chọn = ô hồng có mép sáng/bóng + bóng cứng */
+#workspaces { padding: 0 2px; }
 #workspaces button {
-    border-radius: 4px;
     margin: 0 1px;
-    padding: 0 6px;
+    padding: 0 5px;
     color: @px_dim;
     border: none;
+    box-shadow: none;
 }
 #workspaces button.empty { color: @px_faint; }
-#workspaces button:hover { background-color: @px_hover; box-shadow: none; color: @px_text; }
+#workspaces button:hover {
+    background-color: #463955;
+    box-shadow: inset 2px 2px 0 #7a6890, inset -2px -2px 0 #241b2e;
+    color: @px_text;
+}
 #workspaces button.active {
     background-color: @px_pink;
-    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(61, 16, 40, 0.6);
+    box-shadow: inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
     color: #ffffff;
+    text-shadow: 2px 2px 0 #3d1028;
 }
 #workspaces button.urgent {
     background-color: #e0506e;
-    box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35);
+    box-shadow: inset 2px 2px 0 #ff9aae, inset -2px -2px 0 #a8344c;
 }
 
-#network.speed { color: @px_dim; }
-#clock { padding: 0 9px; }
+#network.speed { color: @px_dim; font-weight: bold; }
+#clock { padding: 0 3px; color: #ffffff; font-weight: bold; }
 
 /* Ô con bên trong cụm */
 #cpu, #memory, #temperature,
 #control > widget > * {
-    border-radius: 4px;
+    font-weight: bold;
     margin: 0;
-    padding: 0 6px;
+    padding: 0 5px;
     color: @px_text;
 }
 #cpu:hover, #memory:hover, #temperature:hover,
-#control > widget > *:hover { background-color: @px_hover; }
+#control > widget > *:hover {
+    background-color: #463955;
+    box-shadow: inset 2px 2px 0 #7a6890, inset -2px -2px 0 #241b2e;
+}
 
 #custom-ime.vi  { color: @px_pinkfg; }
 #custom-ime.en  { color: @px_dim; }
@@ -121,32 +152,35 @@ window#waybar.topbar > box {
 #bluetooth.top.off, #bluetooth.top.disabled,
 #pulseaudio.muted { color: @px_faint; }
 #custom-notifications { color: @px_dim; }
-#custom-notifications.has { color: @px_text; }
+#custom-notifications.has { color: @px_pinkfg; }
 
 /* Ô trống của ô nhạc: giữ vạch đánh dấu (media-pill.py dò vị trí bằng nó) */
 #custom-media-slot { margin: 6px 0 6px 8px; }
 
 /* Ô góc trên cột dock */
 #custom-corner {
-    border-left: 1px solid @px_edge;
-    box-shadow: inset 1px 0 @px_line;
+    border-left: 2px solid @px_edge;
+    box-shadow: inset 2px 0 #4a3c59;
     color: @px_pinkfg;
     background-color: transparent;
 }
-#custom-corner:hover { background-color: @px_hover; color: @px_text; }
+#custom-corner:hover { background-color: #463955; color: @px_text; }
 
 /* ---------- dock ---------- */
 window#waybar.dockbar > box {
     background-color: @px_bar;
-    border-left: 1px solid @px_edge;
-    box-shadow: inset 1px 0 @px_line;
+    background-image: url("pixel/bar-tex.png");
+    background-repeat: repeat;
+    border-left: 2px solid @px_edge;
+    box-shadow: inset 2px 0 #4a3c59;
 }
+/* vạch chia nhóm = 2 điểm: tối + sáng (khắc chìm) */
 window#waybar.dockbar #pinned,
 window#waybar.dockbar #windows,
-window#waybar.dockbar #actions { border-top: 1px solid @px_line; }
-window#waybar.dockbar #pinned { border-bottom: 1px solid @px_line; }
+window#waybar.dockbar #actions { border-top: 2px solid @px_edge; box-shadow: inset 0 2px #3a2f46; }
+window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
 
-/* Nút dock: bo nhẹ; rê chuột = ô sáng có mép sáng/bóng kiểu pixel */
+/* Nút dock: ô vuông; rê chuột = ô nổi có mép sáng/bóng */
 #custom-apps,
 #custom-pin-browser,
 #custom-pin-terminal,
@@ -157,7 +191,6 @@ window#waybar.dockbar #pinned { border-bottom: 1px solid @px_line; }
 #custom-hidden,
 #custom-actions,
 #custom-powermenu {
-    border-radius: 6px;
     color: @px_text;
     box-shadow: none;
 }
@@ -170,23 +203,32 @@ window#waybar.dockbar #pinned { border-bottom: 1px solid @px_line; }
 #custom-tools:hover,
 #custom-hidden:hover,
 #custom-actions:hover {
-    background-color: #4a3c59;
-    box-shadow: inset 1px 1px 0 #7a6890, inset -1px -1px 0 #2a2034, 0 0 0 1px @px_edge;
+    background-color: #463955;
+    box-shadow: inset 0 0 0 2px @px_edge, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
 }
 #custom-apps {
     background-color: @px_pink;
     color: #ffffff;
-    box-shadow: inset 1px 1px 0 #f08cbb, inset -1px -1px 0 #962f62, 0 0 0 1px #3d1028;
+    text-shadow: 2px 2px 0 #3d1028;
+    box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
 }
-#custom-apps:hover { background-color: #d9568f; box-shadow: inset 1px 1px 0 #ffb0d2, inset -1px -1px 0 #962f62, 0 0 0 1px #3d1028; }
-#custom-powermenu { color: #ff9aae; }
+#custom-apps:hover { background-color: #d9568f; }
+#custom-actions {
+    background-color: #33293f;
+    box-shadow: inset 0 0 0 2px @px_edge, inset 4px 4px 0 -2px #5a4a6b, inset -4px -4px 0 -2px #241b2e;
+}
+#custom-powermenu {
+    color: #ff9aae;
+    background-color: #3a1f2e;
+    box-shadow: inset 0 0 0 2px #3d0f1a, inset 4px 4px 0 -2px #7a3550, inset -4px -4px 0 -2px #241018;
+}
 #custom-powermenu:hover {
-    background-color: rgba(224, 80, 110, 0.30);
-    box-shadow: inset 1px 1px 0 rgba(255, 154, 174, 0.6), 0 0 0 1px @px_edge;
+    background-color: #e0506e;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 2px #3d0f1a, inset 4px 4px 0 -2px #ff9aae, inset -4px -4px 0 -2px #a8344c;
 }
-#custom-hidden.has { background-color: #2a2134; }
-window#waybar.dockbar #windows #image { border-radius: 6px; }
+#custom-hidden.has { background-color: #241c2d; }
 window#waybar.dockbar #windows #image:hover {
-    background-color: #4a3c59;
-    box-shadow: inset 1px 1px 0 #7a6890, inset -1px -1px 0 #2a2034;
+    background-color: #463955;
+    box-shadow: inset 0 0 0 2px @px_edge, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
 }

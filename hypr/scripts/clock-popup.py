@@ -361,8 +361,11 @@ def main():
     prov.load_from_data(CSS)
     Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
                                              Gtk.STYLE_PROVIDER_PRIORITY_USER)
-    import kafka_theme as kt              # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+    import kafka_theme as kt              # giao diện pixel KAFKA.SYS (đồng bộ Waybar) nếu đang bật
     kt.apply(kt.panel(".panel", "6px 6px 2px 6px") + f"""
+.time {{ font-family: "{kt.PIXEL_FONT}"; font-size: 42px; font-weight: normal;
+         text-shadow: 6px 6px 0 rgba(11, 7, 16, 0.9); }}  /* chữ pixel như đồng hồ màn hình đăng nhập (6px/điểm) */
+.secs {{ font-family: "{kt.PIXEL_FONT}"; font-size: 14px; }}
 .secs, .head, .foot, .day .lun {{ color: {kt.FAINT}; }}
 .lunar, .day .lun.first {{ color: {kt.PINK_FG}; }}
 .head.sun, .day.sun .num {{ color: #ff9aae; }}

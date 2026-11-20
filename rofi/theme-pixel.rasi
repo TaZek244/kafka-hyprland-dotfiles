@@ -1,5 +1,7 @@
 /*******************************************************************************
- * ROFI THEME PIXEL MỀM (SOFT PIXEL OVERRIDE)
+ * ROFI THEME PIXEL "KAFKA.SYS" (đồng bộ Waybar/popup/màn hình đăng nhập)
+ * rofi không có border-image → khung = ô VUÔNG (radius 0), viền dày theo lưới 2–3px, viền chính hồng như
+ * dải tiêu đề cửa sổ game; ô chọn = khối hồng viền tối.
  * Ghi đè màu sắc, viền, bo góc và độ đậm chữ cho cả 3 theme Rofi:
  *   - kafka.rasi (khung chính: mainbox = imagebox + listbox)
  *   - kafka-power.rasi (khung chính: panel; mainbox chỉ là vùng căn giữa)
@@ -53,35 +55,35 @@
    tuy nhiên để không tạo khung thừa cho power/actions nơi mainbox phủ toàn màn,
    mainbox chỉ đổi màu/bo góc khi có viền, còn panel định dạng khung popup). */
 mainbox {
-    border-color:               #140e1a;
-    border-radius:              12px;
+    border-color:               #c94785;
+    border-radius:              0px;
 }
 
 /* Khung chính của kafka-power.rasi và kafka-actions.rasi */
 panel {
-    background-color:           #261e30f2;
-    border:                     2px solid;
-    border-color:               #140e1a;
-    border-radius:              12px;
+    background-color:           #221a2bf5;
+    border:                     9px 3px 3px 3px solid;
+    border-color:               #c94785;
+    border-radius:              0px;
 }
 
 /* Ảnh banner cột trái (kafka.rasi): giữ nguyên ảnh, bo góc 8px + viền tối 2px */
 imagebox {
     border:                     2px solid;
     border-color:               #140e1a;
-    border-radius:              8px;
+    border-radius:              0px;
 }
 
 /* Thanh chuyển chế độ & nút (kafka.rasi) */
 mode-switcher {
     background-color:           #30263c;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #140e1a;
-    border-radius:              8px;
+    border-radius:              0px;
 }
 
 button {
-    border-radius:              8px;
+    border-radius:              0px;
     background-color:           transparent;
     text-color:                 #d4cade;
 }
@@ -89,16 +91,16 @@ button {
 button selected {
     background-color:           #c94785;
     text-color:                 #fbf7fd;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #3d1028;
 }
 
 /* Ô nhập liệu (kafka.rasi) */
 inputbar {
     background-color:           #30263c;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #140e1a;
-    border-radius:              8px;
+    border-radius:              0px;
 }
 
 prompt {
@@ -119,12 +121,12 @@ textbox {
 scrollbar {
     handle-color:               #c94785;
     background-color:           #30263c;
-    border-radius:              6px;
+    border-radius:              0px;
 }
 
 /* Các mục danh sách (element) & trạng thái thường / xen kẽ / đang chọn */
 element {
-    border-radius:              8px;
+    border-radius:              0px;
     background-color:           transparent;
     border-color:               #140e1a;
     text-color:                 #fbf7fd;
@@ -140,7 +142,7 @@ element normal.active,
 element alternate.active {
     background-color:           #c94785;
     text-color:                 #fbf7fd;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #3d1028;
 }
 
@@ -149,7 +151,7 @@ element alternate.urgent,
 element selected.urgent {
     background-color:           #e0506e;
     text-color:                 #fbf7fd;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #3d1028;
 }
 
@@ -157,7 +159,7 @@ element selected.normal,
 element selected.active {
     background-color:           #c94785;
     text-color:                 #fbf7fd;
-    border:                     1px solid;
+    border:                     2px solid;
     border-color:               #3d1028;
 }
 

@@ -380,12 +380,13 @@ def run():
             return True
 
         def draw_pixel(self, ctx):
-            """Kiểu "pixel mềm" (theme pixel): khung lấy đúng ảnh 9-slice của Waybar (waybar/pixel/frame*.png,
-            ô thường / rê chuột), vạch nhún dạng khối, chữ trắng có bóng 1px, không khử răng cưa."""
+            """Kiểu pixel "KAFKA.SYS" (theme pixel): khung lấy đúng ảnh 9-slice lưới ô của Waybar
+            (waybar/pixel/px*.png, cắt 6 8 8 6: ô thường / rê chuột), vạch nhún dạng khối, chữ trắng có bóng
+            cứng 2px, không khử răng cưa."""
             w, h, P = self.pw, self.ph, 2
             ctx.set_antialias(cairo.ANTIALIAS_NONE)
             dark, white = (0x14 / 255, 0x0e / 255, 0x1a / 255), (1, 1, 1)
-            self._nine(ctx, "frame-hover.png" if self.hover_k > 0.5 else "frame.png", w, h)
+            self._nine(ctx, "px-hover.png" if self.hover_k > 0.5 else "px.png", w, h)
 
             def rect(x, y, rw, rh, col):
                 ctx.set_source_rgb(*col)
@@ -396,25 +397,25 @@ def run():
             t = time.monotonic()
             for i in range(4):
                 amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
-                bh = int(2 + amp * 6) * P
+                bh = min(h - 15, int(1 + amp * 5) * P)          # nằm trong khung (trên 6, dưới 8+1)
                 x = 10 + i * 6
-                rect(x + 1, h - 7 - bh + 1, 4, bh, dark)        # bóng
-                rect(x, h - 7 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
+                rect(x + 2, h - 9 - bh + 2, 4, bh, dark)        # bóng cứng 1 điểm (2px)
+                rect(x, h - 9 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
             # chữ
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 10"))
             text = label_for(self.info)
             layout.set_text(text, -1)
             tw, th = layout.get_pixel_size()
-            x0, avail = 40, w - 40 - 3 * P
+            x0, avail = 40, w - 40 - 4 * P
             ctx.save()
-            ctx.rectangle(x0, 2 * P, avail, h - 4 * P)
+            ctx.rectangle(x0, 2, avail, h - 5)                  # rộng theo chiều dọc: đừng xén dấu tiếng Việt
             ctx.clip()
-            ty = (h - th) // 2
+            ty = (h - 2 - th) // 2                               # khung dưới dày hơn trên 2px (bóng)
             offs = [0] if tw <= avail else [-(int(self.scroll_x) % (tw + 48)), -(int(self.scroll_x) % (tw + 48)) + tw + 48]
             for off in offs:
                 ctx.set_source_rgb(*dark)
-                ctx.move_to(x0 + off + 1, ty + 1)
+                ctx.move_to(x0 + off + 2, ty + 2)
                 PangoCairo.show_layout(ctx, layout)
                 ctx.set_source_rgb(*(white if (playing or self.hover) else (0xe6 / 255, 0xdc / 255, 0xf2 / 255)))
                 ctx.move_to(x0 + off, ty)
@@ -422,8 +423,10 @@ def run():
             ctx.restore()
             return True
 
-        def _nine(self, ctx, name, w, h, sl=7):
-            """Vẽ ảnh 9-slice (góc giữ nguyên, cạnh/giữa kéo giãn, lọc nearest)."""
+        def _nine(self, ctx, name, w, h, sl=(6, 8, 8, 6)):
+            """Vẽ ảnh 9-slice (góc giữ nguyên, cạnh/giữa kéo giãn, lọc nearest). sl = cắt trên phải dưới trái
+            (như CSS border-image; khớp waybar/theme-pixel.css)."""
+            st, sr, sb, sl_ = sl if isinstance(sl, tuple) else (sl,) * 4
             cache = getattr(self, "_nine_cache", None)
             if cache is None:
                 cache = self._nine_cache = {}
@@ -437,8 +440,8 @@ def run():
             if img is None:
                 return
             iw, ih = img.get_width(), img.get_height()
-            xs = [(0, sl, 0, sl), (sl, iw - 2 * sl, sl, w - 2 * sl), (iw - sl, sl, w - sl, sl)]
-            ys = [(0, sl, 0, sl), (sl, ih - 2 * sl, sl, h - 2 * sl), (ih - sl, sl, h - sl, sl)]
+            xs = [(0, sl_, 0, sl_), (sl_, iw - sl_ - sr, sl_, w - sl_ - sr), (iw - sr, sr, w - sr, sr)]
+            ys = [(0, st, 0, st), (st, ih - st - sb, st, h - st - sb), (ih - sb, sb, h - sb, sb)]
             for sx, sw, dx, dw in xs:
                 for sy, sh, dy, dh in ys:
                     if dw <= 0 or dh <= 0:

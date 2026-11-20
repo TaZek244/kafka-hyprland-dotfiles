@@ -12,8 +12,7 @@
     "modules-left": [
         "group/kafka",
         "hyprland/workspaces",
-        "custom/columns",
-        "network#speed"
+        "custom/columns"
     ],
     "modules-center": [
         "clock",
@@ -23,7 +22,6 @@
         "group/system",
         "custom/ime",
         "group/control",
-        "custom/notifications",
         "custom/corner"
     ],
 
@@ -54,7 +52,10 @@
         "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ direction = \"right\" })'"
     },
 
+    /* Chỉ hiện workspace ĐANG DÙNG (thanh hết chỗ, người dùng 2026-11-20); rê chuột vào = popup chọn khu
+     * hypr/scripts/ws-popup.py (vùng trong suốt dò vị trí ô bằng màu #c94785, xem file đó). */
     "hyprland/workspaces": {
+        "active-only": true,
         "disable-scroll": false,
         "all-outputs": true,
         // Kiểu "Focus Hint": số La Mã + icon app đang có trong workspace (trống thì chỉ số, CSS làm mờ/thu nhỏ)
@@ -73,13 +74,7 @@
             "class<blueman.*>": " 󰂯",
             "class<kafka-cava>": " 󰎈"
         },
-        "persistent-workspaces": {
-            "1": [],
-            "2": [],
-            "3": [],
-            "4": [],
-            "5": []
-        },
+        /* Không còn persistent-workspaces: active-only vẫn hiện mọi ô persistent; danh sách đủ 10 khu nằm ở ws-popup.py */
         "format-icons": {
             "1": "I",
             "2": "II",
@@ -181,7 +176,7 @@
     /* Thông số máy gộp chung một viên thuốc: CPU · RAM · nhiệt độ */
     "group/system": {
         "orientation": "inherit",
-        "modules": ["cpu", "memory", "temperature"]
+        "modules": ["network#speed", "cpu", "memory", "temperature"]   /* tốc độ mạng gộp chung (2026-11-20) */
     },
 
     "cpu": {
@@ -288,15 +283,6 @@
         "on-click-right": "hyprctl dispatch \"hl.dsp.workspace.toggle_special('magic')\"",
         "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'",
         "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'"
-    },
-
-    "custom/notifications": {
-        "exec": "n=$(dunstctl count history); if [ \"$(dunstctl is-paused)\" = true ]; then i='󰂛'; c=paused; else i='󰂚'; c=idle; fi; [ \"$n\" -gt 0 ] && { t=\"$i $n\"; c=\"$c has\"; } || t=\"$i\"; printf '{\"text\":\"%s\",\"class\":\"%s\",\"tooltip\":\"%s thông báo trong lịch sử\\\\nTrái: xem lại thông báo cũ · Phải: xóa hết\"}\\n' \"$t\" \"$c\" \"$n\"",
-        "return-type": "json",
-        "interval": 30,
-        "signal": 10,
-        "on-click": "dunstctl history-pop; pkill -RTMIN+10 waybar",
-        "on-click-right": "dunstctl history-clear; pkill -RTMIN+10 waybar"
     }
 },
 
@@ -312,7 +298,7 @@
     "margin-right": 0,
     "spacing": 0,
 
-    "modules-left":   ["custom/apps", "custom/tools", "group/pinned", "tray"],
+    "modules-left":   ["custom/apps", "custom/tools", "custom/notifications", "group/pinned", "tray"],
     "modules-center": ["group/windows"],
     "modules-right":  ["group/actions"],
 
@@ -344,6 +330,16 @@
     /* Nút công cụ (trên cùng dock, vị trí cố định): rê chuột vào thì scripts/tools-popup.py
      * hiện popup ngang bên trái dock (clipboard · chụp/quay · phím tắt · không làm phiền).
      * Icon do tools-status.sh sinh: REC đỏ khi đang quay, chuông gạch khi không làm phiền. */
+    /* Thông báo (chuyển từ thanh trên xuống dock 2026-11-20): chuông + số nhỏ (dock chỉ rộng 48px).
+     * Trái: xem lại thông báo cũ · Phải: xoá hết. Cập nhật qua signal 10. */
+    "custom/notifications": {
+        "exec": "n=$(dunstctl count history); if [ \"$(dunstctl is-paused)\" = true ]; then i='󰂛'; c=paused; else i='󰂚'; c=idle; fi; [ \"$n\" -gt 0 ] && { t=\"$i<span size='7168' rise='10000'>$n</span>\"; c=\"$c\\\",\\\"has\"; } || t=\"$i\"; printf '{\"text\":\"%s\",\"class\":[\"%s\"],\"tooltip\":\"%s thông báo trong lịch sử\\\\nTrái: xem lại thông báo cũ · Phải: xóa hết\"}\\n' \"$t\" \"$c\" \"$n\"",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 10,
+        "on-click": "dunstctl history-pop; pkill -RTMIN+10 waybar",
+        "on-click-right": "dunstctl history-clear; pkill -RTMIN+10 waybar"
+    },
     "custom/tools": {
         "exec": "~/.config/hypr/scripts/tools-status.sh",
         "return-type": "json",

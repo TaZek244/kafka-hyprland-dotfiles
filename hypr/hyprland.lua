@@ -58,6 +58,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user start elephant.service; walker --gapplication-service")
     -- Popup ngang cho nút công cụ trên đầu dock (rê chuột vào là hiện)
     hl.exec_cmd(scripts .. "tools-popup.py")
+    hl.exec_cmd(scripts .. "ws-popup.py")                  -- rê chuột lên ô workspace (Waybar chỉ hiện khu đang dùng) = popup chọn khu
     -- Viền xoay màu tự tắt khi dùng pin / power-saver, bật lại khi cắm sạc (power-watch.sh set on|off|auto để ghi đè)
     hl.exec_cmd(scripts .. "power-watch.sh daemon")
     hl.exec_cmd(scripts .. "media-pill.py")      -- ô "Đang phát" (rê chuột = sóng nhạc, bấm = popup lời bài hát)

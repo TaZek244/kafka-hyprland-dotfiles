@@ -18,7 +18,7 @@ css="$HOME/.config/waybar/dock-density.css"
 # Thêm/bớt nút cố định trên dock thì đo lại 2 số này:
 #   mở nhiều cửa sổ cho dock tràn nhẹ, đọc chiều cao H ở `hyprctl layers`
 #   (namespace dockbar; H bị chặn ở 1080), rồi F = H - số_cửa_sổ * bước_nút.
-F_NORMAL=571 F_COMPACT=523 RESERVE=20   # đo lại cho dock phẳng 48px (ô 42px, vạch ngăn y 137/356/456/975 với 3 app)
+F_NORMAL=613 F_COMPACT=565 RESERVE=20   # dock phẳng 48px (ô 42px); +42 cho nút thông báo chuyển xuống dock (2026-11-20)
 mon_h=$(hyprctl monitors -j 2>/dev/null | python3 -c '
 import json, sys
 try:

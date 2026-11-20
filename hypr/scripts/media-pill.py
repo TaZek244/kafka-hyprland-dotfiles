@@ -30,7 +30,8 @@ SLOT_FILE = os.path.join(RUN, "kafka-media-slot")
 SLOT_SIGNAL = 17
 
 PILL_W, PILL_H = 229, 26          # cỡ mặc định trước khi dò được; ô trống (min-width 240px) ra ~229x27 tại y = 6..32
-TOP = 6                           # mép trên ô trống
+TOP = 6                           # mép trên ô trống (bản phẳng)
+PIXEL_TOP = 1                     # bản pixel: cụm cao từ y=1 (lề 1px) → viên thuốc cao bằng các cụm khác
 SLOT_X_1920 = 998                 # vị trí đoán ban đầu; vị trí thật dò bằng vạch đánh dấu (xem dưới)
 # Vị trí ô trống KHÔNG cố định: cụm trái (workspace, bản đồ cột, tốc độ mạng) dài ra thì GTK đẩy cụm giữa
 # sang phải. Nên Waybar kẻ ở đáy ô trống một vạch 1px màu riêng MARKER (CSS #custom-media-slot border-bottom,
@@ -199,7 +200,8 @@ def run():
                 self.set_visual(visual)
             self.set_app_paintable(True)
             self.set_size_request(PILL_W, PILL_H)
-            GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, TOP)
+            self.top = PIXEL_TOP if self.pixel else TOP
+            GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, self.top)
             GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, self.slot_x())
             self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
                             | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.SCROLL_MASK
@@ -233,7 +235,7 @@ def run():
                 mon = Gdk.Display.get_default().get_monitor(0)
                 sw = mon.get_geometry().width if mon else 1920
                 y0 = MARKER_Y - 4            # vạch ở y=32 (bản phẳng) hoặc 31 (bản pixel: thanh có viền đáy 2px)
-                rows = 6
+                rows = 12                    # tới y=39: bản pixel đặt vạch ở y=37 (ô trống cao bằng cụm)
                 out = subprocess.run(["grim", "-g", f"0,{y0} {sw}x{rows}", "-t", "ppm", "-"],
                                      capture_output=True, timeout=3).stdout
                 # PPM: "P6\n<w> <h>\n255\n" + RGB, hàng nối tiếp
@@ -256,7 +258,7 @@ def run():
                 if res:
                     GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, res[0])
                     self.pw = res[1]
-                    self.ph = max(16, res[2] - TOP)          # viên thuốc phủ từ TOP tới ngay trên vạch
+                    self.ph = max(16, res[2] - self.top)     # viên thuốc phủ từ mép trên tới ngay trên vạch
                     self.set_size_request(self.pw, self.ph)
                     self.resize(self.pw, self.ph)
                 self.update_visible()
@@ -397,13 +399,13 @@ def run():
             t = time.monotonic()
             for i in range(4):
                 amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
-                bh = min(h - 15, int(1 + amp * 5) * P)          # nằm trong khung (trên 6, dưới 8+1)
+                bh = min(h - 15, int(1 + amp * 8) * P)          # nằm trong khung (trên 6, dưới 8+1)
                 x = 10 + i * 6
                 rect(x + 2, h - 9 - bh + 2, 4, bh, dark)        # bóng cứng 1 điểm (2px)
                 rect(x, h - 9 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
             # chữ
             layout = PangoCairo.create_layout(ctx)
-            layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 10"))
+            layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 11"))
             text = label_for(self.info)
             layout.set_text(text, -1)
             tw, th = layout.get_pixel_size()

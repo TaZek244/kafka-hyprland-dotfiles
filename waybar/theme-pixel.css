@@ -30,14 +30,14 @@
 #workspaces button, #cpu, #memory, #temperature, #control > widget > *, #custom-corner,
 #kafka #custom-launcher, #kafka #custom-layoutmode, #custom-media-slot,
 #custom-apps, #custom-pin-browser, #custom-pin-terminal, #custom-pin-files, #custom-pin-code,
-#custom-pin-editor, #custom-tools, #custom-hidden, #custom-actions, #custom-powermenu,
+#custom-pin-editor, #custom-tools, #custom-notifications, #custom-hidden, #custom-actions, #custom-powermenu,
 window#waybar.dockbar #windows #image, #tray > widget, #tray > .passive, #tray > .active {
     border-radius: 0;
 }
 
 /* chữ pixel cho các cụm có chữ/số; icon Nerd vẫn lấy từ FiraCode. Chữ pixel rộng 12px/ký tự (FiraCode ~8): chỉ dùng cho
    chỗ nhận diện (Kafka, workspace, VI/EN, thông báo); đồng hồ + số liệu (mạng, CPU, pin…) giữ FiraCode đậm, không thì thanh tràn → GTK bóp ô trống của ô nhạc (media-pill.py mất vạch dò). */
-#workspaces button, #workspaces button label, #custom-ime, #custom-notifications,
+#workspaces button, #workspaces button label, #custom-ime,
 #custom-launcher, tooltip label {
     font-family: "Kafka Pixel", "FiraCode Nerd Font Propo", "FiraCode Nerd Font";
     font-size: 14px;
@@ -63,13 +63,11 @@ window#waybar.topbar > box {
 
 /* ---------- mọi cụm: khung lưới ô ---------- */
 #workspaces,
-#network.speed,
 #clock,
 #system,
 #control,
 #custom-ime,
 #custom-columns,
-#custom-notifications,
 #kafka {
     background-color: #33293f;          /* GTK3 không vẽ phần giữa border-image → tô nền trong padding-box */
     background-image: none;
@@ -82,11 +80,9 @@ window#waybar.topbar > box {
     color: @px_text;
     box-shadow: none;
 }
-#network.speed:hover,
 #clock:hover,
 #custom-ime:hover,
-#custom-columns:hover,
-#custom-notifications:hover {
+#custom-columns:hover {
     background-color: #463955;
     border-image: url("pixel/px-hover.png") 6 8 8 6 stretch;
     box-shadow: none;
@@ -127,18 +123,18 @@ window#waybar.topbar > box {
     box-shadow: inset 2px 2px 0 #ff9aae, inset -2px -2px 0 #a8344c;
 }
 
-#network.speed { color: @px_dim; font-weight: bold; }
+#network.speed { color: @px_dim; }
 #clock { padding: 0 3px; color: #ffffff; font-weight: bold; }
 
 /* Ô con bên trong cụm */
-#cpu, #memory, #temperature,
+#network.speed, #cpu, #memory, #temperature,
 #control > widget > * {
     font-weight: bold;
     margin: 0;
     padding: 0 5px;
     color: @px_text;
 }
-#cpu:hover, #memory:hover, #temperature:hover,
+#network.speed:hover, #cpu:hover, #memory:hover, #temperature:hover,
 #control > widget > *:hover {
     background-color: #463955;
     box-shadow: inset 2px 2px 0 #7a6890, inset -2px -2px 0 #241b2e;
@@ -151,11 +147,11 @@ window#waybar.topbar > box {
 #network.top.disconnected, #network.top.disabled,
 #bluetooth.top.off, #bluetooth.top.disabled,
 #pulseaudio.muted { color: @px_faint; }
-#custom-notifications { color: @px_dim; }
+#custom-notifications { color: @px_dim; }            /* trên dock (dưới nút tiện ích) */
 #custom-notifications.has { color: @px_pinkfg; }
 
 /* Ô trống của ô nhạc: giữ vạch đánh dấu (media-pill.py dò vị trí bằng nó) */
-#custom-media-slot { margin: 6px 0 6px 8px; }
+#custom-media-slot { margin: 1px 0 2px 8px; }   /* cao bằng các cụm (y 1..38); vạch ở y=37, media-pill.py PIXEL_TOP = 1 */
 
 /* Ô góc trên cột dock */
 #custom-corner {
@@ -188,6 +184,7 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
 #custom-pin-code,
 #custom-pin-editor,
 #custom-tools,
+#custom-notifications,
 #custom-hidden,
 #custom-actions,
 #custom-powermenu {
@@ -201,6 +198,7 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
 #custom-pin-code:hover,
 #custom-pin-editor:hover,
 #custom-tools:hover,
+#custom-notifications:hover,
 #custom-hidden:hover,
 #custom-actions:hover {
     background-color: #463955;

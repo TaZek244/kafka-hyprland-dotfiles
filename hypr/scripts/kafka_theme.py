@@ -51,7 +51,7 @@ def is_pixel():
 
 WIN_CUT = (6, 9, 9, 6)          # trên phải dưới trái — khớp make_win() trong make-frames.py
 WIN_TITLE_H = 24                # cao dải tiêu đề (win-title.png)
-WIN_FILL = "rgba(34, 26, 43, 0.96)"
+WIN_FILL = "rgba(34, 26, 43, 0.985)"   # gần đục: popup hay nằm trên chữ sáng (terminal), 0.96 còn lộ
 
 
 def panel(selector=".panel", padding="4px"):

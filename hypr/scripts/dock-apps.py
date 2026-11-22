@@ -6,15 +6,24 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from collections import OrderedDict
 from pathlib import Path
 
 
-MAX_SLOTS = 10
+MAX_SLOTS = 4      # ngăn RUN: TỐI ĐA 4 ô (người dùng 2026-11-22); > 4 app → ô 4 = "+N" mở dock-more.py
 VISIBLE_MIN = 50
 OUT_PX = 40   # cỡ ảnh thật trên dock (dock rộng 48 = lề 4 + 40 + 4); vẽ ở 48 rồi thu   # px: cột chỉ thò mép vào màn hình vẫn tính là khuất
 IGNORE = {"kafka-cava"}
 RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "kafka-dock"
+
+
+def pixel_theme_enabled():
+    state_home = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local" / "state"))
+    try:
+        return (state_home / "kafka" / "ui-theme").read_text(encoding="utf-8").strip() == "pixel"
+    except OSError:
+        return False
 
 
 def workspace_an(n):
@@ -56,7 +65,7 @@ def sap_xep_nhom(groups, old_order):
     return [group for _index, group in sorted(
         enumerate(groups),
         key=lambda item: (khoa_cot(item[1]), old_position.get(item[1]["class"], len(old_order)), item[0]),
-    )[:MAX_SLOTS]]
+    )]   # KHÔNG cắt ở đây: chon_nhom_hien cần đủ danh sách để tính ô "+N"
 
 
 def khoa_cot(group):
@@ -130,6 +139,11 @@ def huy_hieu(count):
     if count < 2:
         return None
     return f"x{count}" if count <= 9 else "9+"
+
+
+def pixel_count(count):
+    """Số stack theo quy ước HUD: chỉ hiện số, tối đa là 9+."""
+    return None if count < 2 else (str(count) if count < 10 else "9+")
 
 
 def json_doc(path, default):
@@ -238,12 +252,146 @@ def icon_candidate(cls, cache, theme):
     return None
 
 
+def _pixel_font():
+    repo = Path(__file__).resolve().parents[2]
+    greeter = str(repo / "greetd" / "kafka-greeter")
+    if greeter not in sys.path:
+        sys.path.insert(0, greeter)
+    from pixelfont import draw_text
+    return draw_text
+
+
+def _pixel_icon(context, pixbuf):
+    if pixbuf is None:
+        # Placeholder dùng cho preview hoặc máy không có icon theme.
+        context.set_source_rgb(0.78, 0.49, 1.0)
+        context.rectangle(13, 12, 14, 14)
+        context.fill()
+        context.set_source_rgb(0.29, 0.24, 0.35)
+        context.rectangle(17, 16, 6, 6)
+        context.fill()
+        return
+    width, height = pixbuf.get_width(), pixbuf.get_height()
+    context.save()
+    context.translate(7, 6)
+    context.scale(26 / width, 26 / height)
+    from gi.repository import Gdk
+    Gdk.cairo_set_source_pixbuf(context, pixbuf, 0, 0)
+    context.get_source().set_filter(__import__("cairo").FILTER_BEST)
+    context.paint()
+    context.restore()
+
+
+def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
+    import cairo
+    context_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, OUT_PX, OUT_PX)
+    context = cairo.Context(context_surface)
+    context.set_antialias(cairo.ANTIALIAS_NONE)
+
+    def rect(x, y, w, h, color):
+        context.set_source_rgb(*color)
+        context.rectangle(x, y, w, h)
+        context.fill()
+
+    dark = (20 / 255, 14 / 255, 26 / 255)
+    inner = (44 / 255, 34 / 255, 56 / 255) if focused else (29 / 255, 22 / 255, 38 / 255)
+    # Bốn góc không được tô: đó là các pixel trong suốt của slot stepped.
+    context.set_source_rgb(*dark)
+    context.move_to(2, 0); context.line_to(38, 0); context.line_to(40, 2)
+    context.line_to(40, 38); context.line_to(38, 40); context.line_to(2, 40)
+    context.line_to(0, 38); context.line_to(0, 2); context.close_path(); context.fill()
+    rect(2, 2, 36, 36, inner)
+    rect(2, 2, 36, 2, (15 / 255, 10 / 255, 20 / 255))
+    rect(2, 2, 2, 36, (15 / 255, 10 / 255, 20 / 255))
+    rect(2, 38, 36, 2, (74 / 255, 60 / 255, 89 / 255))
+    rect(38, 2, 2, 36, (74 / 255, 60 / 255, 89 / 255))
+
+    if theme is not None:
+        try:
+            pixbuf = icon_candidate(cls, cache, theme)
+        except Exception:
+            pixbuf = None
+    else:
+        pixbuf = None
+    _pixel_icon(context, pixbuf)
+
+    if focused:
+        pink = (240 / 255, 140 / 255, 187 / 255)
+        shade = (150 / 255, 47 / 255, 98 / 255)
+        # Bốn góc chữ L mở vào giữa slot 40x40, nằm trọn trong viền 2px.
+        # Dải shade nằm phía trong cánh ngang (trên: y 4..6; dưới: y 34..36),
+        # chỉ phủ phần không bị cánh dọc che.
+        bracket_rects = (
+            (2, 2, 8, 2, pink),     # trái-trên: cánh ngang
+            (2, 2, 2, 8, pink),     # trái-trên: cánh dọc
+            (4, 4, 6, 2, shade),    # trái-trên: shade
+            (30, 2, 8, 2, pink),    # phải-trên: cánh ngang
+            (36, 2, 2, 8, pink),    # phải-trên: cánh dọc
+            (30, 4, 6, 2, shade),   # phải-trên: shade
+            (2, 36, 8, 2, pink),    # trái-dưới: cánh ngang
+            (2, 30, 2, 8, pink),    # trái-dưới: cánh dọc
+            (4, 34, 6, 2, shade),   # trái-dưới: shade
+            (30, 36, 8, 2, pink),   # phải-dưới: cánh ngang
+            (36, 30, 2, 8, pink),   # phải-dưới: cánh dọc
+            (30, 34, 6, 2, shade),  # phải-dưới: shade
+        )
+        for x, y, w, h, color in bracket_rects:
+            rect(x, y, w, h, color)
+
+    for side in ("left", "right"):
+        if side in offscreen:
+            x = 0 if side == "left" else 32
+            rect(x, 16, 8, 8, dark)
+            rect(x + 2, 18, 4, 4, (199 / 255, 125 / 255, 1.0))
+
+    badge = pixel_count(count)
+    if badge:
+        try:
+            draw_text = _pixel_font()
+            width = (len(badge) * 6 - 1) * 2
+            draw_text(context, badge, 38 - width, 24, 2,
+                      (1.0, 224 / 255, 138 / 255), shadow=dark)
+        except (ImportError, OSError):
+            # Không để thiếu pixelfont làm hỏng dock; badge fallback tối giản.
+            rect(26, 30, 10, 6, (184 / 255, 50 / 255, 106 / 255))
+    return context_surface
+
+
+def _write_surface(surface, path, scale=1, filter_mode=None):
+    import cairo
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    os.close(fd)
+    try:
+        if scale == 1:
+            surface.write_to_png(temp_name)
+        else:
+            out = cairo.ImageSurface(cairo.FORMAT_ARGB32,
+                                      surface.get_width() * scale, surface.get_height() * scale)
+            context = cairo.Context(out)
+            context.scale(scale, scale)
+            context.set_source_surface(surface, 0, 0)
+            context.get_source().set_filter(filter_mode or cairo.FILTER_NEAREST)
+            context.paint()
+            out.write_to_png(temp_name)
+        os.replace(temp_name, path)
+    finally:
+        try:
+            os.unlink(temp_name)
+        except FileNotFoundError:
+            pass
+
+
 def ve_png(path, cls, count, focused, cache, offscreen):
     import cairo
     import gi
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")   # thiếu dòng này PyGObject tự nạp Gdk 4 -> xung đột với Gtk 3
     from gi.repository import Gdk, Gtk
+
+    if pixel_theme_enabled():
+        _write_surface(_pixel_surface(cls, count, focused, cache, offscreen, Gtk.IconTheme.get_default()), path)
+        return
 
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 48, 48)
     context = cairo.Context(surface)
@@ -331,6 +479,18 @@ def ve_png(path, cls, count, focused, cache, offscreen):
             pass
 
 
+def chon_nhom_hien(groups, active_address):
+    """Chọn nhóm hiện trên 4 ô: ≤ 4 app thì hiện hết; nhiều hơn thì 3 app đầu + ô "+N" (N = số app còn lại).
+    App đang focus luôn được hiện (thay vào ô thứ 3 nếu nằm ngoài). Trả về (danh sách hiện, N)."""
+    if len(groups) <= MAX_SLOTS:
+        return list(groups), 0
+    shown = list(groups[:MAX_SLOTS - 1])
+    focused = next((g for g in groups if active_address in {dia_chi(c) for c in g["clients"]}), None)
+    if focused is not None and focused not in shown:
+        shown[-1] = focused
+    return shown, len(groups) - len(shown)
+
+
 def render():
     # Hyprland gọi render ở nhiều sự kiện liền nhau (mở + focus...): khóa để chạy lần lượt,
     # mỗi lần đọc trạng thái mới nhất, không ghi đè file của nhau.
@@ -339,6 +499,36 @@ def render():
     with open(RUNTIME_DIR / "render.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         _render()
+
+
+def preview_pixel(path):
+    """Tạo sample sheet pixel mà không cần Hyprland hay state file."""
+    import cairo
+    theme = None
+    cache = {}
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        from gi.repository import Gtk
+        theme = Gtk.IconTheme.get_default()
+    except Exception:
+        pass
+    samples = [
+        ("kitty", 1, False, []),
+        ("kitty", 3, True, []),
+        ("chromium", 12, False, []),
+        ("unknown-class", 1, False, []),
+        ("kitty", 2, False, ["left", "right"]),
+    ]
+    sheet = cairo.ImageSurface(cairo.FORMAT_ARGB32, OUT_PX * len(samples), OUT_PX)
+    context = cairo.Context(sheet)
+    context.set_operator(cairo.OPERATOR_CLEAR)
+    context.paint()
+    context.set_operator(cairo.OPERATOR_OVER)
+    for index, (cls, count, focused, offscreen) in enumerate(samples):
+        context.set_source_surface(_pixel_surface(cls, count, focused, cache, offscreen, theme), index * OUT_PX, 0)
+        context.paint()
+    _write_surface(sheet, Path(path), scale=4, filter_mode=cairo.FILTER_NEAREST)
 
 
 def _render():
@@ -357,29 +547,40 @@ def _render():
     draw_keys = json_doc(RUNTIME_DIR / "draw-keys.json", {})
     if not isinstance(draw_keys, dict):
         draw_keys = {}
+    import dock_slots
+    shown, extra = chon_nhom_hien(groups, active_address)
     for index in range(1, MAX_SLOTS + 1):
         png = RUNTIME_DIR / f"slot{index}.png"
         meta = RUNTIME_DIR / f"slot{index}.json"
-        if index > len(groups):
-            for path in (png, meta):
-                try:
-                    path.unlink()
-                except FileNotFoundError:
-                    pass
+        if index > len(shown):
+            # ô trống hoặc ô "+N": vẫn vẽ để ngăn RUN luôn đủ 4 ô (ngăn bên dưới không xê dịch)
+            if extra and index == MAX_SLOTS:
+                key = {"more": extra, "pixel": pixel_theme_enabled()}
+                if draw_keys.get(str(index)) != key or not png.exists():
+                    dock_slots.write_png(dock_slots.more_surface(extra), png)
+                draw_keys[str(index)] = key
+                ghi_json_an_toan(meta, {"more": extra})
+            else:
+                # 4 là GIỚI HẠN, không phải số ô luôn hiện (người dùng): ô không dùng thì ẩn
+                for path in (png, meta):
+                    try:
+                        path.unlink()
+                    except FileNotFoundError:
+                        pass
+                draw_keys.pop(str(index), None)
             continue
-        group = groups[index - 1]
+        group = shown[index - 1]
         members = group["clients"]
         focused = active_address in {dia_chi(c) for c in members}
         offscreen = sorted({side for client in members
                             if (side := khuat_man_hinh(client, monitors)) is not None})
-        key = {"class": group["class"], "count": len(members), "focused": focused, "offscreen": offscreen}
+        key = {"class": group["class"], "count": len(members), "focused": focused, "offscreen": offscreen,
+               "pixel": pixel_theme_enabled()}   # đổi theme phải vẽ lại
         if draw_keys.get(str(index)) != key or not png.exists():
             ve_png(png, group["class"], len(members), focused, cache, offscreen)
         draw_keys[str(index)] = key
         ghi_json_an_toan(meta, {"class": group["class"], "addresses": [dia_chi(c) for c in members],
                                 "titles": [str(c.get("title", "")) for c in members], "offscreen": offscreen})
-    for index in range(len(groups) + 1, MAX_SLOTS + 1):
-        draw_keys.pop(str(index), None)
     ghi_json_an_toan(RUNTIME_DIR / "draw-keys.json", draw_keys)
     ghi_json_an_toan(RUNTIME_DIR / "icons.json", cache)
     subprocess.run(["pkill", "-RTMIN+13", "waybar"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -388,6 +589,11 @@ def _render():
 def slot(index):
     try:
         meta = json_doc(RUNTIME_DIR / f"slot{index}.json", {})
+        png = RUNTIME_DIR.joinpath(f"slot{index}.png").resolve()
+        if meta.get("more") and png.exists():
+            print(png)
+            print(f"Còn {meta['more']} app đang mở khác — bấm để xem hết")
+            return
         cls = meta.get("class")
         if not cls:
             return
@@ -402,9 +608,25 @@ def slot(index):
         return
 
 
+def no_warps_enabled():
+    """Đọc cursor.no_warps hiện tại; lỗi hoặc giá trị không rõ -> coi như đang bật warp."""
+    try:
+        result = subprocess.run(
+            ["hyprctl", "repl", 'return hl.get_config("cursor.no_warps")'],
+            check=False, capture_output=True, text=True,
+        )
+        return result.returncode == 0 and result.stdout.strip().startswith("true")
+    except Exception:
+        return False
+
+
 def dispatch_for(index, close=False):
     try:
         meta = json_doc(RUNTIME_DIR / f"slot{index}.json", {})
+        if meta.get("more"):
+            subprocess.Popen([str(Path(__file__).resolve().parent / "dock-more.py"), "--section", "run"],
+                             start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
         cls = meta.get("class")
         if not cls:
             return
@@ -416,12 +638,28 @@ def dispatch_for(index, close=False):
         if target:
             address = dia_chi(target)
             action = "window.close" if close else "focus"
-            subprocess.run(["hyprctl", "dispatch", f'hl.dsp.{action}({{ window = "address:{address}" }})'], check=False)
+            command = ["hyprctl", "dispatch", f'hl.dsp.{action}({{ window = "address:{address}" }})']
+            if close or no_warps_enabled():
+                subprocess.run(command, check=False)
+                return
+            # Người dùng: bấm thẻ app chỉ chuyển tới app, không kéo chuột vào giữa cửa sổ.
+            # Tắt no_warps tạm thời khi focus rồi khôi phục (chờ warp kết thúc).
+            subprocess.run(["hyprctl", "eval", "hl.config({ cursor = { no_warps = true } })"], check=False)
+            try:
+                subprocess.run(command, check=False)
+            finally:
+                time.sleep(0.15)
+                subprocess.run(["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"], check=False)
     except Exception as error:
         print(f"dock-apps: {error}", file=sys.stderr)
 
 
 def selftest():
+    g = [{"class": f"c{i}", "clients": [{"address": f"0x{i}"}]} for i in range(6)]
+    assert chon_nhom_hien(g[:4], "0x0") == (g[:4], 0)
+    shown, extra = chon_nhom_hien(g, "0x5")
+    assert [x["class"] for x in shown] == ["c0", "c1", "c5"] and extra == 3, (shown, extra)
+    assert chon_nhom_hien(g, "0x1") == (g[:3], 3)
     fake = [
         {"address": "0x2", "class": "kitty", "title": "A", "mapped": True, "at": [300, 0], "workspace": {"id": 1, "name": "1"}, "focusHistoryID": 2},
         {"address": "0x1", "class": "kitty", "title": "B", "mapped": True, "at": [250, 0], "workspace": {"id": 1, "name": "1"}, "focusHistoryID": 0},
@@ -433,6 +671,7 @@ def selftest():
     assert [g["class"] for g in sap_xep_nhom(loc_clients(fake), ["kitty", "firefox"])] == ["firefox", "kitty"]
     assert [dia_chi_focus(loc_clients(fake)[0]["clients"], "0x1")["address"], dia_chi_focus(loc_clients(fake)[0]["clients"], "nope")["address"]] == ["0x2", "0x1"]
     assert [huy_hieu(n) for n in (1, 2, 12)] == [None, "x2", "9+"]
+    assert [pixel_count(n) for n in (1, 2, 9, 10, 12)] == [None, "2", "9", "9+", "9+"]
     monitors = [{"id": 0, "x": 100, "width": 1600, "scale": 1.25,
                  "activeWorkspace": {"id": 1}, "reserved": [10, 20, 30, 0]}]
     left = {"monitor": 0, "at": [80, 30], "size": [20, 20], "floating": False,
@@ -455,9 +694,12 @@ def main():
     if len(sys.argv) == 2 and sys.argv[1] == "--selftest":
         selftest()
         return 0
+    if len(sys.argv) == 3 and sys.argv[1] == "--preview-pixel":
+        preview_pixel(sys.argv[2])
+        return 0
     if not ((len(sys.argv) == 2 and sys.argv[1] == "render") or
             (len(sys.argv) == 3 and sys.argv[1] in {"slot", "click", "close"})):
-        print("Sử dụng: dock-apps.py render|slot N|click N|close N|--selftest", file=sys.stderr)
+        print("Sử dụng: dock-apps.py render|slot N|click N|close N|--selftest|--preview-pixel OUT.png", file=sys.stderr)
         return 2
     try:
         if sys.argv[1] == "render":

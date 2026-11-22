@@ -8,7 +8,7 @@ single_click_activation = true     # activate items with a single click opposed 
 selection_wrap = false             # wrap list if at bottom or top
 global_argument_delimiter = "#"    # query: firefox#https://benz.dev => part after delimiter will be ignored when querying. this should be the same as in the elephant config
 exact_search_prefix = "'"          # disable fuzzy searching
-theme = "kafka"   # walker/themes/kafka trong repo dotfiles (khung giữa, nền ảnh Kafka nhòe)                  # theme to use
+theme = "kafka-current"   # symlink do hypr/scripts/ui-theme.sh đặt: themes/kafka (phẳng, khung giữa nền Kafka nhòe) hoặc themes/kafka-pixel (túi đồ game)                  # theme to use
 disable_mouse = false              # disable mouse (on input and list only)
 debug = false                      # enables debug printing for some stuff, f.e. keybinds
 page_jump_items = 10               # number of items to skip with Page Up/Down

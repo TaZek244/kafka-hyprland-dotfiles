@@ -1,0 +1,4 @@
+/* GTK4 / libadwaita (pavucontrol, satty, bảng phím tắt keybinds-editor…): chỉ nạp phần theo theme.
+ * theme-current.css tự sinh bởi hypr/scripts/ui-theme.sh (gitignore): pixel = @import theme-pixel.css, phẳng = rỗng.
+ * GTK tìm @import cạnh ~/.config/gtk-4.0/gtk.css → ui-theme.sh symlink cả theme-current.css vào đó. */
+@import url("theme-current.css");

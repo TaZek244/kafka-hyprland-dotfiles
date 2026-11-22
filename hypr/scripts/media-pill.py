@@ -23,7 +23,13 @@ import subprocess
 import sys
 import time
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.path.dirname(os.path.realpath(__file__))
+# Font pixel 5x7 của kafka-greeter, dùng cho thẻ "BGM" ở bản pixel (repo = 2 cấp trên thư mục script).
+try:
+    sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "greetd", "kafka-greeter")))
+    import pixelfont as bgm_font
+except Exception:                      # không có greeter → draw_pixel dùng lại 4 vạch nhún cũ
+    bgm_font = None
 RUN = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
 PIDFILE = os.path.join(RUN, "kafka-media-pill.pid")
 SLOT_FILE = os.path.join(RUN, "kafka-media-slot")
@@ -382,9 +388,9 @@ def run():
             return True
 
         def draw_pixel(self, ctx):
-            """Kiểu pixel "KAFKA.SYS" (theme pixel): khung lấy đúng ảnh 9-slice lưới ô của Waybar
-            (waybar/pixel/px*.png, cắt 6 8 8 6: ô thường / rê chuột), vạch nhún dạng khối, chữ trắng có bóng
-            cứng 2px, không khử răng cưa."""
+            """Kiểu pixel "KAFKA.SYS" (theme pixel): khung 9-slice lưới ô của Waybar (cắt 6 8 8 6),
+            thẻ "BGM" font pixel như HUD game, 3 cột nhún li ti, chữ trắng có bóng cứng 2px,
+            không khử răng cưa. Không import được pixelfont thì vẽ lại 4 vạch cũ."""
             w, h, P = self.pw, self.ph, 2
             ctx.set_antialias(cairo.ANTIALIAS_NONE)
             dark, white = (0x14 / 255, 0x0e / 255, 0x1a / 255), (1, 1, 1)
@@ -394,22 +400,55 @@ def run():
                 ctx.set_source_rgb(*col)
                 ctx.rectangle(x, y, rw, rh)
                 ctx.fill()
-            # vạch nhún: 4 cột khối 2px, nấc 2px
+
             playing = self.info["status"] == "Playing"
             t = time.monotonic()
-            for i in range(4):
-                amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
-                bh = min(h - 15, int(1 + amp * 8) * P)          # nằm trong khung (trên 6, dưới 8+1)
-                x = 10 + i * 6
-                rect(x + 2, h - 9 - bh + 2, 4, bh, dark)        # bóng cứng 1 điểm (2px)
-                rect(x, h - 9 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
+            x0, drew_tag = 40, False                            # 40 = chỗ chữ bắt đầu ở bản vạch cũ
+            if bgm_font is not None:
+                cell, pad = 2, 2
+                tw = bgm_font.text_width("BGM", cell)
+                tag_x = 10                                      # ngay chỗ 4 vạch cũ bắt đầu
+                tag_w = 8 + 2 * pad + tw + cell                  # viền 2 + mép 2 + chữ(+bóng) + mép 2 + viền 2
+                tag_h = 4 + 7 * cell + cell + 2                  # 22px: bóng chữ đè 2px vào mép dưới cho vừa khung
+                if h < tag_h + 12:                              # viên thuốc thấp (vạch dò lệch 1-2px): bỏ đệm trong
+                    tag_h = 4 + 7 * cell + cell                 # 20px
+                if h >= tag_h + 8:                              # chiều cao dò được dao động 35..37 → đừng đòi đủ 36
+                    tag_y = max(4, (h - tag_h) // 2 - 1)
+                    edge = (0x3d / 255, 0x10 / 255, 0x28 / 255)
+                    hi = (0xf0 / 255, 0x8c / 255, 0xbb / 255)
+                    lo = (0x96 / 255, 0x2f / 255, 0x62 / 255)
+                    fill = ((0xc9 / 255, 0x47 / 255, 0x85 / 255) if playing
+                            else (0x5a / 255, 0x4a / 255, 0x6b / 255))
+                    rect(tag_x, tag_y, tag_w, tag_h, edge)                    # viền ngoài 2px
+                    rect(tag_x + 2, tag_y + 2, tag_w - 4, tag_h - 4, fill)    # nền hồng (mờ khi pause)
+                    rect(tag_x + 2, tag_y + 2, tag_w - 4, 2, hi)              # mép sáng trên
+                    rect(tag_x + 2, tag_y + 2, 2, tag_h - 4, hi)              # mép sáng trái
+                    rect(tag_x + tag_w - 4, tag_y + 2, 2, tag_h - 4, lo)      # mép tối phải
+                    rect(tag_x + 2, tag_y + tag_h - 4, tag_w - 4, 2, lo)      # mép tối dưới
+                    bgm_font.draw_text(ctx, "BGM",
+                                       tag_x + 4 + (tag_w - 8 - tw - cell) // 2,
+                                       tag_y + 4, cell, white, shadow=edge)
+                    for i in range(3):                                         # 3 cột 2px, cùng nhịp vạch cũ
+                        amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
+                        bh = max(P, (1 + int(amp * 3)) * P)
+                        rect(tag_x + tag_w + i * 3, (h - bh) // 2, P, bh, hi)
+                    x0 = tag_x + tag_w + 8                                     # chữ cách thẻ 8px
+                    drew_tag = True
+            if not drew_tag:
+                # fallback: 4 vạch nhún: 4 cột khối 2px, nấc 2px (như cũ)
+                for i in range(4):
+                    amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
+                    bh = min(h - 15, int(1 + amp * 8) * P)      # nằm trong khung (trên 6, dưới 8+1)
+                    x = 10 + i * 6
+                    rect(x + 2, h - 9 - bh + 2, 4, bh, dark)    # bóng cứng 1 điểm (2px)
+                    rect(x, h - 9 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
             # chữ
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 11"))
             text = label_for(self.info)
             layout.set_text(text, -1)
             tw, th = layout.get_pixel_size()
-            x0, avail = 40, w - 40 - 4 * P
+            avail = max(0, w - x0 - 4 * P)
             ctx.save()
             ctx.rectangle(x0, 2, avail, h - 5)                  # rộng theo chiều dọc: đừng xén dấu tiếng Việt
             ctx.clip()

@@ -23,8 +23,19 @@ local terminal    = "kitty"
 local fileManager = "thunar"
 local menu        = "walker"   -- trình mở app (walker + elephant, theme walker/themes/kafka); bấm lần nữa = đóng
 local wallScript  = "~/.config/hypr/scripts/wallpaper-cycle.sh"
--- Hình nền cố định duy nhất
+-- Hình nền cố định: mặc định kafka_landscape_3.jpg; Kafka Studio (scripts/studio.py, tab Hình nền → "Đặt làm mặc định")
+-- ghi đường dẫn ảnh khác vào ~/.local/state/kafka/wallpaper → đăng nhập lần sau dùng ảnh đó (file mất thì về mặc định)
 local wallpaper   = "~/.config/hypr/wallpapers/kafka_landscape_3.jpg"
+do
+    local state = (os.getenv("XDG_STATE_HOME") or (os.getenv("HOME") .. "/.local/state")) .. "/kafka/wallpaper"
+    local f = io.open(state, "r")
+    if f then
+        local path = (f:read("*l") or ""):gsub("^%s+", ""):gsub("%s+$", "")
+        f:close()
+        local g = path ~= "" and io.open(path, "r")
+        if g then g:close(); wallpaper = "'" .. path:gsub("'", "") .. "'" end
+    end
+end
 local powerMenu   = "~/.config/hypr/scripts/powermenu.sh"
 local clipMenu    = 'cliphist list | rofi -dmenu -p "Clipboard" -theme ~/.config/rofi/kafka.rasi | cliphist decode | wl-copy'
 local scripts     = "~/.config/hypr/scripts/"
@@ -40,7 +51,12 @@ hl.on("hyprland.start", function()
     -- một bản thiếu môi trường Wayland → gõ không dấu. ime-guard xuất môi trường cho D-Bus, bật fcitx5
     -- và giám sát (chết/mất Wayland thì tự bật lại). Xem hypr/scripts/ime-guard.sh.
     hl.exec_cmd(scripts .. "ime-guard.sh daemon")
-    hl.exec_cmd(scripts .. "ui-theme.sh ensure; waybar")   -- theme.css (pixel/phẳng) phải có trước, thiếu thì Waybar mất hết CSS
+    -- theme.css + symlink bố cục thanh trên (topbar-current.jsonc) phải có trước, thiếu thì Waybar mất hết CSS.
+    -- hud.py (thẻ nhân vật/chỉ số của theme pixel) vẽ 1 lần trước Waybar rồi chạy nền; ở bản phẳng nó tự thoát.
+    -- khay hệ thống tự viết (ngăn BG trên dock, tối đa 3 ô): nhận tên org.kde.StatusNotifierWatcher TRƯỚC khi app chạy ngầm khởi động
+    hl.exec_cmd(scripts .. "sni-tray.py daemon")
+    hl.exec_cmd(scripts .. "ui-theme.sh ensure; " .. scripts .. "hud.py once; waybar")
+    hl.exec_cmd(scripts .. "hud.py daemon")
     hl.exec_cmd("dunst")
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("nm-applet --indicator")
@@ -428,6 +444,7 @@ hl.window_rule({ name = "blueman",     match = { class = "^(blueman-manager)$" }
 -- btop (bấm CPU/RAM/nhiệt độ trên Waybar), thay gnome-system-monitor
 -- App quản lý phím tắt (nút 󰌌 trên dock, scripts/keybinds-editor.py)
 hl.window_rule({ name = "kafka-keybinds", match = { class = "^(kafka\\.keybinds)$" }, float = true, size = "1000 640", center = true })
+hl.window_rule({ name = "kafka-studio", match = { class = "^(kafka\\.studio)$" }, float = true, size = "1440 760", center = true })   -- Kafka Studio (scripts/studio.py)
 hl.window_rule({ name = "kafka-btop",  match = { class = "^(kafka-btop)$" },           float = true, size = "1100 680", center = true })
 hl.window_rule({ name = "satty",       match = { class = "^(com\\.gabm\\.satty)$" },     float = true, size = "1500 900", center = true })   -- vẽ lên ảnh chụp (capture.sh edit)
 hl.window_rule({ name = "file-dialog", match = { title = "^(Open File|Save File|Confirm)$" }, float = true })

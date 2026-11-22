@@ -8,7 +8,9 @@ Popup gọi `kafka_theme.apply(EXTRA_CSS)` SAU khi nạp CSS của mình: nếu 
   • Khung popup (.panel): ảnh 9-slice waybar/pixel/win.png vẽ trên lưới ô 3px (góc bậc thang, viền tối,
     mép sáng/bóng, bóng cứng), cắt 6 9 9 6; DẢI TIÊU ĐỀ hồng (win-title.png) + 3 ô vuông (win-dots.png)
     như cửa sổ game là LỚP NỀN trong padding-box (GTK3 vẽ border-image đè nền). panel() tự cộng chỗ cho dải
-    vào padding. Sinh ảnh bằng waybar/pixel/make-frames.py.
+    vào padding. Với panel(..., titled=True), dải được dành cho một nhãn tiêu đề vật lý ở
+    con đầu tiên; title_label(text) tạo nhãn đó khi đang ở pixel mode. Sinh ảnh bằng
+    waybar/pixel/make-frames.py.
   • Ô con (ô bật/tắt, dòng, ngày lịch, nút): KHÔNG dùng border-image (cộng 14px mỗi ô làm popup phình ra)
     mà vẽ bằng box-shadow inset: viền tối 2px + mép sáng trên-trái + bóng dưới-phải 2px (CARD/CARD_HOVER/CARD_ON).
   • Mọi `border-radius` trong CSS riêng của popup bị ép về 0 (ô vuông = chất pixel), không cần sửa từng popup.
@@ -54,7 +56,7 @@ WIN_TITLE_H = 24                # cao dải tiêu đề (win-title.png)
 WIN_FILL = "rgba(34, 26, 43, 0.985)"   # gần đục: popup hay nằm trên chữ sáng (terminal), 0.96 còn lộ
 
 
-def panel(selector=".panel", padding="4px"):
+def panel(selector=".panel", padding="4px", titled=False):
     """CSS khung popup kiểu cửa sổ game: khung lưới win.png + dải tiêu đề hồng + 3 ô vuông (lớp nền)."""
     win, title, dots = ("file://" + os.path.join(PIXEL_DIR, f) for f in ("win.png", "win-title.png", "win-dots.png"))
     t, r, b, l = WIN_CUT
@@ -65,7 +67,8 @@ def panel(selector=".panel", padding="4px"):
         p = p * 2
     elif len(p) == 3:
         p = p + [p[1]]
-    pad = f"{p[0] + WIN_TITLE_H + 6}px {p[1] + 4}px {p[2] + 4}px {p[3] + 4}px"   # chừa dải tiêu đề + lề trong
+    top = p[0] if titled else p[0] + WIN_TITLE_H + 6
+    pad = f"{top}px {p[1] + 4}px {p[2] + 4}px {p[3] + 4}px"   # chừa dải tiêu đề + lề trong
     # GTK3 vẽ border-image ĐÈ nền và KHÔNG vẽ phần giữa → nền = 3 lớp trong padding-box (trên cùng trước):
     # 3 ô vuông (phải-trên), dải tiêu đề lặp ngang (trên), màu nền (gradient một màu).
     return (f"{selector} {{ background-color: transparent; border-radius: 0; box-shadow: none; "
@@ -75,6 +78,18 @@ def panel(selector=".panel", padding="4px"):
             f"background-clip: padding-box, padding-box, padding-box; "
             f"border-style: solid; border-width: {t}px {r}px {b}px {l}px; border-color: transparent; "
             f'border-image: url("{win}") {t} {r} {b} {l} stretch; padding: {pad}; }}\n')
+
+
+def title_label(text):
+    """Tạo nhãn tiêu đề dải cửa sổ pixel; trả về None ở giao diện phẳng."""
+    if not is_pixel():
+        return None
+    import gi
+    gi.require_version("Gtk", "3.0")
+    from gi.repository import Gtk
+    label = Gtk.Label(label=f"> {(text or '').upper()}", xalign=0.0)
+    label.get_style_context().add_class("px-title")
+    return label
 
 
 COMMON = f"""
@@ -95,6 +110,9 @@ entry {{ background-color: #1a1422; border: none; border-radius: 0; color: {TEXT
          box-shadow: inset 0 0 0 2px {EDGE}, inset 4px 4px 0 -2px {SH}; }}
 entry:focus {{ box-shadow: inset 0 0 0 2px {PINK}, inset 4px 4px 0 -2px {SH}; }}
 scrollbar slider {{ border-radius: 0; }}
+.px-title {{ font-family: "Kafka Pixel", "FiraCode Nerd Font"; font-size: 14px; color: #ffffff;
+             text-shadow: 2px 2px 0 #3d1028; min-height: {WIN_TITLE_H}px;
+             padding: 0 0 0 4px; margin-bottom: 6px; }}
 """
 
 

@@ -24,7 +24,7 @@ if str(GREETER_DIR) not in sys.path:
 
 import pixelfont  # noqa: E402
 
-# Hằng số thiết kế font
+# Hằng số thiết kế font (mặc định cho KafkaPixel.ttf — KHÔNG ĐƯỢC THAY ĐỔI)
 UNITS_PER_EM = 700   # 7 ô = 1 em → cỡ 14px = mỗi điểm 2px, 21px = 3px, 28px = 4px (chữ sắc, không nhoè)
 CELL_SIZE = 100
 ADVANCE_WIDTH = 600  # (GW=5 + GAP=1) * 100
@@ -36,6 +36,47 @@ X_HEIGHT = 700
 EPOCH_1904_OFFSET = 2082844800  # Số giây từ 1904-01-01 00:00:00 đến 1970-01-01 00:00:00 UTC
 SFNT_VERSION = 0x00010000
 CHECKSUM_MAGIC = 0xB1B0AFBA
+
+# Hằng số metrics cho biến thể tiếng Việt (KafkaPixelVN.ttf)
+VN_ASCENDER = 1100
+VN_DESCENDER = -300
+VN_GRID_COLS = 6       # 5 cột chữ gốc + 1 cột gap (x = 0..600)
+VN_ABOVE_ROWS = 3      # 3 hàng dấu phía trên cap height (y = 700..1000)
+VN_BASE_ROWS = 7       # 7 hàng thân chữ gốc (y = 0..700)
+VN_BELOW_ROWS = 2      # 2 hàng dưới baseline (y = -200..0; dấu nặng ở y = -200..-100)
+VN_TOTAL_ROWS = VN_ABOVE_ROWS + VN_BASE_ROWS + VN_BELOW_ROWS  # 12 hàng
+VN_Y_BOTTOM = -200     # Đáy của hàng cuối cùng trong lưới 12 hàng
+
+# Các dấu thanh và dấu mũ pixel nhỏ (rộng 5 cột, ghép trên lưới điểm)
+VN_TONE_MARKS: dict[str, tuple[str, ...]] = {
+    "acute": ("00010", "00100"),           # Dấu sắc
+    "grave": ("01000", "00100"),           # Dấu huyền
+    "hook": ("01100", "00010", "00100"),   # Dấu hỏi (3 hàng)
+    "tilde": ("01010", "10100"),           # Dấu ngã
+    "dot": ("00100",),                     # Dấu nặng (1 điểm căn giữa dưới baseline)
+}
+
+VN_HAT_MARKS: dict[str, tuple[str, ...]] = {
+    "circumflex": ("00100", "01010"),      # Dấu mũ (Â, Ê, Ô)
+    "breve": ("10001", "01110"),           # Dấu trăng (Ă)
+}
+
+# Bảng tổ hợp nguyên âm tiếng Việt: (chữ gốc 5x7, loại dấu phụ mũ/râu, chuỗi 6 thanh: ngang/huyền/sắc/hỏi/ngã/nặng)
+VN_TONE_ORDER: tuple[str, ...] = ("none", "grave", "acute", "hook", "tilde", "dot")
+VN_VOWEL_SPECS: tuple[tuple[str, str | None, str], ...] = (
+    ("A", None, "AÀÁẢÃẠ"),
+    ("A", "breve", "ĂẰẮẲẴẶ"),
+    ("A", "circumflex", "ÂẦẤẨẪẬ"),
+    ("E", None, "EÈÉẺẼẸ"),
+    ("E", "circumflex", "ÊỀẾỂỄỆ"),
+    ("I", None, "IÌÍỈĨỊ"),
+    ("O", None, "OÒÓỎÕỌ"),
+    ("O", "circumflex", "ÔỒỐỔỖỘ"),
+    ("O", "horn", "ƠỜỚỞỠỢ"),
+    ("U", None, "UÙÚỦŨỤ"),
+    ("U", "horn", "ƯỪỨỬỮỰ"),
+    ("Y", None, "YỲÝỶỸỴ"),
+)
 
 
 def pad4(data: bytes) -> bytes:
@@ -53,18 +94,22 @@ def calc_checksum(data: bytes) -> int:
     return total
 
 
-def rows_to_contours(rows: list[str]) -> list[list[tuple[int, int]]]:
-    """Chuyển ma trận 7 dòng × 5 cột ('0'/'1') thành danh sách các contour hình chữ nhật.
+def rows_to_contours(
+    rows: list[str], y_bottom: int = 0
+) -> list[list[tuple[int, int]]]:
+    """Chuyển ma trận điểm ('0'/'1') thành danh sách các contour hình chữ nhật.
 
     Gộp các ô '1' liền nhau trên cùng một dòng thành một hình chữ nhật (như hàm _blit).
     Mỗi hình chữ nhật gồm 4 điểm on-curve theo chiều KIM ĐỒNG HỒ:
     (x0, y0) -> (x0, y1) -> (x1, y1) -> (x1, y0).
-    Dòng r = 0 ở trên cùng (y = 600..700), dòng r = 6 ở dưới cùng (y = 0..100).
+    Với lưới 5×7 mặc định (y_bottom = 0): dòng r = 0 ở y = 600..700, dòng r = 6 ở y = 0..100.
+    Với lưới 6×12 tiếng Việt (y_bottom = -200): dòng r = 0..2 ở y = 700..1000,
+    dòng r = 3..9 ở y = 0..700, dòng r = 11 ở y = -200..-100.
     """
     contours: list[list[tuple[int, int]]] = []
-    gh = len(rows)  # 7
+    gh = len(rows)
     for r, row in enumerate(rows):
-        y0 = (gh - 1 - r) * CELL_SIZE
+        y0 = (gh - 1 - r) * CELL_SIZE + y_bottom
         y1 = y0 + CELL_SIZE
         c = 0
         gw = len(row)
@@ -81,6 +126,78 @@ def rows_to_contours(rows: list[str]) -> list[list[tuple[int, int]]]:
             else:
                 c += 1
     return contours
+
+
+def _blit_grid(
+    grid: list[list[str]],
+    mark_rows: list[str] | tuple[str, ...],
+    top_row: int,
+    col_shift: int = 0,
+) -> None:
+    """Vẽ đè (OR) một ma trận điểm mark_rows lên lưới 2D tại (top_row, col_shift)."""
+    for r_off, row_str in enumerate(mark_rows):
+        gr = top_row + r_off
+        if 0 <= gr < len(grid):
+            for c_off, bit in enumerate(row_str):
+                if bit == "1":
+                    gc = col_shift + c_off
+                    if 0 <= gc < len(grid[gr]):
+                        grid[gr][gc] = "1"
+
+
+def compose_vn_vowel_rows(
+    base_ch: str, modifier: str | None, tone: str
+) -> list[str]:
+    """Ghép chữ cái nguyên âm tiếng Việt trên lưới điểm 12 hàng × 6 cột.
+
+    - Hàng 0..2 (y = 700..1000): vùng dấu mũ / dấu thanh phía trên cap height.
+    - Hàng 3..9 (y = 0..700): thân chữ gốc 5×7 (cột 0..4) + dấu râu Ơ/Ư ở cột 5.
+    - Hàng 10..11 (y = -200..0): vùng dưới baseline (dấu nặng ở hàng 11, y = -200..-100).
+    """
+    grid = [["0"] * VN_GRID_COLS for _ in range(VN_TOTAL_ROWS)]
+
+    # 1. Đặt chữ gốc 5×7 vào hàng 3..9 (y = 0..700)
+    _blit_grid(grid, pixelfont.GLYPHS[base_ch], top_row=VN_ABOVE_ROWS, col_shift=0)
+
+    # 2. Dấu phụ của nguyên âm: mũ (circumflex), trăng (breve), hoặc râu (horn)
+    has_hat = modifier in VN_HAT_MARKS
+    if has_hat and modifier is not None:
+        hat_rows = VN_HAT_MARKS[modifier]  # cao 2 hàng -> đặt ở hàng 1..2 (ngay trên thân chữ, y = 700..900)
+        hat_top = VN_ABOVE_ROWS - len(hat_rows)
+        _blit_grid(grid, hat_rows, top_row=hat_top, col_shift=0)
+    elif modifier == "horn":
+        # Râu Ơ, Ư: thêm điểm/nét ở góc trên-phải cột 5 (gap column), hàng 0..1 của thân chữ
+        grid[VN_ABOVE_ROWS + 0][5] = "1"
+        grid[VN_ABOVE_ROWS + 1][5] = "1"
+
+    # 3. Dấu thanh (huyền, sắc, hỏi, ngã, nặng)
+    if tone == "dot":
+        # Dấu nặng ở hàng dưới baseline (y = -200..-100)
+        _blit_grid(grid, VN_TONE_MARKS["dot"], top_row=VN_TOTAL_ROWS - 1, col_shift=0)
+    elif tone in VN_TONE_MARKS:
+        tone_rows = VN_TONE_MARKS[tone]
+        if has_hat:
+            # Có dấu mũ/trăng ở ngay trên chữ: đẩy dấu thanh lên sát đỉnh 3 hàng và dịch sang phải 2 cột (tới cột 5)
+            tone_top = 0
+            col_shift = 2
+        else:
+            # Không có dấu mũ: đặt dấu thanh ngay trên thân chữ (chạm hàng 8, tức y = 700..800)
+            tone_top = VN_ABOVE_ROWS - len(tone_rows)
+            col_shift = 0
+        _blit_grid(grid, tone_rows, top_row=tone_top, col_shift=col_shift)
+
+    return ["".join(r) for r in grid]
+
+
+def compose_vn_d_stroke_rows() -> list[str]:
+    """Chữ Đ/đ: thân D hẹp 4 cột (cột 1..4) + thanh ngang cắt qua nét đứng ở hàng giữa, thò ra cột 0.
+
+    (Ghép thanh lên chữ D 5 cột gốc thì trông như chữ B, nên vẽ riêng.)
+    """
+    rows = ["01110", "01001", "01001", "11101", "01001", "01001", "01110"]
+    grid = [["0"] * VN_GRID_COLS for _ in range(VN_TOTAL_ROWS)]
+    _blit_grid(grid, rows, top_row=VN_ABOVE_ROWS, col_shift=0)
+    return ["".join(r) for r in grid]
 
 
 def make_notdef_contours() -> list[list[tuple[int, int]]]:
@@ -148,8 +265,10 @@ def encode_simple_glyph(
     return pad4(bytes(buf)), (x_min, y_min, x_max, y_max), num_points, num_contours
 
 
-def collect_glyphs_and_cmap() -> tuple[list[list[list[tuple[int, int]]]], dict[int, int]]:
-    """Tạo danh sách glyph và bảng ánh xạ cmap từ pixelfont.GLYPHS.
+def collect_glyphs_and_cmap(
+    vietnamese: bool = False,
+) -> tuple[list[list[list[tuple[int, int]]]], dict[int, int]]:
+    """Tạo danh sách glyph và bảng ánh xạ cmap từ pixelfont.GLYPHS (và bộ chữ tiếng Việt nếu vietnamese=True).
 
     Quy tắc:
     - Glyph 0: .notdef (hình chữ nhật rỗng).
@@ -159,6 +278,8 @@ def collect_glyphs_and_cmap() -> tuple[list[list[list[tuple[int, int]]]], dict[i
       + '>' ánh xạ vào U+25B6 (▶), KHÔNG ánh xạ vào '>' ASCII.
       + Chữ HOA 'A'..'Z' ánh xạ vào cả mã ASCII chữ HOA lẫn chữ thường 'a'..'z' (dùng chung glyph).
       + Các ký tự khác ánh xạ theo ord(ch).
+    - Khi vietnamese=True: ghép thêm các chữ cái tiếng Việt (A/Ă/Â/E/Ê/I/O/Ô/Ơ/U/Ư/Y với 5 dấu thanh + không dấu, và Đ/đ),
+      mỗi chữ thường ánh xạ vào cùng glyph với chữ HOA tương ứng.
     """
     glyph_contours: list[list[list[tuple[int, int]]]] = []
     cmap: dict[int, int] = {}
@@ -186,6 +307,27 @@ def collect_glyphs_and_cmap() -> tuple[list[list[list[tuple[int, int]]]], dict[i
             cmap[code] = gid
             if "A" <= ch <= "Z":
                 cmap[ord(ch.lower())] = gid
+
+    if vietnamese:
+        # Các nguyên âm tiếng Việt ghép từ thân 5×7 + dấu mũ/trăng/râu + 5 dấu thanh
+        for base_ch, modifier, chars_by_tone in VN_VOWEL_SPECS:
+            for tone, ch_upper in zip(VN_TONE_ORDER, chars_by_tone):
+                code_upper = ord(ch_upper)
+                if code_upper in cmap:
+                    # Ký tự ASCII gốc (A, E, I, O, U, Y không dấu) đã có sẵn trong GLYPHS
+                    continue
+                vn_rows = compose_vn_vowel_rows(base_ch, modifier, tone)
+                gid = len(glyph_contours)
+                glyph_contours.append(rows_to_contours(vn_rows, y_bottom=VN_Y_BOTTOM))
+                cmap[code_upper] = gid
+                cmap[ord(ch_upper.lower())] = gid
+
+        # Chữ Đ (U+0110) và đ (U+0111) dùng chung glyph
+        d_rows = compose_vn_d_stroke_rows()
+        gid_d = len(glyph_contours)
+        glyph_contours.append(rows_to_contours(d_rows, y_bottom=VN_Y_BOTTOM))
+        cmap[ord("Đ")] = gid_d
+        cmap[ord("đ")] = gid_d
 
     return glyph_contours, cmap
 
@@ -283,14 +425,19 @@ def build_head(
 
 
 def build_hhea(
-    num_glyphs: int, min_lsb: int, min_rsb: int, x_max_extent: int
+    num_glyphs: int,
+    min_lsb: int,
+    min_rsb: int,
+    x_max_extent: int,
+    ascender: int = ASCENDER,
+    descender: int = DESCENDER,
 ) -> bytes:
     """Dựng bảng 'hhea' (36 byte)."""
     return struct.pack(
         ">IhhhHhhhhhhhhhhhH",
         0x00010000,     # version 1.0
-        ASCENDER,       # ascender = 900
-        DESCENDER,      # descender = -200
+        ascender,       # ascender (800 mặc định, 1100 cho VN)
+        descender,      # descender (-100 mặc định, -300 cho VN)
         LINE_GAP,       # lineGap = 0
         ADVANCE_WIDTH,  # advanceWidthMax = 600
         min_lsb,        # minLeftSideBearing
@@ -327,7 +474,11 @@ def build_maxp(num_glyphs: int, max_points: int, max_contours: int) -> bytes:
     )
 
 
-def build_os2(cmap: dict[int, int]) -> bytes:
+def build_os2(
+    cmap: dict[int, int],
+    ascender: int = ASCENDER,
+    descender: int = DESCENDER,
+) -> bytes:
     """Dựng bảng 'OS/2' version 4 (96 byte)."""
     char_codes = sorted(cmap.keys())
     first_char = min(char_codes) if char_codes else 0
@@ -375,11 +526,11 @@ def build_os2(cmap: dict[int, int]) -> bytes:
         fs_selection,         # fsSelection
         first_char,           # usFirstCharIndex
         last_char,            # usLastCharIndex
-        ASCENDER,             # sTypoAscender = 900
-        DESCENDER,            # sTypoDescender = -200
+        ascender,             # sTypoAscender (800 mặc định, 1100 cho VN)
+        descender,            # sTypoDescender (-100 mặc định, -300 cho VN)
         LINE_GAP,             # sTypoLineGap = 0
-        ASCENDER,             # usWinAscent = 900
-        abs(DESCENDER),       # usWinDescent = 200
+        ascender,             # usWinAscent (800 mặc định, 1100 cho VN)
+        abs(descender),       # usWinDescent (100 mặc định, 300 cho VN)
         ul_code_page_range1,  # ulCodePageRange1
         ul_code_page_range2,  # ulCodePageRange2
         X_HEIGHT,             # sxHeight = 700
@@ -484,16 +635,26 @@ def build_cmap(cmap: dict[int, int]) -> bytes:
     return header + bytes(subtable)
 
 
-def build_name() -> bytes:
+def build_name(vietnamese: bool = False) -> bytes:
     """Dựng bảng 'name' format 0 với bản ghi Macintosh (1, 0, 0) và Windows (3, 1, 0x0409)."""
-    names = [
-        (1, "Kafka Pixel"),
-        (2, "Regular"),
-        (3, "Kafka Pixel Regular 1.0"),
-        (4, "Kafka Pixel"),
-        (5, "Version 1.0"),
-        (6, "KafkaPixel-Regular"),
-    ]
+    if vietnamese:
+        names = [
+            (1, "Kafka Pixel VN"),
+            (2, "Regular"),
+            (3, "Kafka Pixel VN Regular 1.0"),
+            (4, "Kafka Pixel VN Regular"),
+            (5, "Version 1.0"),
+            (6, "KafkaPixelVN-Regular"),
+        ]
+    else:
+        names = [
+            (1, "Kafka Pixel"),
+            (2, "Regular"),
+            (3, "Kafka Pixel Regular 1.0"),
+            (4, "Kafka Pixel"),
+            (5, "Version 1.0"),
+            (6, "KafkaPixel-Regular"),
+        ]
 
     # Tạo danh sách (platformID, encodingID, languageID, nameID, encoded_bytes)
     raw_records: list[tuple[int, int, int, int, bytes]] = []
@@ -538,13 +699,15 @@ def build_post() -> bytes:
     )
 
 
-def assemble_ttf() -> tuple[bytes, int]:
+def assemble_ttf(vietnamese: bool = False) -> tuple[bytes, int]:
     """Lắp ráp toàn bộ các bảng thành dữ liệu nhị phân TrueType (.ttf) hoàn chỉnh.
 
     Trả về (ttf_bytes, num_glyphs).
     """
-    glyph_contours, cmap = collect_glyphs_and_cmap()
+    glyph_contours, cmap = collect_glyphs_and_cmap(vietnamese=vietnamese)
     num_glyphs = len(glyph_contours)
+    ascender = VN_ASCENDER if vietnamese else ASCENDER
+    descender = VN_DESCENDER if vietnamese else DESCENDER
 
     glyf_data, loca_data, bboxes, is_empty, max_pts, max_cnts = build_glyf_and_loca(
         glyph_contours
@@ -554,15 +717,22 @@ def assemble_ttf() -> tuple[bytes, int]:
     now_1904 = int(time.time()) + EPOCH_1904_OFFSET
 
     tables: dict[bytes, bytes] = {
-        b"OS/2": build_os2(cmap),
+        b"OS/2": build_os2(cmap, ascender=ascender, descender=descender),
         b"cmap": build_cmap(cmap),
         b"glyf": glyf_data,
         b"head": build_head(bboxes, is_empty, now_1904, check_sum_adjustment=0),
-        b"hhea": build_hhea(num_glyphs, min_lsb, min_rsb, x_max_extent),
+        b"hhea": build_hhea(
+            num_glyphs,
+            min_lsb,
+            min_rsb,
+            x_max_extent,
+            ascender=ascender,
+            descender=descender,
+        ),
         b"hmtx": hmtx_data,
         b"loca": loca_data,
         b"maxp": build_maxp(num_glyphs, max_pts, max_cnts),
-        b"name": build_name(),
+        b"name": build_name(vietnamese=vietnamese),
         b"post": build_post(),
     }
 
@@ -807,36 +977,192 @@ def run_selftest() -> int:
         f"gid={gid_I}, numberOfContours={i_contours}",
     )
 
+    # 8. Kiểm tra metrics mặc định của KafkaPixel.ttf không hề thay đổi
+    _, head_off, _ = records[b"head"]
+    (upm_def,) = struct.unpack_from(">H", data, head_off + 18)
+    dx_min, dy_min, dx_max, dy_max = struct.unpack_from(">hhhh", data, head_off + 36)
+    h_asc_def, h_desc_def = struct.unpack_from(">hh", data, hhea_off + 4)
+    _, os2_off, _ = records[b"OS/2"]
+    o_tasc_def, o_tdesc_def, _, o_wasc_def, o_wdesc_def = struct.unpack_from(
+        ">hhhHH", data, os2_off + 68
+    )
+    default_unchanged = (
+        ASCENDER == 800
+        and DESCENDER == -100
+        and UNITS_PER_EM == 700
+        and built_num_glyphs == 59
+        and upm_def == 700
+        and (dx_min, dy_min, dx_max, dy_max) == (0, 0, 500, 700)
+        and (h_asc_def, h_desc_def) == (800, -100)
+        and (o_tasc_def, o_tdesc_def, o_wasc_def, o_wdesc_def) == (800, -100, 800, 100)
+    )
+    check(
+        "Font mặc định giữ nguyên metrics (ASCENDER=800, DESCENDER=-100, UPM=700, 59 glyphs)",
+        default_unchanged,
+        f"head=({dx_min},{dy_min},{dx_max},{dy_max}), hhea=({h_asc_def},{h_desc_def}), OS/2=({o_tasc_def},{o_tdesc_def},{o_wasc_def},{o_wdesc_def})",
+    )
+
+    # 9. Dựng biến thể tiếng Việt KafkaPixelVN.ttf vào file tạm và kiểm tra toàn diện
+    with tempfile.TemporaryDirectory() as tmpdir_vn:
+        vn_path = Path(tmpdir_vn) / "KafkaPixelVN.ttf"
+        vn_bytes, vn_num_glyphs = assemble_ttf(vietnamese=True)
+        vn_path.write_bytes(vn_bytes)
+        vn_data = vn_path.read_bytes()
+
+    _, vn_num_tables, _, _, _ = struct.unpack_from(">IHHHH", vn_data, 0)
+    vn_records: dict[bytes, tuple[int, int, int]] = {}
+    vn_csum_ok = True
+    for i in range(vn_num_tables):
+        tag, csum, off, length = struct.unpack_from(">4sIII", vn_data, 12 + i * 16)
+        vn_records[tag] = (csum, off, length)
+        tbl_slice = vn_data[off : off + length]
+        if tag == b"head":
+            tbl_slice = tbl_slice[:8] + b"\x00\x00\x00\x00" + tbl_slice[12:]
+        if calc_checksum(tbl_slice) != csum:
+            vn_csum_ok = False
+
+    vn_file_csum = calc_checksum(vn_data)
+    check(
+        "VN: Checksum các bảng và toàn file == 0xB1B0AFBA",
+        vn_csum_ok and vn_file_csum == CHECKSUM_MAGIC,
+        f"0x{vn_file_csum:08X}, numGlyphs={vn_num_glyphs}",
+    )
+
+    # 10. Kiểm tra bảng name của VN
+    _, vn_name_off, vn_name_len = vn_records[b"name"]
+    vn_name_bytes = vn_data[vn_name_off : vn_name_off + vn_name_len]
+    name_ok = (
+        b"Kafka Pixel VN" in vn_name_bytes
+        and b"Kafka Pixel VN Regular" in vn_name_bytes
+        and b"KafkaPixelVN-Regular" in vn_name_bytes
+        and "Kafka Pixel VN".encode("utf-16-be") in vn_name_bytes
+        and "Kafka Pixel VN Regular".encode("utf-16-be") in vn_name_bytes
+        and "KafkaPixelVN-Regular".encode("utf-16-be") in vn_name_bytes
+    )
+    check("VN: Bảng name chứa 'Kafka Pixel VN', 'Kafka Pixel VN Regular', 'KafkaPixelVN-Regular'", name_ok)
+
+    # 11. Kiểm tra metrics bảng head, hhea, OS/2 của VN
+    _, vn_head_off, _ = vn_records[b"head"]
+    (vn_upm,) = struct.unpack_from(">H", vn_data, vn_head_off + 18)
+    vx_min, vy_min, vx_max, vy_max = struct.unpack_from(">hhhh", vn_data, vn_head_off + 36)
+    _, vn_hhea_off, _ = vn_records[b"hhea"]
+    vh_asc, vh_desc = struct.unpack_from(">hh", vn_data, vn_hhea_off + 4)
+    _, vn_os2_off, _ = vn_records[b"OS/2"]
+    vo_tasc, vo_tdesc, _, vo_wasc, vo_wdesc = struct.unpack_from(
+        ">hhhHH", vn_data, vn_os2_off + 68
+    )
+    vn_metrics_ok = (
+        vn_upm == 700
+        and (vh_asc, vh_desc) == (1100, -300)
+        and (vo_tasc, vo_tdesc, vo_wasc, vo_wdesc) == (1100, -300, 1100, 300)
+        and 0 <= vx_min <= vx_max <= ADVANCE_WIDTH
+        and VN_DESCENDER <= vy_min < 0 < 700 < vy_max <= VN_ASCENDER
+    )
+    check(
+        "VN: Metrics đúng (UPM=700, ascender=1100, descender=-300, winDescent=300)",
+        vn_metrics_ok,
+        f"head=({vx_min},{vy_min},{vx_max},{vy_max}), hhea=({vh_asc},{vh_desc}), OS/2=({vo_tasc},{vo_tdesc},{vo_wasc},{vo_wdesc})",
+    )
+
+    # 12. Kiểm tra cmap VN chứa đủ các chuỗi tiếng Việt yêu cầu và toàn bộ bảng nguyên âm + Đ/đ
+    _, vn_cmap_off, vn_cmap_len = vn_records[b"cmap"]
+    vn_cmap_bytes = vn_data[vn_cmap_off : vn_cmap_off + vn_cmap_len]
+    sample_letters = "ĂÂĐÊÔƠƯăâđêôơư"
+    sample_sentence = "Khởi động lại Tắt máy Chọn hệ điều hành Tự khởi động sau giây"
+
+    missing_letters = [
+        ch for ch in sample_letters if lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0
+    ]
+    missing_sentence = [
+        ch
+        for ch in sample_sentence
+        if ch != " " and lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0
+    ]
+
+    all_vn_pairs_ok = True
+    for _, _, chars_by_tone in VN_VOWEL_SPECS:
+        for ch_u in chars_by_tone:
+            gid_u = lookup_cmap_format4(vn_cmap_bytes, ord(ch_u))
+            gid_l = lookup_cmap_format4(vn_cmap_bytes, ord(ch_u.lower()))
+            if gid_u <= 0 or gid_u != gid_l:
+                all_vn_pairs_ok = False
+    gid_D_stroke = lookup_cmap_format4(vn_cmap_bytes, ord("Đ"))
+    gid_d_stroke = lookup_cmap_format4(vn_cmap_bytes, ord("đ"))
+    if gid_D_stroke <= 0 or gid_D_stroke != gid_d_stroke:
+        all_vn_pairs_ok = False
+
+    check(
+        "VN: cmap chứa mọi ký tự trong 'ĂÂĐÊÔƠƯăâđêôơư' và câu mẫu tiếng Việt (HOA == thường)",
+        not missing_letters and not missing_sentence and all_vn_pairs_ok,
+        "OK"
+        if (not missing_letters and not missing_sentence and all_vn_pairs_ok)
+        else f"Thiếu: {missing_letters + missing_sentence}",
+    )
+
+    # 13. Kiểm tra bbox của mọi glyph trong VN nằm trong [0..ADVANCE_WIDTH] và [VN_DESCENDER..VN_ASCENDER]
+    _, vn_loca_off, vn_loca_len = vn_records[b"loca"]
+    vn_loca_offsets = list(
+        struct.unpack_from(f">{vn_loca_len // 4}I", vn_data, vn_loca_off)
+    )
+    _, vn_glyf_off, _ = vn_records[b"glyf"]
+    bbox_out_of_bounds: list[str] = []
+    for gid in range(vn_num_glyphs):
+        g_start = vn_loca_offsets[gid]
+        g_end = vn_loca_offsets[gid + 1]
+        if g_end > g_start:
+            n_cnt, gx_min, gy_min, gx_max, gy_max = struct.unpack_from(
+                ">hhhhh", vn_data, vn_glyf_off + g_start
+            )
+            if not (
+                n_cnt > 0
+                and 0 <= gx_min <= gx_max <= ADVANCE_WIDTH
+                and VN_DESCENDER <= gy_min <= gy_max <= VN_ASCENDER
+            ):
+                bbox_out_of_bounds.append(
+                    f"gid={gid}:({gx_min},{gy_min},{gx_max},{gy_max})"
+                )
+    check(
+        "VN: Mọi glyph bbox nằm gọn trong advance (0..600) và descender..ascender (-300..1100)",
+        not bbox_out_of_bounds,
+        "OK" if not bbox_out_of_bounds else ", ".join(bbox_out_of_bounds[:5]),
+    )
+
     return 0 if all_passed else 1
 
 
 def main() -> int:
     """Điểm vào CLI của trình dựng font Kafka Pixel."""
-    default_out = SCRIPT_DIR / "KafkaPixel.ttf"
     parser = argparse.ArgumentParser(
-        description="Dựng font TrueType (.ttf) 'Kafka Pixel' từ pixelfont.py 5x7."
+        description="Dựng font TrueType (.ttf) 'Kafka Pixel' (hoặc biến thể tiếng Việt --vietnamese) từ pixelfont.py 5x7."
     )
     parser.add_argument(
         "--out",
         type=Path,
-        default=default_out,
-        help="Đường dẫn file .ttf đầu ra (mặc định: fonts/KafkaPixel.ttf cạnh script).",
+        default=None,
+        help="Đường dẫn file .ttf đầu ra (mặc định: fonts/KafkaPixel.ttf, hoặc fonts/KafkaPixelVN.ttf khi có --vietnamese).",
+    )
+    parser.add_argument(
+        "--vietnamese",
+        action="store_true",
+        help="Dựng biến thể tiếng Việt 'Kafka Pixel VN' (fonts/KafkaPixelVN.ttf).",
     )
     parser.add_argument(
         "--selftest",
         action="store_true",
-        help="Chạy tự kiểm tra cấu trúc nhị phân của font trong thư mục tạm.",
+        help="Chạy tự kiểm tra cấu trúc nhị phân của font (cả bản mặc định và bản tiếng Việt) trong thư mục tạm.",
     )
     args = parser.parse_args()
 
     if args.selftest:
         return run_selftest()
 
-    out_path: Path = args.out
+    default_name = "KafkaPixelVN.ttf" if args.vietnamese else "KafkaPixel.ttf"
+    out_path: Path = args.out if args.out is not None else (SCRIPT_DIR / default_name)
     os.makedirs(out_path.parent, exist_ok=True)
-    ttf_bytes, num_glyphs = assemble_ttf()
+    ttf_bytes, num_glyphs = assemble_ttf(vietnamese=args.vietnamese)
     out_path.write_bytes(ttf_bytes)
-    print(f"Đã dựng Kafka Pixel: {num_glyphs} glyphs -> {out_path}")
+    family_label = "Kafka Pixel VN" if args.vietnamese else "Kafka Pixel"
+    print(f"Đã dựng {family_label}: {num_glyphs} glyphs -> {out_path}")
     return 0
 
 

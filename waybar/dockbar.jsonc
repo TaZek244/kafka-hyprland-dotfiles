@@ -1,0 +1,113 @@
+/* ---------- THANH PHẢI: dock dọc (dùng chung cho cả hai theme) ---------- */
+{
+    "name": "dockbar",
+    "reload_style_on_change": true,   /* dock-density.sh đổi CSS theo số cửa sổ */
+    "layer": "top",
+    "position": "right",
+    "width": 48,
+    "margin-top": 0,             /* dính liền dưới thanh trên -> khung chữ L (ô góc custom/corner nằm ngay trên) */
+    "margin-bottom": 0,          /* gắn sát mép dưới và mép phải màn hình */
+    "margin-right": 0,
+    "spacing": 0,
+
+    /* DOCK 4 NGĂN (người dùng 2026-11-22), mỗi ngăn có nhãn + vạch ngăn, SỐ Ô CỐ ĐỊNH để ngăn dưới không bao giờ xê dịch:
+     *   SYS  3 nút công cụ (ITEMS · Studio · thông báo; menu app đã bỏ: Super + Space / bấm thẻ TaZek)
+     *   FAV  6 app ghim (dock-pins.py, sửa ở Kafka Studio › Dock)
+     *   RUN  4 app đang mở (dock-apps.py; > 4 app → ô 4 = "+N")
+     *   BG   3 app chạy ngầm (sni-tray.py — khay tự viết thay module tray: Waybar không giới hạn được số icon; > 3 → ô 3 = "+N")
+     * "+N" hoặc bấm nhãn RUN/BG = popup dock-more.py liệt kê HẾT (cả cửa sổ đang ẩn). */
+    "modules-left":   ["group/sys", "group/pinned", "group/windows", "group/bg"],
+    "modules-right":  ["group/actions"],
+
+    /* Đầu dock, cố định: wifi · bluetooth · bộ gõ (thay icon trong khay, vì khay đổi thứ tự).
+     * nm-applet/fcitx vẫn chạy (hỏi mật khẩu wifi, bộ gõ) nhưng bị ẩn khỏi khay bằng ignore-list. */
+
+
+    /* App ghim: ICON THẬT của app (icon theme hệ thống, tra từ file .desktop) do hypr/scripts/dock-pins.py vẽ.
+     * Danh sách ở waybar/dock-pins.json — sửa bằng Kafka Studio › Dock (2026-11-22). Ô không có app = rỗng, tự ẩn. */
+    "group/pinned": {
+        "orientation": "inherit",
+        "modules": ["custom/lbl-fav", "image#p1", "image#p2", "image#p3", "image#p4", "image#p5", "image#p6"]
+    },
+    "image#p1":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 1", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 1" },
+    "image#p2":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 2", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 2" },
+    "image#p3":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 3", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 3" },
+    "image#p4":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 4", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 4" },
+    "image#p5":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 5", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 5" },
+    "image#p6":  { "exec": "~/.config/hypr/scripts/dock-pins.py slot 6", "size": 40, "signal": 19, "interval": 3600, "on-click": "~/.config/hypr/scripts/dock-pins.py click 6" },
+
+    /* Nút công cụ (trên cùng dock, vị trí cố định): rê chuột vào thì scripts/tools-popup.py
+     * hiện popup ngang bên trái dock (clipboard · chụp/quay · phím tắt · không làm phiền).
+     * Icon do tools-status.sh sinh: REC đỏ khi đang quay, chuông gạch khi không làm phiền. */
+    /* Thông báo (chuyển từ thanh trên xuống dock 2026-11-20): chuông + số nhỏ (dock chỉ rộng 48px).
+     * Trái: xem lại thông báo cũ · Phải: xoá hết. Cập nhật qua signal 10. */
+    "custom/notifications": {
+        "exec": "n=$(dunstctl count history); if [ \"$(dunstctl is-paused)\" = true ]; then i='󰂛'; c=paused; else i='󰂚'; c=idle; fi; [ \"$n\" -gt 0 ] && { t=\"$i<span size='7168' rise='10000'>$n</span>\"; c=\"$c\\\",\\\"has\"; } || t=\"$i\"; printf '{\"text\":\"%s\",\"class\":[\"%s\"],\"tooltip\":\"%s thông báo trong lịch sử\\\\nTrái: xem lại thông báo cũ · Phải: xóa hết\"}\\n' \"$t\" \"$c\" \"$n\"",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 10,
+        "on-click": "dunstctl history-pop; pkill -RTMIN+10 waybar",
+        "on-click-right": "dunstctl history-clear; pkill -RTMIN+10 waybar"
+    },
+    /* KAFKA STUDIO: đổi hình nền, sửa CSS/cấu hình bằng tay (sao lưu + nạp lại tự động), chỉnh màu (hypr/scripts/studio.py) */
+    "custom/studio": {
+        "format": "󰏘",
+        "tooltip-format": "Kafka Studio — hình nền, sửa CSS, màu sắc, giao diện",
+        "on-click": "~/.config/hypr/scripts/toggle-app.sh 'kafka\\.studio' ~/.config/hypr/scripts/studio.py"
+    },
+    "custom/tools": {
+        "exec": "~/.config/hypr/scripts/tools-status.sh",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 12,
+        "tooltip": false
+    },
+    /* Thẻ app đang mở: nút ẩn/hiện ở đầu thẻ, bên dưới là các app, GỘP theo app
+     * (2 cửa sổ kitty = 1 icon kèm "x2"). wlr/taskbar không gộp được, nên hypr/scripts/dock-apps.py
+     * vẽ sẵn mỗi app thành 1 ảnh (icon + huy hiệu xN + nền vàng nếu đang dùng) và 10 ô image#wN hiện chúng;
+     * ô trống tự ẩn. Hyprland gọi `dock-apps.py render` khi mở/đóng/đổi cửa sổ rồi báo signal 13.
+     * Trái: chuyển tới (bấm tiếp: xoay vòng các cửa sổ cùng app) · Giữa: đóng cửa sổ dùng gần nhất. */
+    "group/windows": {
+        "orientation": "inherit",
+        "modules": ["custom/lbl-run", "image#w1", "image#w2", "image#w3", "image#w4"]
+    },
+    "image#w1":  { "exec": "~/.config/hypr/scripts/dock-apps.py slot 1", "size": 40, "signal": 13, "on-click": "~/.config/hypr/scripts/dock-apps.py click 1", "on-click-middle": "~/.config/hypr/scripts/dock-apps.py close 1" },
+    "image#w2":  { "exec": "~/.config/hypr/scripts/dock-apps.py slot 2", "size": 40, "signal": 13, "on-click": "~/.config/hypr/scripts/dock-apps.py click 2", "on-click-middle": "~/.config/hypr/scripts/dock-apps.py close 2" },
+    "image#w3":  { "exec": "~/.config/hypr/scripts/dock-apps.py slot 3", "size": 40, "signal": 13, "on-click": "~/.config/hypr/scripts/dock-apps.py click 3", "on-click-middle": "~/.config/hypr/scripts/dock-apps.py close 3" },
+    "image#w4":  { "exec": "~/.config/hypr/scripts/dock-apps.py slot 4", "size": 40, "signal": 13, "on-click": "~/.config/hypr/scripts/dock-apps.py click 4", "on-click-middle": "~/.config/hypr/scripts/dock-apps.py close 4" },
+
+
+    "group/sys": {
+        "orientation": "inherit",
+        "modules": ["custom/lbl-sys", "custom/tools", "custom/studio", "custom/notifications"]
+    },
+    "group/bg": {
+        "orientation": "inherit",
+        "modules": ["custom/lbl-bg", "image#bg1", "image#bg2", "image#bg3"]
+    },
+    /* Nhãn ngăn (chữ pixel nhỏ). Bấm nhãn RUN/BG = xem hết */
+    "custom/lbl-sys": { "format": "SYS", "tooltip-format": "Công cụ chung" },
+    "custom/lbl-fav": { "format": "FAV", "tooltip-format": "App hay dùng — sửa ở Kafka Studio › Dock", "on-click": "~/.config/hypr/scripts/toggle-app.sh 'kafka\\.studio' ~/.config/hypr/scripts/studio.py --page dock" },
+    "custom/lbl-run": { "format": "RUN", "tooltip-format": "App đang mở — bấm để xem hết (cả cửa sổ đang ẩn)", "on-click": "~/.config/hypr/scripts/dock-more.py --section run" },
+    "custom/lbl-bg":  { "format": "BG",  "tooltip-format": "App chạy ngầm — bấm để xem hết", "on-click": "~/.config/hypr/scripts/dock-more.py --section bg" },
+    "image#bg1": { "exec": "~/.config/hypr/scripts/sni-tray.py slot 1", "size": 40, "signal": 20, "interval": 3600, "on-click": "~/.config/hypr/scripts/sni-tray.py click 1", "on-click-right": "~/.config/hypr/scripts/sni-tray.py rclick 1" },
+    "image#bg2": { "exec": "~/.config/hypr/scripts/sni-tray.py slot 2", "size": 40, "signal": 20, "interval": 3600, "on-click": "~/.config/hypr/scripts/sni-tray.py click 2", "on-click-right": "~/.config/hypr/scripts/sni-tray.py rclick 2" },
+    "image#bg3": { "exec": "~/.config/hypr/scripts/sni-tray.py slot 3", "size": 40, "signal": 20, "interval": 3600, "on-click": "~/.config/hypr/scripts/sni-tray.py click 3", "on-click-right": "~/.config/hypr/scripts/sni-tray.py rclick 3" },
+
+    /* Đáy dock: nút mở hộp chức năng (popup ngang bên trái dock) + nút nguồn.
+       Không dùng drawer: nó bung dọc và đè lên thẻ app đang mở. */
+    "group/actions": {
+        "orientation": "inherit",
+        "modules": ["custom/actions", "custom/powermenu"]
+    },
+    "custom/actions": {
+        "format": "󰍜",
+        "tooltip-format": "Chức năng nhanh: sóng nhạc · treo · nổi/xếp · đóng app · chia khu · khóa",
+        "on-click": "~/.config/hypr/scripts/actionsmenu.sh"
+    },
+    "custom/powermenu": {
+        "format": "󰐥",
+        "tooltip-format": "Menu nguồn (Super + M)",
+        "on-click": "~/.config/hypr/scripts/powermenu.sh"
+    }
+}

@@ -2,7 +2,7 @@
 """control-popup.py — Trung tâm điều khiển (cài đặt nhanh) màu Kafka cho Waybar/Hyprland.
 
 Dùng: control-popup.py [main|wifi|bluetooth|audio] [--fake]
-  Waybar gọi khi bấm cụm group/control (wifi · bluetooth · âm lượng · độ sáng · pin) ở thanh trên.
+  Waybar gọi khi bấm cụm group/control (bản phẳng) hoặc nút custom/settings (bản pixel, settings-pill.py) ở thanh trên.
   Chưa mở -> mở đúng trang. Đang mở cùng trang (hoặc không ghi trang) -> đóng. Đang mở trang khác -> chuyển trang
   (ghi $XDG_RUNTIME_DIR/kafka-control-popup.page + SIGUSR1). Pid ở $XDG_RUNTIME_DIR/kafka-control-popup.pid.
   --fake: dữ liệu giả (fake_backends.py) để thử giao diện. --selftest: dựng mọi trang bằng dữ liệu giả rồi thoát.
@@ -18,6 +18,7 @@ KHÔNG khi đang kéo thanh trượt hay đang gõ mật khẩu; danh sách ch�
 import json
 import os
 import signal
+import subprocess
 import sys
 import threading
 
@@ -38,6 +39,7 @@ PAGES = ("main", "wifi", "bluetooth", "audio")
 # Góc khung: thanh trên cao 40 (gắn sát mép) + khe 8; dock rộng 48 + khe 8. Đổi Waybar thì đo lại.
 POP_TOP, POP_RIGHT = 48, 56
 PANEL_W = 470   # cố định cho mọi trang (chữ 11.5pt đậm cần ~470 cho chữ trong ô), đổi trang không nhảy bề rộng
+PILL_W = 72     # ô ON/OFF/giá trị ở cột phải (bản pixel): rộng cố định để thẳng cột
 REFRESH_MS = {"main": 2000, "wifi": 5000, "bluetooth": 2500, "audio": 2000}
 
 # Glyph Nerd Font (ghi bằng mã, không dán ký tự)
@@ -192,7 +194,7 @@ class ControlPopup(Gtk.Window):
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)   # trên ~/.config/gtk-3.0/gtk.css (màu nhấn hồng chung) để thanh trượt ra màu tím
         import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
-        kt.apply(kt.panel(".panel", "2px") + f"""
+        self.pixel = kt.apply(kt.panel(".panel", "2px", titled=True) + f"""
 .section {{ color: {kt.PINK_FG}; }}
 .tile {{ {kt.CARD} }}
 .tile.on {{ {kt.CARD_ON} }}
@@ -206,6 +208,63 @@ class ControlPopup(Gtk.Window):
 .row.active {{ {kt.CARD_ON} }}
 .sub, .status {{ color: {kt.DIM}; }}
 .tile.on .sub {{ color: #fff0f6; }}
+.pixel-header .system {{ font-family: "Kafka Pixel"; font-size: 14px; color: #f08cbb; }}
+.pixel-header .battery {{ font-family: "FiraCode Nerd Font"; font-size: 10pt; color: {kt.DIM}; }}
+.opt-row {{ min-height: 34px; padding: 0 8px; background-color: #1a1422; background-image: none;
+            border: none; border-radius: 0; box-shadow: inset 0 0 0 2px #140e1a; }}
+.opt-row:hover, .opt-row:focus {{ background-color: #2c2238; box-shadow: inset 0 0 0 2px #140e1a; }}
+.opt-row .opt-cursor {{ font-family: "Kafka Pixel"; font-size: 14px; color: #f08cbb; opacity: 0; }}
+.opt-row .opt-icon {{ font-family: "FiraCode Nerd Font Propo"; font-size: 16pt; color: #fbf7fd; }}
+.opt-row .opt-name {{ font-family: "FiraCode Nerd Font"; font-size: 11.5pt; font-weight: 700; color: #fbf7fd; }}
+.opt-row .opt-dim {{ color: #9a8bab; font-size: 10pt; }}
+.opt-row .opt-value {{ font-family: "FiraCode Nerd Font"; font-size: 10pt; color: #ffe08a; }}
+.opt-pill {{ font-family: "Kafka Pixel"; font-size: 14px; padding: 2px 6px; }}
+.opt-pill.opt-on {{ color: #ffffff; background-color: #c94785;
+                    box-shadow: inset 0 0 0 2px #3d1028, inset 0 2px 0 #f08cbb; }}
+.opt-pill.opt-off {{ color: #9a8bab; background-color: #1a1422;
+                     box-shadow: inset 0 0 0 2px #140e1a; }}
+.pixel-gauge-label {{ font-family: "FiraCode Nerd Font"; font-size: 11.5pt; font-weight: 700; color: #fbf7fd; }}  /* nhãn tiếng Việt: font pixel không có dấu */
+.pixel-gauge-value {{ font-family: "Kafka Pixel"; font-size: 14px; color: #ffe08a; }}
+scale.pixel-gauge trough {{ min-height: 12px; border-radius: 0; background-color: #1a1422; border: none;
+                             box-shadow: inset 0 0 0 2px #140e1a; }}
+scale.pixel-gauge highlight {{ min-height: 12px; border-radius: 0; background-color: #c94785;
+                                background-image: repeating-linear-gradient(90deg, #c94785 0px, #c94785 8px, #1a1422 8px, #1a1422 10px);
+                                border: none; box-shadow: none; }}
+scale.pixel-gauge slider {{ min-width: 10px; min-height: 16px; border-radius: 0; background-color: #ffffff;
+                            background-image: none; border: none; box-shadow: inset 0 0 0 2px #140e1a; }}
+.opt-pill {{ min-width: 60px; }}   /* [ON] và [OFF] cùng rộng → thẳng cột */
+
+/* ---- TRANG CON (Wi-Fi / Bluetooth / Âm thanh) cùng ngôn ngữ với trang STATUS ---- */
+.title {{ font-family: "FiraCode Nerd Font"; font-size: 12.5pt; font-weight: 800; color: #fbf7fd; }}
+.section {{ color: #f08cbb; font-size: 9.5pt; font-weight: 800; margin-top: 6px; }}
+button.flat-icon, button.flat-icon:hover {{ border-radius: 0; }}
+button.flat-icon:hover {{ background-color: #2c2238; box-shadow: inset 0 0 0 2px #140e1a; }}
+.row, .row:hover, .row.active {{ border-radius: 0; background-image: none; }}
+.row {{ background-color: #1a1422; box-shadow: inset 0 0 0 2px #140e1a; padding: 6px 10px; }}
+.row:hover {{ background-color: #2c2238; box-shadow: inset 0 0 0 2px #140e1a; }}
+.row.active {{ background-color: #2c2238; box-shadow: inset 0 0 0 2px #f08cbb, inset 6px 0 0 0 #c94785; }}
+.row.active label {{ color: #ffffff; }}
+.row.active .icon {{ color: #f08cbb; }}
+.row button {{ border-radius: 0; }}
+.row button:hover {{ background-color: rgba(240, 140, 187, 0.08); box-shadow: none; }}
+.row .sub {{ color: #9a8bab; }}
+.row.active .sub {{ color: #d4cade; }}
+scale trough {{ min-height: 10px; border-radius: 0; background-color: #120d18; border: none;
+                box-shadow: inset 0 0 0 2px #140e1a; }}
+scale highlight {{ min-height: 10px; border-radius: 0; background-color: #c94785;
+                   background-image: repeating-linear-gradient(90deg, #c94785 0px, #c94785 8px, #1a1422 8px, #1a1422 10px);
+                   border: none; box-shadow: none; }}
+scale slider {{ min-width: 10px; min-height: 16px; margin: -3px; border-radius: 0; background-color: #ffffff;
+                background-image: none; border: none; box-shadow: inset 0 0 0 2px #140e1a; }}
+entry {{ border-radius: 0; background-color: #120d18; border: none; box-shadow: inset 0 0 0 2px #140e1a; }}
+entry:focus {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
+button.px-toggle {{ border-radius: 0; padding: 2px 6px; background-image: none; border: none; }}
+button.px-toggle label {{ font-family: "Kafka Pixel"; font-size: 14px; }}
+button.px-toggle.opt-off {{ background-color: #1a1422; box-shadow: inset 0 0 0 2px #140e1a; }}
+button.px-toggle.opt-off label {{ color: #9a8bab; }}
+button.px-toggle.opt-on {{ background-color: #c94785; box-shadow: inset 0 0 0 2px #3d1028, inset 0 2px 0 #f08cbb; }}
+button.px-toggle.opt-on label {{ color: #ffffff; }}
+button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 """)
         self.set_app_paintable(True)
         vis = self.get_screen().get_rgba_visual()
@@ -230,6 +289,9 @@ class ControlPopup(Gtk.Window):
         self.panel.set_margin_end(POP_RIGHT)
         self.panel.set_size_request(PANEL_W, -1)
         self.add(self.panel)
+        self.px_title = kt.title_label("STATUS") if self.pixel else None
+        if self.px_title:
+            self.panel.pack_start(self.px_title, False, False, 0)
         self.stack = Gtk.Stack()
         self.stack.set_vhomogeneous(False)
         self.stack.set_interpolate_size(True)
@@ -289,7 +351,7 @@ class ControlPopup(Gtk.Window):
 
     # ---------- trang ----------
     def _build_pages(self):
-        self.stack.add_named(self._page_main(), "main")
+        self.stack.add_named(self._page_main_pixel() if self.pixel else self._page_main(), "main")
         self.stack.add_named(self._page_wifi(), "wifi")
         self.stack.add_named(self._page_bt(), "bluetooth")
         self.stack.add_named(self._page_audio(), "audio")
@@ -299,6 +361,9 @@ class ControlPopup(Gtk.Window):
         if self.page == "main":
             self.wifi_open = self.wifi_menu = self.bt_menu = None
         self.stack.set_visible_child_name(self.page)
+        if self.px_title:
+            self.px_title.set_text({"main": "> STATUS", "wifi": "> WI-FI",
+                                    "bluetooth": "> BLUETOOTH", "audio": "> AUDIO"}[self.page])
         self.refresh(force=True)
         if self.page == "wifi":
             self.wifi_rescan()
@@ -386,6 +451,22 @@ class ControlPopup(Gtk.Window):
         s.set_value(value)
         s._quiet = False
 
+    def make_switch(self):
+        """Gtk.Switch (phẳng) hoặc nút bật/tắt [ON]/[OFF] (pixel, giống trang STATUS). Cả hai có
+        thuộc tính `active` + tín hiệu notify::active nên code gọi không cần phân biệt."""
+        if not self.pixel:
+            return Gtk.Switch()
+        b = add_cls(Gtk.ToggleButton(label="[OFF]"), "px-toggle", "opt-off")
+        b.set_size_request(PILL_W, -1)
+
+        def paint(btn, *_):
+            on = btn.get_active()
+            btn.set_label("[ON]" if on else "[OFF]")
+            set_cls(btn, "opt-on", on)
+            set_cls(btn, "opt-off", not on)
+        b.connect("notify::active", paint)
+        return b
+
     def set_switch(self, sw, on):
         self.updating = True
         sw.set_active(bool(on))
@@ -440,6 +521,126 @@ class ControlPopup(Gtk.Window):
         box.pack_start(self.main_status, False, False, 0)
         return box
 
+    def _page_main_pixel(self):
+        """Trang chính kiểu menu option của RPG; nhánh flat ở _page_main không đổi."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        top = add_cls(Gtk.Box(spacing=8), "pixel-header")
+        top.pack_start(lbl("SYSTEM", "system"), True, True, 0)
+        self.pixel_bat_lbl = lbl("", "battery", 1.0)
+        top.pack_end(self.pixel_bat_lbl, False, False, 0)
+        box.pack_start(top, False, False, 0)
+
+        self.opt_rows = {}
+        menu = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
+        specs = [("wifi", G["wifi"], "Wi-Fi"), ("bluetooth", G["bt"], "Bluetooth"),
+                 ("vpn", G["lock"], "VPN"), ("dnd", G["dnd"], "Không làm phiền"),
+                 ("idle", G["idle"], "Giữ màn hình sáng"), ("power", G["balanced"], "Chế độ nguồn"),
+                 ("ime", G["keyboard"], "Bộ gõ")]
+        for key, glyph, name in specs:
+            row = self._pixel_option_row(key, glyph, name)
+            menu.pack_start(row, False, False, 0)
+        box.pack_start(menu, False, False, 0)
+
+        self.main_status = status_lbl()
+        box.pack_start(self.main_status, False, False, 0)
+        self._pixel_gauge(box, "vol", G["vol"], "Âm lượng")
+        self._pixel_gauge(box, "bri", G["bright"], "Độ sáng")
+        return box
+
+    def _pixel_option_row(self, key, glyph, name):
+        row = add_cls(Gtk.Button(), "opt-row")
+        row.set_can_focus(True)
+        row.set_size_request(-1, 34)
+        h = Gtk.Box(spacing=7)
+        cursor = lbl(">", "opt-cursor")
+        icon = lbl(glyph, "opt-icon")
+        title = lbl(name, "opt-name", ellipsize=True)
+        value = Gtk.Box(spacing=6)           # [chữ mờ co giãn][ô cố định 64px: pill hoặc giá trị vàng]
+        value.set_halign(Gtk.Align.END)      # KHÔNG hexpand: GTK3 coi hexpand = giãn → chia chỗ trống với tên, cột lệch
+        row.add(h)
+        h.pack_start(cursor, False, False, 0)
+        h.pack_start(icon, False, False, 0)
+        h.pack_start(title, True, True, 0)
+        h.pack_end(value, False, False, 0)
+        row.connect("enter-notify-event", lambda *_: cursor.set_opacity(1.0) or False)
+        row.connect("leave-notify-event", lambda *_: cursor.set_opacity(0.0) or False)
+        row.connect("focus-in-event", lambda *_: cursor.set_opacity(1.0) or False)
+        row.connect("focus-out-event", lambda *_: cursor.set_opacity(0.0) or False)
+        row.connect("clicked", lambda *_: self._pixel_option_click(key))
+        if key in ("wifi", "bluetooth"):
+            row.connect("button-press-event", lambda _w, ev: self._pixel_option_right(key, ev))
+        self.opt_rows[key] = {"row": row, "cursor": cursor, "icon": icon, "value": value}
+        return row
+
+    def _pixel_option_right(self, key, ev):
+        if ev.button == 3:
+            st = self.state
+            if key == "wifi":
+                self.act(self.be.wifi_set_enabled, not st.get("wifi", {}).get("enabled"), status=self.main_status)
+            else:
+                self.act(self.be.bt_set_powered, not st.get("bt", {}).get("powered"), status=self.main_status)
+            return True
+        return False
+
+    def _pixel_option_click(self, key):
+        if key == "wifi":
+            self.go("wifi")
+        elif key == "bluetooth":
+            self.go("bluetooth")
+        elif key == "vpn":
+            self.act(self._vpn_toggle, status=self.main_status)
+        else:
+            self._tile_click(key)
+
+    def _pixel_gauge(self, box, key, glyph, name):
+        row = Gtk.Box(spacing=6)
+        icon = add_cls(Gtk.Button(label=glyph), "flat-icon")
+        icon.set_tooltip_text("Tắt/mở tiếng" if key == "vol" else name)
+        if key == "vol":
+            icon.connect("clicked", lambda *_: self.act(self.be.audio_toggle_mute, "output"))
+        else:
+            icon.set_sensitive(False)
+        text = add_cls(lbl(name), "pixel-gauge-label")
+        value = add_cls(lbl("0%", "pixel-gauge-value", 1.0), "pixel-gauge-value")
+        row.pack_start(icon, False, False, 0)
+        row.pack_start(text, True, True, 0)
+        # cuối dòng: [số %][nút › hoặc ô trống cùng rộng] → số % hai dòng thẳng nhau, › luôn ở mép phải
+        if key == "vol":
+            more = add_cls(Gtk.Button(label=G["next"]), "flat-icon")
+            more.set_tooltip_text("Thiết bị ra/vào, âm lượng từng ứng dụng")
+            more.connect("clicked", lambda *_: self.go("audio"))
+        else:
+            more = Gtk.Box()
+        more.set_size_request(36, -1)
+        row.pack_end(more, False, False, 0)
+        row.pack_end(value, False, False, 0)
+        scale = self.make_slider(0 if key == "vol" else 1, 100,
+                                 (lambda v: self.be.audio_set_volume("output", v)) if key == "vol" else self.be.brightness_set)
+        add_cls(scale, "pixel-gauge")
+        box.pack_start(row, False, False, 0)
+        box.pack_start(scale, False, False, 0)
+        if key == "vol":
+            self.mute_btn, self.vol_scale, self.vol_lbl = icon, scale, value
+        else:
+            self.bri_scale, self.bri_lbl = scale, value
+
+    def _vpn_status(self):
+        path = os.path.expanduser("~/.config/hypr/scripts/vpn.sh")
+        try:
+            out = subprocess.run([path, "status"], text=True, capture_output=True, timeout=3, check=True).stdout
+            data = json.loads(out)
+            return data if isinstance(data, dict) else {"class": "none", "tooltip": ""}
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return {"class": "none", "tooltip": ""}
+
+    def _vpn_toggle(self):
+        path = os.path.expanduser("~/.config/hypr/scripts/vpn.sh")
+        try:
+            p = subprocess.run([path, "toggle"], text=True, capture_output=True, timeout=8)
+            return p.returncode == 0, p.stderr.strip() if p.returncode else ""
+        except (OSError, subprocess.SubprocessError) as exc:
+            return False, str(exc)
+
     def _tile(self, key, glyph, name, split):
         frame = add_cls(Gtk.Box(), "tile")
         left = Gtk.Button()
@@ -484,11 +685,17 @@ class ControlPopup(Gtk.Window):
 
     def _load_main(self):
         be = self.be
-        return {"wifi": be.wifi_state(), "bt": be.bt_state(), "dnd": be.dnd_get(), "idle": be.idle_inhibit_get(),
+        data = {"wifi": be.wifi_state(), "bt": be.bt_state(), "dnd": be.dnd_get(), "idle": be.idle_inhibit_get(),
                 "power": be.power_profile_get(), "profiles": be.power_profiles(), "ime": be.ime_get(),
                 "bat": be.battery(), "vol": be.audio_volume("output"), "bri": be.brightness_get()}
+        if self.pixel:
+            data["vpn"] = self._vpn_status()
+        return data
 
     def _show_main(self, d):
+        if self.pixel:
+            self._show_main_pixel(d)
+            return
         self.state = d
         wifi, bt = d["wifi"], d["bt"]
         conn = next((x for x in bt.get("devices", []) if x.get("connected")), None)
@@ -521,6 +728,59 @@ class ControlPopup(Gtk.Window):
         self.set_slider(self.bri_scale, d["bri"])
         self.bri_lbl.set_text(f"{d['bri']}%")
 
+    def _show_main_pixel(self, d):
+        self.state = d
+        sig = json.dumps(d, sort_keys=True)
+        if sig == self.sig.get("main-pixel"):
+            return
+        self.sig["main-pixel"] = sig
+        wifi, bt = d["wifi"], d["bt"]
+        conn = next((x for x in bt.get("devices", []) if x.get("connected")), None)
+        power = {"power-saver": "TIẾT KIỆM", "balanced": "CÂN BẰNG", "performance": "HIỆU NĂNG"}.get(d.get("power"), "?")
+        ime = "VI" if d.get("ime") == "vi" else "EN"
+        vpn = d.get("vpn") or {}
+        tooltip = vpn.get("tooltip") or ""
+        vpn_name = tooltip.split(" — ", 1)[0].strip() if tooltip else "Không kết nối"
+        values = {
+            "wifi": (wifi.get("enabled"), wifi.get("ssid") or "Chưa kết nối", wifi_glyph(wifi.get("strength")) if wifi.get("ssid") else G["wifi"]),
+            "bluetooth": (bt.get("powered"), conn["name"] if conn else "Chưa kết nối", G["bt_on"] if conn else G["bt"]),
+            "vpn": (vpn.get("class") == "on", vpn_name, G["lock"]),
+            "dnd": (d.get("dnd"), "", G["dnd"]), "idle": (d.get("idle"), "", G["idle"]),
+            "power": (False, power, G["balanced"]), "ime": (d.get("ime") == "vi", ime, G["keyboard"]),
+        }
+        for key, (on, value, glyph) in values.items():
+            item = self.opt_rows[key]
+            item["icon"].set_text(glyph)
+            set_cls(item["row"], "active", bool(on))
+            clear(item["value"])
+            slot = Gtk.Box()                    # ô phải CỐ ĐỊNH: mọi pill/giá trị thẳng một cột
+            slot.set_size_request(PILL_W, -1)
+            if key in ("wifi", "bluetooth", "vpn") and value:
+                dim = lbl(value, "opt-dim", 1.0, ellipsize=True)
+                dim.set_max_width_chars(16)
+                item["value"].pack_start(dim, False, False, 0)
+            if key in ("wifi", "bluetooth", "vpn", "dnd", "idle"):
+                pill = add_cls(lbl("[ON]" if on else "[OFF]", xalign=0.5), "opt-pill", "opt-on" if on else "opt-off")
+                pill.set_size_request(PILL_W, -1)
+                slot.pack_end(pill, False, False, 0)
+            else:
+                slot.pack_end(lbl(value, "opt-value", 1.0), True, True, 0)
+            item["value"].pack_end(slot, False, False, 0)
+            item["value"].show_all()
+
+        bat = d["bat"]
+        if bat.get("present") and bat.get("percent") is not None:
+            g = G["bat_chg"] if bat.get("state") in ("charging", "full") else G["bat"]
+            extra = {"charging": " · đang sạc", "full": " · đầy"}.get(bat.get("state"), "")
+            t = f" · {bat['time']}" if bat.get("time") else ""
+            self.pixel_bat_lbl.set_text(f"{g} {bat['percent']}%{extra}{t}")
+        vol = d["vol"]
+        self.set_slider(self.vol_scale, min(100, vol.get("volume", 0)))
+        self.vol_lbl.set_text("TẮT" if vol.get("muted") else f"{vol.get('volume', 0)}%")
+        self.mute_btn.set_label(G["mute"] if vol.get("muted") else G["vol"])
+        self.set_slider(self.bri_scale, d["bri"])
+        self.bri_lbl.set_text(f"{d['bri']}%")
+
     # ===== Wi-Fi =====
     def _page_wifi(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -528,7 +788,7 @@ class ControlPopup(Gtk.Window):
         scan = add_cls(Gtk.Button(label=G["refresh"]), "flat-icon")
         scan.set_tooltip_text("Quét lại")
         scan.connect("clicked", lambda *_: self.wifi_rescan())
-        self.wifi_sw = Gtk.Switch()
+        self.wifi_sw = self.make_switch()
         self.wifi_sw.set_valign(Gtk.Align.CENTER)
         self.wifi_sw.connect("notify::active", self._wifi_toggle)
         row.pack_end(self.wifi_sw, False, False, 0)
@@ -642,7 +902,7 @@ class ControlPopup(Gtk.Window):
         self.bt_scan = add_cls(Gtk.Button(label="Tìm"), "row")
         self.bt_scan.set_tooltip_text("Tìm thiết bị mới (20 giây)")
         self.bt_scan.connect("clicked", self._bt_discover)
-        self.bt_sw = Gtk.Switch()
+        self.bt_sw = self.make_switch()
         self.bt_sw.set_valign(Gtk.Align.CENTER)
         self.bt_sw.connect("notify::active", self._bt_toggle)
         row.pack_end(self.bt_sw, False, False, 0)
@@ -862,9 +1122,19 @@ def selftest():
     w.be, w.dragging, w.updating, w.loading, w.sig = be, 0, False, set(), {}
     w.wifi_open = w.bt_menu = w.wifi_menu = None
     w.state, w.page, w._since = {}, "main", 0
+    w.pixel = False
     w.stack = Gtk.Stack()
     w._build_pages()
     w._show_main(w._load_main())
+    # nhánh pixel (menu tùy chọn kiểu game) cũng phải dựng + đổ dữ liệu được
+    wp = ControlPopup.__new__(ControlPopup)
+    Gtk.Window.__init__(wp, title="kafka-control-test-pixel")
+    wp.be, wp.dragging, wp.updating, wp.loading, wp.sig = be, 0, False, set(), {}
+    wp.wifi_open = wp.bt_menu = wp.wifi_menu = None
+    wp.state, wp.page, wp._since, wp.pixel = {}, "main", 0, True
+    wp.stack = Gtk.Stack()
+    wp._build_pages()
+    wp._show_main(wp._load_main())
     w._show_wifi(w._load_wifi())
     w.wifi_open = be.wifi_list()[1]["ssid"] if len(be.wifi_list()) > 1 else None
     w.sig.clear()

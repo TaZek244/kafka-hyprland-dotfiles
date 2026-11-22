@@ -10,14 +10,14 @@
 set -u
 
 # Icon thật được tạo bằng printf (không nhồi glyph/\u vào chuỗi jq), đưa qua --arg rồi --argjson.
-icon_kitty=$(printf '\uf120')
-icon_chromium=$(printf '\uf268')
+icon_kitty=$(printf '\U000f018d')
+icon_chromium=$(printf '\U000f02af')
 icon_code=$(printf '\U000f0a1e')
-icon_thunar=$(printf '\uf07b')
-icon_mousepad=$(printf '\uf044')
-icon_mpv=$(printf '\uf144')
-icon_imv=$(printf '\uf03e')
-icon_btop=$(printf '\uf2db')
+icon_thunar=$(printf '\U000f024b')
+icon_mousepad=$(printf '\U000f0dc8')
+icon_mpv=$(printf '\U000f040a')
+icon_imv=$(printf '\U000f02e9')
+icon_btop=$(printf '\U000f029a')
 icon_blueman=$(printf '\U000f00af')
 icon_cava=$(printf '\U000f0388')
 icon_default=$(printf '\U000f08c6')

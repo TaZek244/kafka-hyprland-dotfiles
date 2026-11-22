@@ -247,21 +247,16 @@ window#waybar.dockbar > box {
 
 /* Vạch ngăn giữa các khối */
 window#waybar.dockbar #pinned {
-    padding: 4px 0;
+    padding: 4px 0 2px;          /* nhóm app đang mở nằm NGAY dưới (chỉ một vạch ngăn của #windows), không hở */
     border-top: 1px solid @line;
-    border-bottom: 1px solid @line;
-    margin: 4px 0;               /* KHÔNG lề ngang: lề ngang cộng vào độ rộng dock (8px làm dock thành 62px) */
+    margin: 4px 0 0;               /* KHÔNG lề ngang: lề ngang cộng vào độ rộng dock (8px làm dock thành 62px) */
 }
 
 /* Ô icon chung. Waybar dính label vào mép trái hộp (CSS không đổi được halign) nên căn giữa bằng đệm:
  * dock 48 = lề 4 + (đệm trái + icon + đệm phải) + lề 4. Đo lại bằng grim nếu đổi cỡ chữ. */
 #custom-apps,
-#custom-pin-browser,
-#custom-pin-terminal,
-#custom-pin-files,
-#custom-pin-code,
-#custom-pin-editor,
 #custom-tools,
+#custom-studio,
 #custom-notifications,
 #custom-hidden,
 #custom-actions,
@@ -277,12 +272,8 @@ window#waybar.dockbar #pinned {
     transition: background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
 }
 #custom-apps:hover,
-#custom-pin-browser:hover,
-#custom-pin-terminal:hover,
-#custom-pin-files:hover,
-#custom-pin-code:hover,
-#custom-pin-editor:hover,
 #custom-tools:hover,
+#custom-studio:hover,
 #custom-notifications:hover,
 #custom-hidden:hover,
 #custom-actions:hover,
@@ -306,8 +297,8 @@ window#waybar.dockbar #pinned {
 
 /* Thẻ app đang mở: không khung, chỉ vạch ngăn phía trên */
 window#waybar.dockbar #windows {
-    padding: 4px 0 0;
-    margin: 4px 0;
+    padding: 2px 0 0;
+    margin: 0 0 4px;
     border-top: 1px solid @line;
 }
 #custom-hidden { color: @faint; }
@@ -319,12 +310,12 @@ window#waybar.dockbar #windows {
 }
 
 /* Ô app gộp (image#wN do dock-apps.py vẽ: icon + xN + vạch nhấn trái nếu đang dùng). Ảnh dính mép trái. */
-window#waybar.dockbar #windows #image {
+window#waybar.dockbar #windows #image, window#waybar.dockbar #pinned #image, window#waybar.dockbar #bg #image {
     margin: 2px 0 2px 4px;
     border-radius: 10px;
     transition: background-color 120ms ease;
 }
-window#waybar.dockbar #windows #image:hover { background-color: @surface_hi; box-shadow: inset 0 0 0 1px @ring; }
+window#waybar.dockbar #windows #image:hover, window#waybar.dockbar #pinned #image:hover, window#waybar.dockbar #bg #image:hover { background-color: @surface_hi; box-shadow: inset 0 0 0 1px @ring; }
 
 /* Khay hệ thống */
 window#waybar.dockbar #tray { padding: 10px 0 6px; }
@@ -351,3 +342,38 @@ window#waybar.dockbar #actions {
 
 /* Theme phụ (pixel…): file do hypr/scripts/ui-theme.sh tự sinh, đặt CUỐI để ghi đè */
 @import "theme.css";
+
+/* ===== DOCK 4 NGĂN (2026-11-22): SYS · FAV · RUN · BG — nhãn nhỏ đầu mỗi ngăn + một vạch ngăn =====
+ * Nhãn là custom module chữ; Waybar dính chữ vào mép trái → canh giữa dock 48 bằng đệm trái theo độ rộng chữ. */
+#custom-lbl-sys, #custom-lbl-fav, #custom-lbl-run, #custom-lbl-bg {
+    font-family: "Kafka Pixel", "FiraCode Nerd Font";
+    font-size: 7px;              /* font pixel: cỡ chia hết cho 7 mới sắc (7px = 1px/điểm) */
+    color: @faint;
+    min-height: 0;
+    margin: 0;
+    padding: 4px 0 3px 15px;     /* 3 chữ ≈ 17px → giữa dock 48 */
+    background: transparent;
+}
+#custom-lbl-bg { padding-left: 18px; }
+#custom-lbl-run:hover, #custom-lbl-bg:hover, #custom-lbl-fav:hover { color: @accent_fg; }
+window#waybar.dockbar #sys { padding: 2px 0 2px; }
+window#waybar.dockbar #bg {
+    padding: 2px 0 0;
+    margin: 0 0 4px;
+    border-top: 1px solid @line;
+}
+
+/* ===== MÀU TỪNG NGĂN (người dùng: "làm rõ các màu"): SYS vàng · FAV hồng · RUN xanh lơ · BG tím.
+ * Nhãn có nền nhạt cùng màu, vạch ngăn trên + sọc dọc mép trái bằng box-shadow inset (KHÔNG cộng vào độ rộng dock). */
+window#waybar.dockbar #sys { box-shadow: inset 3px 0 rgba(255,224,138,0.6); }
+#custom-lbl-sys { color: #ffe08a; background-color: rgba(255,224,138,0.12); font-weight: bold; }
+#custom-lbl-sys:hover { color: #ffffff; background-color: rgba(255,224,138,0.30); }
+window#waybar.dockbar #pinned { box-shadow: inset 3px 0 rgba(240,140,187,0.6), inset 0 1px rgba(240,140,187,0.55); }
+#custom-lbl-fav { color: #f08cbb; background-color: rgba(240,140,187,0.12); font-weight: bold; }
+#custom-lbl-fav:hover { color: #ffffff; background-color: rgba(240,140,187,0.30); }
+window#waybar.dockbar #windows { box-shadow: inset 3px 0 rgba(111,211,255,0.6), inset 0 1px rgba(111,211,255,0.55); }
+#custom-lbl-run { color: #6fd3ff; background-color: rgba(111,211,255,0.12); font-weight: bold; }
+#custom-lbl-run:hover { color: #ffffff; background-color: rgba(111,211,255,0.30); }
+window#waybar.dockbar #bg { box-shadow: inset 3px 0 rgba(185,156,255,0.6), inset 0 1px rgba(185,156,255,0.55); }
+#custom-lbl-bg { color: #b99cff; background-color: rgba(185,156,255,0.12); font-weight: bold; }
+#custom-lbl-bg:hover { color: #ffffff; background-color: rgba(185,156,255,0.30); }

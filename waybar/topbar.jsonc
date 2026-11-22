@@ -1,0 +1,290 @@
+/* Thanh trên — bản PHẲNG (bố cục + định nghĩa mọi module của thanh trên).
+ * config.jsonc chỉ include file này qua topbar-current.jsonc (symlink do hypr/scripts/ui-theme.sh đặt):
+ * theme phẳng → topbar.jsonc, theme pixel → topbar-pixel.jsonc (bố cục HUD, include lại file này rồi
+ * ghi đè vài module; Waybar: file include-ER thắng file được include). */
+{
+    "name": "topbar",
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "margin-top": 0,             /* khung chữ L gắn sát mép màn hình (trên/trái/phải) */
+    "margin-left": 0,
+    "margin-right": 0,
+    "spacing": 10,
+
+    "modules-left": [
+        "group/kafka",
+        "hyprland/workspaces",
+        "custom/columns"
+    ],
+    "modules-center": [
+        "clock",
+        "custom/media-slot"
+    ],
+    "modules-right": [
+        "group/system",
+        "custom/ime",
+        "group/control",
+        "custom/corner"
+    ],
+
+    // Khối Kafka: chữ "Kafka" mở walker, icon bên phải chuyển chế độ cuộn ↔ Desktop (Super + D)
+    "group/kafka": {
+        "orientation": "horizontal",
+        "modules": ["custom/launcher", "custom/layoutmode"]
+    },
+
+    "custom/launcher": {
+        "format": "󰣇  Kafka",
+        "on-click": "walker",
+        "on-click-right": "~/.config/hypr/scripts/desktop-mode.sh toggle",
+        "tooltip": true,
+        "tooltip-format": "Bấm: mở ứng dụng (Super + Space)\nChuột phải: chuyển cuộn ↔ Desktop (Super + D)"
+    },
+
+    // Bản đồ cột của workspace đang xem (layout cuộn): ▮ cột, ▤ cột chồng; vàng = đang dùng, mờ = khuất.
+    // Hyprland bắn signal 15 khi đổi focus/mở/đóng/đổi workspace (hyprland.lua). Ẩn khi không có cột xếp.
+    "custom/columns": {
+        "exec": "~/.config/hypr/scripts/column-map.sh",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 15,
+        "escape": false,
+        "on-click": "hyprctl dispatch 'hl.dsp.layout(\"colresize +conf\")'; pkill -RTMIN+15 waybar",
+        "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ direction = \"left\" })'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ direction = \"right\" })'"
+    },
+
+    /* Chỉ hiện workspace ĐANG DÙNG (thanh hết chỗ, người dùng 2026-11-20); rê chuột vào = popup chọn khu
+     * hypr/scripts/ws-popup.py (vùng trong suốt dò vị trí ô bằng màu #c94785, xem file đó). */
+    "hyprland/workspaces": {
+        "active-only": true,
+        "disable-scroll": false,
+        "all-outputs": true,
+        // Kiểu "Focus Hint": số La Mã + icon app đang có trong workspace (trống thì chỉ số, CSS làm mờ/thu nhỏ)
+        "format": "{icon}",          /* icon app chuyển sang bản đồ cột custom/columns (theo yêu cầu) */
+        "format-window-separator": "",
+        "window-rewrite-default": " 󰣆",
+        "window-rewrite": {
+            "class<kitty>": " 󰆍",
+            "class<chromium>": " 󰊯",
+            "class<code-oss|code|Code>": " 󰨞",
+            "class<thunar|Thunar>": " 󰉋",
+            "class<mousepad|org.xfce.mousepad>": " 󰷈",
+            "class<mpv>": " 󰐊",
+            "class<imv.*>": " 󰋩",
+            "class<kafka-btop>": " 󰊚",
+            "class<blueman.*>": " 󰂯",
+            "class<kafka-cava>": " 󰎈"
+        },
+        /* Không còn persistent-workspaces: active-only vẫn hiện mọi ô persistent; danh sách đủ 10 khu nằm ở ws-popup.py */
+        "format-icons": {
+            "1": "I",
+            "2": "II",
+            "3": "III",
+            "4": "IV",
+            "5": "V",
+            "6": "VI",
+            "7": "VII",
+            "8": "VIII",
+            "9": "IX",
+            "10": "X",
+            "urgent": "󰀨",
+            "default": "󰝥"
+        }
+    },
+
+    // Chuyển chế độ cuộn ↔ Desktop (Super + D); cập nhật qua signal 14.
+    "custom/layoutmode": {
+        "exec": "~/.config/hypr/scripts/desktop-mode.sh status",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 14,
+        "on-click": "~/.config/hypr/scripts/desktop-mode.sh toggle"
+    },
+
+    // Tốc độ mạng hiện tại (thay ô tiêu đề cửa sổ). Đứng cuối nhóm trái nên đổi độ rộng không xô ô khác.
+    "network#speed": {
+        "interval": 2,
+        "format": "󰇚 {bandwidthDownBytes}  󰕒 {bandwidthUpBytes}",
+        "format-disconnected": "󰖪  Mất mạng",
+        "format-disabled": "󰖪  Tắt mạng",
+        "min-length": 24,
+        "tooltip-format-wifi": "{essid} ({signalStrength}%) · {ifname}\nIP: {ipaddr}/{cidr}\nBấm: bảng Wi-Fi",
+        "tooltip-format-ethernet": "Có dây · {ifname}\nIP: {ipaddr}/{cidr}\nBấm: mở nmtui",
+        "tooltip-format-disconnected": "Không có kết nối · Bấm: bảng Wi-Fi",
+        "on-click": "~/.config/hypr/scripts/control-popup.py wifi"
+    },
+
+    "clock": {
+        "format": "󰥔  {:%H:%M   󰃭  %a, %d/%m}",
+        // Bấm = popup lịch Kafka (giờ, âm lịch, bảng tháng); bấm lần nữa / Esc / bấm ra ngoài = đóng
+        "on-click": "~/.config/hypr/scripts/clock-popup.py",
+        "tooltip": false
+    },
+
+
+    // Ô trống giữ chỗ cho ô "Đang phát": nội dung do hypr/scripts/media-pill.py vẽ đè (lớp overlay) để bắt
+    // được rê chuột (Waybar không có sự kiện hover). Rộng cố định = PILL_W trong media-pill.py.
+    // Không có nhạc thì media-pill ghi "off" + signal 17 → chữ rỗng → ô ẩn, đồng hồ về giữa.
+    "custom/media-slot": {
+        "exec": "[ \"$(cat \"$XDG_RUNTIME_DIR/kafka-media-slot\" 2>/dev/null)\" = on ] && echo '{\"text\":\" \",\"class\":\"on\"}' || echo '{\"text\":\"\"}'",
+        "return-type": "json",
+        "interval": 60,
+        "signal": 17,
+        "tooltip": false
+    },
+
+    // (không dùng nữa, thay bằng custom/media-slot + media-pill.py; giữ lại để quay về nếu cần)
+    "mpris": {
+        "format": "{status_icon}  {dynamic}",
+        "format-paused": "{status_icon}  <i>{dynamic}</i>",
+        // Dừng / không có bài (vd Chromium đăng ký trình phát nhưng chưa phát gì) → ẩn ô, khỏi hiện viên thuốc trống
+        "format-stopped": "",
+        "dynamic-order": ["title", "artist"],
+        "dynamic-len": 40,
+        "status-icons": {
+            "playing": "󰎆",
+            "paused": "󰏤",
+            "stopped": "󰓛"
+        },
+        "on-click": "playerctl play-pause",
+        "on-scroll-up": "playerctl next",
+        "on-scroll-down": "playerctl previous",
+        "tooltip-format": "{player}: {title} — {artist}"
+    },
+
+    "pulseaudio": {
+        "format": "{icon}  {volume}%",
+        "format-muted": "󰝟  Muted",
+        "format-icons": {
+            "headphone": "󰋋",
+            "default": ["󰕿", "󰖀", "󰕾"]
+        },
+        "on-click": "~/.config/hypr/scripts/control-popup.py audio",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "tooltip-format": "Trái: bảng âm thanh (loa, micro, từng app) · Phải: tắt/mở tiếng · Cuộn: âm lượng"
+    },
+
+    /* Bluetooth: trái mở Blueman, phải bật/tắt nhanh (rfkill) */
+    "backlight": {
+        "format": "{icon}  {percent}%",
+        "format-icons": ["󰃞", "󰃟", "󰃠"],
+        "tooltip-format": "Bấm: cài đặt nhanh · Cuộn: độ sáng",
+        "on-click": "~/.config/hypr/scripts/control-popup.py main",
+        "on-scroll-up": "brightnessctl s 5%+",
+        "on-scroll-down": "brightnessctl s 5%-"
+    },
+
+    /* Thông số máy gộp chung một viên thuốc: CPU · RAM · nhiệt độ */
+    "group/system": {
+        "orientation": "inherit",
+        "modules": ["network#speed", "cpu", "memory", "temperature"]   /* tốc độ mạng gộp chung (2026-11-20) */
+    },
+
+    "cpu": {
+        "format": "󰻠 {usage}%",
+        "tooltip-format": "CPU: {usage}% · bấm mở btop",
+        "interval": 3,
+        "on-click": "~/.config/hypr/scripts/toggle-app.sh kafka-btop kitty --class kafka-btop -e btop"
+    },
+
+    "memory": {
+        "format": "󰍛 {percentage}%",
+        "tooltip-format": "RAM: {used:0.1f}/{total:0.1f} GiB · bấm mở btop",
+        "interval": 3,
+        "on-click": "~/.config/hypr/scripts/toggle-app.sh kafka-btop kitty --class kafka-btop -e btop"
+    },
+
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon}  {capacity}%",
+        "format-charging": "󰂄  {capacity}%",
+        "format-plugged": "󰚥  {capacity}%",
+        "format-icons": ["󰁺", "󰁼", "󰁾", "󰂀", "󰁹"],
+        "tooltip-format": "{timeTo}\nTrái: cài đặt nhanh · Phải: đổi chế độ nguồn (tiết kiệm → cân bằng → hiệu năng)",
+        "on-click": "~/.config/hypr/scripts/control-popup.py main",
+        "on-click-right": "~/.config/hypr/scripts/power-profile.sh"
+    },
+
+    "temperature": {
+        "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
+        "input-filename": "temp1_input",
+        "critical-threshold": 85,
+        "interval": 3,
+        "format": "{icon} {temperatureC}°C",
+        "format-critical": "󰸁 {temperatureC}°C",
+        "format-icons": ["󱃃", "󰔏", "󱃂"],
+        "tooltip-format": "Nhiệt độ CPU: {temperatureC}°C",
+        "on-click": "~/.config/hypr/scripts/toggle-app.sh kafka-btop kitty --class kafka-btop -e btop"
+    },
+
+    // Cụm "Cài đặt nhanh": wifi · bluetooth · âm lượng · độ sáng · pin trong một viên thuốc.
+    // Bấm bất kỳ ô nào = popup Trung tâm điều khiển (hypr/scripts/control-popup.py), mở đúng trang tương ứng.
+    "group/control": {
+        "orientation": "inherit",
+        "modules": ["network#top", "custom/vpn", "bluetooth#top", "pulseaudio", "backlight", "battery"]
+    },
+    // VPN (hypr/scripts/vpn.sh): kết nối WireGuard/VPN của NetworkManager hoặc Cloudflare WARP.
+    // Trái: bật/tắt · Phải: chọn kết nối. Nhập file WireGuard: vpn.sh import <file.conf>
+    "custom/vpn": {
+        "exec": "~/.config/hypr/scripts/vpn.sh status",
+        "return-type": "json",
+        "interval": 30,
+        "signal": 16,
+        "on-click": "~/.config/hypr/scripts/vpn.sh toggle",
+        "on-click-right": "~/.config/hypr/scripts/vpn.sh select"
+    },
+    "network#top": {
+        "format-wifi": "{icon}",
+        "format-ethernet": "󰈀",
+        "format-linked": "󰤫",
+        "format-disconnected": "󰤮",
+        "format-disabled": "󰤮",
+        "format-icons": ["󰤯", "󰤟", "󰤢", "󰤥", "󰤨"],
+        "tooltip-format-wifi": "Wifi: {essid} ({signalStrength}%)\nIP: {ipaddr}\nTrái: bảng Wi-Fi · Phải: bật/tắt wifi",
+        "tooltip-format-ethernet": "Dây mạng: {ifname}\nIP: {ipaddr}\nTrái: bảng Wi-Fi",
+        "tooltip-format-disconnected": "Chưa kết nối mạng\nTrái: bảng Wi-Fi · Phải: bật/tắt wifi",
+        "on-click": "~/.config/hypr/scripts/control-popup.py wifi",
+        "on-click-right": "[ \"$(nmcli radio wifi)\" = enabled ] && nmcli radio wifi off || nmcli radio wifi on"
+    },
+    "bluetooth#top": {
+        "format": "󰂯",
+        "format-disabled": "󰂲",
+        "format-off": "󰂲",
+        "format-connected": "󰂱",
+        "format-connected-battery": "󰂱",
+        "tooltip-format": "Bluetooth: đang bật, chưa nối thiết bị\nTrái: bảng Bluetooth · Phải: tắt",
+        "tooltip-format-disabled": "Bluetooth: đang tắt\nTrái: bảng Bluetooth · Phải: bật",
+        "tooltip-format-off": "Bluetooth: đang tắt\nTrái: bảng Bluetooth · Phải: bật",
+        "tooltip-format-connected": "Đang nối {num_connections} thiết bị:\n{device_enumerate}\nTrái: bảng Bluetooth · Phải: tắt",
+        "tooltip-format-enumerate-connected": "• {device_alias}",
+        "tooltip-format-enumerate-connected-battery": "• {device_alias} ({device_battery_percentage}%)",
+        "on-click": "~/.config/hypr/scripts/control-popup.py bluetooth",
+        "on-click-right": "if rfkill list bluetooth | grep -q 'Soft blocked: yes'; then rfkill unblock bluetooth; else rfkill block bluetooth; fi"
+    },
+    "custom/ime": {
+        "exec": "~/.config/hypr/scripts/ime-status.sh",
+        "return-type": "json",
+        "restart-interval": 5,
+        "on-click": "pgrep -x fcitx5 >/dev/null && fcitx5-remote -t || ~/.config/hypr/scripts/ime-guard.sh restart",
+        "on-click-middle": "~/.config/hypr/scripts/ime-guard.sh restart",
+        "on-click-right": "setsid -f fcitx5-configtool >/dev/null 2>&1"
+    },
+
+
+    // Ô góc: nằm ngay trên cột dock, nối thanh trên với dock thành khung chữ L (dấu nhận biết chỗ nối).
+    // Bấm: bật/tắt tổng quan (hyprshell, như nhấn-thả Super) · lăn: đổi workspace · bấm phải: scratchpad (Super + S).
+    "custom/corner": {
+        "exec": "printf '%s\\n' '{\"text\":\"󰯊\",\"tooltip\":\"Góc Kafka\\nBấm: tổng quan cửa sổ (như nhấn-thả Super)\\nLăn chuột: đổi workspace\\nBấm phải: scratchpad (Super + S)\"}'",
+        "return-type": "json",
+        "interval": "once",
+        "on-click": "~/.config/hypr/scripts/overview-toggle.sh",
+        "on-click-right": "hyprctl dispatch \"hl.dsp.workspace.toggle_special('magic')\"",
+        "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'"
+    }
+}

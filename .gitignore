@@ -26,3 +26,11 @@ greetd/kafka-greeter/avatar.png
 greetd/kafka-greeter/__pycache__/
 kitty/theme-current.conf
 fonts/KafkaPixel.ttf
+fonts/KafkaPixelVN.ttf
+waybar/topbar-current.jsonc
+gtk/gtk-3.0/theme-current.css
+walker/themes/kafka-current
+# tự sinh bởi hypr/scripts/ui-theme.sh (theo theme phẳng/pixel)
+hyprshell/styles.css
+gtk/gtk-4.0/theme-current.css
+btop/themes/kafka-current.theme

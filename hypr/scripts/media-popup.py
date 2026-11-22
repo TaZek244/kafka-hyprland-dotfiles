@@ -654,7 +654,7 @@ def run_app(arg_x=None):
                 Gtk.STYLE_PROVIDER_PRIORITY_USER + 1,
             )
             import kafka_theme as kt      # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật; đè cả ánh màu ảnh bìa
-            self._pixel = kt.apply(kt.panel(".panel", "8px 8px 4px 8px") + f"""
+            self._pixel = kt.apply(kt.panel(".panel", "8px 8px 4px 8px", titled=True) + f"""
 button.ctrl-btn {{ {kt.CARD} border-radius: 8px; }}
 button.ctrl-btn:hover {{ {kt.CARD_HOVER} }}
 button.play-btn {{ {kt.CARD_ON} border-radius: 10px; }}
@@ -696,6 +696,10 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
             self.panel.set_margin_top(POP_TOP)
             self.panel.set_size_request(PANEL_W, -1)
             self.add(self.panel)
+            if self._pixel:
+                import kafka_theme as kt   # kt của _apply_css là biến cục bộ hàm khác
+                self.px_title = kt.title_label("BGM PLAYER")
+                self.panel.pack_start(self.px_title, False, False, 0)
 
             # 1. Hàng đầu: Ảnh bìa 96x96 bo 12px + Thông tin bài hát
             top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)

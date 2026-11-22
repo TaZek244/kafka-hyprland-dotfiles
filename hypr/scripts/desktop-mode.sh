@@ -110,7 +110,7 @@ off_mode() {
         class=$(jq -r '.class // ""' <<<"$client")
         title=$(jq -r '.title // ""' <<<"$client")
         [[ -f "$prefloat_file" ]] && grep -Fqx -- "$address" "$prefloat_file" && continue
-        [[ "$class" =~ ^(org\.pulseaudio\.pavucontrol|pavucontrol|nm-connection-editor|blueman-manager|kafka\.keybinds|kafka-btop|com\.gabm\.satty|kafka-cava|kafka-nmtui)$ ]] && continue
+        [[ "$class" =~ ^(org\.pulseaudio\.pavucontrol|pavucontrol|nm-connection-editor|blueman-manager|kafka\.keybinds|kafka\.studio|kafka-btop|com\.gabm\.satty|kafka-cava|kafka-nmtui)$ ]] && continue
         [[ "$title" =~ ^(Open\ File|Save\ File|Confirm)$ ]] && continue
         hyprctl --batch "dispatch hl.dsp.window.float({ action = 'disable', window = 'address:$address' })" >/dev/null || true
     done < <(jq -c '.[] | select(.workspace.id > 0 and .floating == true and .pinned == false)' <<<"$clients")

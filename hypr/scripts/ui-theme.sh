@@ -7,7 +7,7 @@
 #   ui-theme.sh flat        Chuyển sang giao diện phẳng mặc định
 #   ui-theme.sh toggle      Đảo giữa flat và pixel
 #   ui-theme.sh status      In trạng thái hiện tại ("flat" hoặc "pixel")
-#   ui-theme.sh ensure      Tạo waybar/theme.css nếu chưa có (không side effect)
+#   ui-theme.sh ensure      Tạo các file theme-current + symlink topbar-current.jsonc nếu thiếu (không side effect)
 #   ui-theme.sh --selftest  Tự kiểm tra logic trong thư mục tạm
 # ==============================================================================
 
@@ -66,6 +66,30 @@ ROFI_CSS="$REPO/rofi/theme-current.rasi"
 WALKER_CSS="$REPO/walker/themes/kafka/theme-current.css"
 DUNST_DROPIN="$REPO/dunst/dunstrc.d/50-ui-theme.conf"
 KITTY_CONF="$REPO/kitty/theme-current.conf"
+TOPBAR_LINK="$REPO/waybar/topbar-current.jsonc"     # symlink: bố cục thanh trên (config.jsonc include nó)
+WALKER_LINK="$REPO/walker/themes/kafka-current"     # symlink: theme walker (config.toml theme = "kafka-current")
+GTK_CSS="$REPO/gtk/gtk-3.0/theme-current.css"      # gtk.css @import nó ở cuối (app GTK3: Thunar, Mousepad…)
+GTK_LINK="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/theme-current.css"   # GTK tìm @import cạnh ~/.config/gtk-3.0/gtk.css
+GTK4_CSS="$REPO/gtk/gtk-4.0/theme-current.css"     # gtk-4.0/gtk.css @import nó (app GTK4/libadwaita: pavucontrol, satty, bảng phím tắt)
+GTK4_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-4.0"
+HYPRSHELL_LINK="$REPO/hyprshell/styles.css"        # symlink: styles-flat.css | styles-pixel.css (tổng quan + chuyển cửa sổ)
+BTOP_LINK="$REPO/btop/themes/kafka-current.theme"   # symlink: kafka.theme | kafka-pixel.theme (btop.conf color_theme = "kafka-current")
+
+# Bố cục thanh trên theo chế độ: pixel = HUD RPG (topbar-pixel.jsonc), phẳng = topbar.jsonc
+topbar_target() { [[ "$1" == "pixel" ]] && printf 'topbar-pixel.jsonc\n' || printf 'topbar.jsonc\n'; }
+
+# Liên kết ~/.config/gtk-3.0/theme-current.css → file trong repo (bỏ qua khi chạy selftest)
+link_gtk() {
+    [[ -n "${KAFKA_UI_TEST_REPO:-}" ]] && return 0
+    [[ -d "$(dirname "$GTK_LINK")" ]] || return 0
+    [[ -L "$GTK_LINK" && "$(readlink "$GTK_LINK")" == "$GTK_CSS" ]] || ln -sfn "$GTK_CSS" "$GTK_LINK"
+    # GTK4: ~/.config/gtk-4.0/gtk.css → repo (chỉ khi chưa có file thật, không đè cấu hình riêng), + theme-current.css cạnh nó
+    mkdir -p "$GTK4_DIR"
+    if [[ ! -e "$GTK4_DIR/gtk.css" || -L "$GTK4_DIR/gtk.css" ]]; then
+        ln -sfn "$REPO/gtk/gtk-4.0/gtk.css" "$GTK4_DIR/gtk.css"
+    fi
+    ln -sfn "$GTK4_CSS" "$GTK4_DIR/theme-current.css"
+}
 
 # Ghi mọi file "theme-current" (Waybar, rofi, walker) + file bổ sung của dunst theo chế độ.
 # Các file này tự sinh (gitignore); thiếu file nào thì Waybar/rofi/walker có thể lỗi CSS → `ensure` tạo lại.
@@ -82,13 +106,34 @@ write_theme_css() {
 include theme-pixel.conf"
         mkdir -p "$(dirname "$DUNST_DROPIN")"
         cp -f "$REPO/dunst/theme-pixel.conf" "$DUNST_DROPIN" 2>/dev/null || true
+        atomic_write "$GTK_CSS" "$HEADER_COMMENT
+@import url(\"file://$REPO/gtk/gtk-3.0/theme-pixel.css\");"
+        atomic_write "$GTK4_CSS" "$HEADER_COMMENT
+@import url(\"file://$REPO/gtk/gtk-4.0/theme-pixel.css\");"
     else
         atomic_write "$THEME_CSS" "$HEADER_COMMENT"
         atomic_write "$ROFI_CSS" "$HEADER_COMMENT"
         atomic_write "$WALKER_CSS" "$HEADER_COMMENT"
         atomic_write "$KITTY_CONF" "# Tự sinh bởi hypr/scripts/ui-theme.sh — đừng sửa tay."
         rm -f "$DUNST_DROPIN"
+        atomic_write "$GTK_CSS" "$HEADER_COMMENT"
+        atomic_write "$GTK4_CSS" "$HEADER_COMMENT"
     fi
+    # hyprshell + btop: chọn file theo chế độ bằng symlink (thiếu bản pixel thì giữ bản phẳng)
+    local hs="styles-flat.css" bt="kafka.theme"
+    [[ "$mode" == "pixel" && -f "$REPO/hyprshell/styles-pixel.css" ]] && hs="styles-pixel.css"
+    [[ "$mode" == "pixel" && -f "$REPO/btop/themes/kafka-pixel.theme" ]] && bt="kafka-pixel.theme"
+    mkdir -p "$(dirname "$HYPRSHELL_LINK")" "$(dirname "$BTOP_LINK")"
+    ln -sfn "$hs" "$HYPRSHELL_LINK"
+    ln -sfn "$bt" "$BTOP_LINK"
+    mkdir -p "$(dirname "$TOPBAR_LINK")"
+    ln -sfn "$(topbar_target "$mode")" "$TOPBAR_LINK"
+    # walker: pixel = "túi đồ" (themes/kafka-pixel, bố cục lưới riêng), phẳng = themes/kafka
+    local wt="kafka"
+    [[ "$mode" == "pixel" && -d "$REPO/walker/themes/kafka-pixel" ]] && wt="kafka-pixel"
+    mkdir -p "$(dirname "$WALKER_LINK")"
+    ln -sfn "$wt" "$WALKER_LINK"
+    link_gtk
 }
 
 check_pidfile_proc() {
@@ -151,6 +196,26 @@ apply_side_effects() {
             hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/media-pill.py')" >/dev/null 2>&1 || true
         fi
     fi
+
+    # 1b. HUD RPG (hud.py vẽ thẻ nhân vật + chỉ số): pixel → vẽ ngay 1 lần rồi chạy daemon (tự thoát khi về phẳng).
+    #     Bố cục thanh trên đổi (symlink topbar-current.jsonc) → phải khởi động lại Waybar, SIGUSR2 không đủ.
+    #     dock-apps vẽ lại ô (bản pixel = ô kho đồ).
+    if [[ "$mode" == "pixel" ]]; then
+        python3 "$REPO/hypr/scripts/hud.py" once >/dev/null 2>&1 || true
+        command -v hyprctl >/dev/null 2>&1 && \
+            hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/hud.py daemon')" >/dev/null 2>&1 || true
+    fi
+    if pgrep -x waybar >/dev/null 2>&1 && command -v hyprctl >/dev/null 2>&1; then
+        killall waybar 2>/dev/null || true
+        local j=0
+        while (( j < 20 )) && pgrep -x waybar >/dev/null 2>&1; do sleep 0.1; (( j++ )); done
+        hyprctl dispatch "hl.dsp.exec_cmd('waybar')" >/dev/null 2>&1 || true
+        "$REPO/hypr/scripts/dock-density.sh" >/dev/null 2>&1 || true      # pixel: ô cố định (file rỗng); phẳng: tính co
+        ( sleep 1.5; "$REPO/hypr/scripts/dock-apps.py" render >/dev/null 2>&1; "$REPO/hypr/scripts/dock-pins.py" render >/dev/null 2>&1; pkill -USR1 -f '^python3 .*sni-tray[.]py daemon' ) &
+    fi
+
+    # 2a. hyprshell đọc styles.css lúc khởi động → báo nạp lại (lỗi thì bỏ qua: lần chạy sau tự theo)
+    command -v hyprshell >/dev/null 2>&1 && hyprshell socat '"Reload"' >/dev/null 2>&1 || true
 
     # 2b. Popup tiện ích (chạy nền, CSS pixel chỉ nạp lúc khởi động) → khởi động lại nếu đang chạy
     if pid=$(check_pidfile_proc "$runtime_dir/kafka-tools-popup.pid" "tools-popup"); then
@@ -277,6 +342,27 @@ run_selftest() {
         check "ensure tạo lại theme.css theo state=pixel" "fail"
     fi
 
+    # 8. Symlink bố cục thanh trên + CSS GTK theo chế độ
+    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar-pixel.jsonc" ]] \
+       && grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
+        check "pixel: topbar-current → topbar-pixel.jsonc, GTK import theme-pixel.css" "ok"
+    else
+        check "pixel: topbar-current → topbar-pixel.jsonc, GTK import theme-pixel.css" "fail"
+    fi
+    if grep -q 'gtk-4.0/theme-pixel.css' "$tmp/gtk/gtk-4.0/theme-current.css" 2>/dev/null \
+       && [[ -L "$tmp/hyprshell/styles.css" && -L "$tmp/btop/themes/kafka-current.theme" ]]; then
+        check "pixel: GTK4 import theme-pixel.css, symlink hyprshell + btop" "ok"
+    else
+        check "pixel: GTK4 import theme-pixel.css, symlink hyprshell + btop" "fail"
+    fi
+    KAFKA_UI_TEST_REPO="$tmp" XDG_STATE_HOME="$tmp/state" KAFKA_UI_NO_SIDE_EFFECTS=1 bash "$0" flat
+    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar.jsonc" ]] \
+       && ! grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
+        check "flat: topbar-current → topbar.jsonc, GTK không import" "ok"
+    else
+        check "flat: topbar-current → topbar.jsonc, GTK không import" "fail"
+    fi
+
     rm -rf "$tmp"
     (( fails == 0 ))
 }
@@ -302,10 +388,13 @@ case "$cmd" in
         ;;
     ensure)
         mkdir -p "$STATE_DIR"
-        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" || ! -e "$KITTY_CONF" ]]; then
+        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" || ! -e "$KITTY_CONF" \
+              || ! -e "$TOPBAR_LINK" || ! -e "$GTK_CSS" || ! -e "$WALKER_LINK" || ! -e "$GTK4_CSS" \
+              || ! -e "$HYPRSHELL_LINK" || ! -e "$BTOP_LINK" ]]; then
             current=$(get_status)
             write_theme_css "$current"
         fi
+        link_gtk
         ;;
     --selftest)
         run_selftest

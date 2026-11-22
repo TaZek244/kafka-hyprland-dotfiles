@@ -1,0 +1,95 @@
+/* Thanh trên — theme PIXEL "RPG HUD" (người dùng 2026-11-22: "làm như một game"; giữ hình nền).
+ * Include topbar.jsonc (mọi module của bản phẳng) rồi chỉ ghi đè bố cục + vài module bên dưới:
+ * Waybar ưu tiên file include-ER, và ghi đè THAY CẢ object của module (không trộn từng khoá).
+ *
+ *   trái : THẺ NHÂN VẬT image#hud-player (chân dung, tên TaZek + LV, EXP, HP = pin, MP = ổ đĩa trống; vẽ bởi
+ *          hypr/scripts/hud.py daemon) · chế độ cuộn/Desktop · STAGE (workspace) · đội hình (bản đồ cột)
+ *   giữa : đồng hồ trong game · BGM (ô nhạc, media-pill.py vẽ thẻ "BGM")
+ *   phải : bảng chỉ số 2 hàng CPU|RAM, TMP|NET (image#hud-stats) · VI/EN · nút CÀI ĐẶT CHUNG (Wi-Fi │ âm lượng │ pin,
+ *          settings-pill.py; bấm = popup Cài đặt nhanh) · ô góc
+ */
+{
+    "include": ["~/.config/waybar/topbar.jsonc"],
+
+    "name": "topbar",
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "margin-top": 0,
+    "margin-left": 0,
+    "margin-right": 0,
+    "spacing": 10,
+
+    "modules-left": [
+        "image#hud-player",
+        "custom/layoutmode",
+        "hyprland/workspaces",
+        "custom/columns"
+    ],
+    "modules-center": [
+        "clock",
+        "custom/media-slot"
+    ],
+    "modules-right": [
+        "image#hud-stats",
+        "custom/ime",
+        "custom/settings",
+        "custom/corner"
+    ],
+
+    // Thẻ nhân vật: file .txt = đường dẫn ảnh + tooltip (hud.py ghi, đổi thì bắn signal 18)
+    "image#hud-player": {
+        "exec": "cat \"$XDG_RUNTIME_DIR/kafka-hud/player.txt\" 2>/dev/null",
+        "size": 196,             // = cạnh DÀI của ảnh (Waybar thu ảnh để cạnh dài = size); khớp PLAYER_W trong hud.py
+        "signal": 18,
+        "interval": 60,
+        "on-click": "walker",
+        "on-click-right": "~/.config/hypr/scripts/desktop-mode.sh toggle",
+        "tooltip": true
+    },
+
+    "image#hud-stats": {
+        "exec": "cat \"$XDG_RUNTIME_DIR/kafka-hud/stats.txt\" 2>/dev/null",
+        "size": 190,             // = STATS_W trong hud.py (ảnh 2 hàng cao 34, đứng trần, không khung cụm)
+        "signal": 18,
+        "interval": 60,
+        "on-click": "~/.config/hypr/scripts/toggle-app.sh kafka-btop kitty --class kafka-btop -e btop",
+        "on-click-right": "~/.config/hypr/scripts/control-popup.py wifi",
+        "tooltip": true
+    },
+
+    // CÀI ĐẶT CHUNG: Wi-Fi │ âm lượng │ pin trong MỘT nút (người dùng 2026-11-22). Script chạy liên tục, tự in lại
+    // khi âm lượng/mạng đổi (pactl subscribe, nmcli monitor) → không cần interval. VPN, Bluetooth, độ sáng… ở trong popup.
+    "custom/settings": {
+        "exec": "~/.config/hypr/scripts/settings-pill.py",
+        "return-type": "json",
+        "restart-interval": 5,
+        "escape": false,
+        "on-click": "~/.config/hypr/scripts/control-popup.py main",
+        "on-click-right": "~/.config/hypr/scripts/control-popup.py wifi",
+        "on-click-middle": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-scroll-up": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
+        "tooltip": true
+    },
+
+    // STAGE = workspace (chỉ khu đang dùng; rê chuột = ws-popup "STAGE SELECT")
+    "hyprland/workspaces": {
+        "active-only": true,
+        "disable-scroll": false,
+        "all-outputs": true,
+        "format": "STAGE {icon}",
+        "format-icons": {
+            "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+            "6": "VI", "7": "VII", "8": "VIII", "9": "IX", "10": "X",
+            "urgent": "", "default": ""
+        }
+    },
+
+    // Đồng hồ kiểu game: ngày mờ + giờ, chữ pixel (CSS)
+    "clock": {
+        "format": "<span color='#9a8bab'>{:%a %d</span> %H:%M}",   // MỘT cặp {}, trong {} phải bắt đầu bằng % (chrono) → mở <span> trước {
+        "on-click": "~/.config/hypr/scripts/clock-popup.py",
+        "tooltip": false
+    }
+}

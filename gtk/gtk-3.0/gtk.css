@@ -46,3 +46,8 @@ spinbutton:focus {
   border-color: #b8326a;
   box-shadow: inset 0 0 0 1px #b8326a;
 }
+
+/* Theme pixel "RPG HUD": hypr/scripts/ui-theme.sh ghi theme-current.css (tự sinh, gitignore) = @import
+ * gtk/gtk-3.0/theme-pixel.css khi bật pixel, rỗng khi phẳng; symlink ~/.config/gtk-3.0/theme-current.css.
+ * Phải đứng CUỐI file để ghi đè các luật trên. App đang chạy phải mở lại mới nhận. */
+@import url("theme-current.css");

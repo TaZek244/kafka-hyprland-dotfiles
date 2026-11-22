@@ -1,0 +1,66 @@
+# theme btop cho giao diện pixel, ui-theme.sh chọn.
+# ============================================================
+# Kafka Pixel Theme — bảng màu HUD pixel RPG
+# Đặt file này vào ~/.config/btop/themes/ và chọn trong btop:
+#   color_theme = "kafka-pixel"
+# ============================================================
+
+# --- Nền & chữ cơ bản ---
+theme[main_bg]="#221a2b"
+theme[main_fg]="#fbf7fd"
+theme[title]="#f08cbb"
+theme[hi_fg]="#ffffff"
+theme[selected_bg]="#c94785"
+theme[selected_fg]="#ffffff"
+theme[inactive_fg]="#9a8bab"
+
+# --- Khung, vạch ngăn & meter ---
+theme[graph_text]="#fbf7fd"
+theme[meter_bg]="#33293f"
+theme[proc_misc]="#9a8bab"
+theme[cpu_box]="#4a3c59"
+theme[mem_box]="#4a3c59"
+theme[net_box]="#4a3c59"
+theme[proc_box]="#4a3c59"
+theme[div_line]="#33293f"
+
+# --- Nhiệt độ: tím -> cam -> đỏ hồng ---
+theme[temp_start]="#7d6cf0"
+theme[temp_mid]="#f0884f"
+theme[temp_end]="#e0506e"
+
+# --- CPU: xanh ngọc -> vàng -> đỏ hồng ---
+theme[cpu_start]="#7fd6c2"
+theme[cpu_mid]="#ffe08a"
+theme[cpu_end]="#e0506e"
+
+# --- Bộ nhớ: free / cached / available / used ---
+theme[free_start]="#3a6e60"
+theme[free_mid]="#5aa98f"
+theme[free_end]="#7fd6c2"
+
+theme[cached_start]="#2f6b63"
+theme[cached_mid]="#4fa89a"
+theme[cached_end]="#7fd6c2"
+
+theme[available_start]="#4fa89a"
+theme[available_mid]="#7fd6c2"
+theme[available_end]="#b8e8dc"
+
+theme[used_start]="#e0506e"
+theme[used_mid]="#e0506e"
+theme[used_end]="#e0506e"
+
+# --- Mạng: download (xanh ngọc) / upload (hồng) ---
+theme[download_start]="#3a6e60"
+theme[download_mid]="#7fd6c2"
+theme[download_end]="#b8e8dc"
+
+theme[upload_start]="#8f2456"
+theme[upload_mid]="#c94785"
+theme[upload_end]="#f08cbb"
+
+# --- Tiến trình: xám mờ -> hồng ---
+theme[process_start]="#9a8bab"
+theme[process_mid]="#c94785"
+theme[process_end]="#f08cbb"

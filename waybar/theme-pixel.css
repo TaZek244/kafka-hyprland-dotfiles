@@ -1,5 +1,7 @@
 /* ============================================================================
- *  THEME PIXEL "KAFKA.SYS" (ghi đè style.css) — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
+ *  THEME PIXEL "RPG HUD" (2026-11-22; ghi đè style.css) — bố cục ở waybar/topbar-pixel.jsonc:
+ *  thẻ nhân vật + STAGE + đồng hồ game + BGM + chỉ số CPU/TMP (ảnh do hypr/scripts/hud.py vẽ).
+ *  Khung/ô vẫn theo ngôn ngữ "KAFKA.SYS" bên dưới. — bật/tắt: hypr/scripts/ui-theme.sh pixel|flat|toggle (Super + Alt + U)
  *
  *  Cùng ngôn ngữ với màn hình đăng nhập greetd/kafka-greeter (người dùng 2026-11-20: "phải có tí pixel,
  *  đừng chỉ là bo vào"):
@@ -29,16 +31,15 @@
 /* style.css bo góc theo id (thắng luật *) → ép vuông theo id: ô vuông = chất pixel */
 #workspaces button, #cpu, #memory, #temperature, #control > widget > *, #custom-corner,
 #kafka #custom-launcher, #kafka #custom-layoutmode, #custom-media-slot,
-#custom-apps, #custom-pin-browser, #custom-pin-terminal, #custom-pin-files, #custom-pin-code,
-#custom-pin-editor, #custom-tools, #custom-notifications, #custom-hidden, #custom-actions, #custom-powermenu,
-window#waybar.dockbar #windows #image, #tray > widget, #tray > .passive, #tray > .active {
+#custom-apps, #custom-tools, #custom-studio, #custom-notifications, #custom-hidden, #custom-actions, #custom-powermenu,
+window#waybar.dockbar #windows #image, window#waybar.dockbar #pinned #image, window#waybar.dockbar #bg #image, #tray > widget, #tray > .passive, #tray > .active {
     border-radius: 0;
 }
 
 /* chữ pixel cho các cụm có chữ/số; icon Nerd vẫn lấy từ FiraCode. Chữ pixel rộng 12px/ký tự (FiraCode ~8): chỉ dùng cho
-   chỗ nhận diện (Kafka, workspace, VI/EN, thông báo); đồng hồ + số liệu (mạng, CPU, pin…) giữ FiraCode đậm, không thì thanh tràn → GTK bóp ô trống của ô nhạc (media-pill.py mất vạch dò). */
+   chỗ nhận diện (Kafka, workspace, VI/EN, đồng hồ); tooltip giữ FiraCode (chữ có dấu, font pixel không có); đồng hồ + số liệu (mạng, CPU, pin…) giữ FiraCode đậm, không thì thanh tràn → GTK bóp ô trống của ô nhạc (media-pill.py mất vạch dò). */
 #workspaces button, #workspaces button label, #custom-ime,
-#custom-launcher, tooltip label {
+#custom-launcher, #clock {
     font-family: "Kafka Pixel", "FiraCode Nerd Font Propo", "FiraCode Nerd Font";
     font-size: 14px;
     font-weight: normal;
@@ -68,6 +69,7 @@ window#waybar.topbar > box {
 #control,
 #custom-ime,
 #custom-columns,
+#custom-layoutmode,
 #kafka {
     background-color: #33293f;          /* GTK3 không vẽ phần giữa border-image → tô nền trong padding-box */
     background-image: none;
@@ -124,7 +126,7 @@ window#waybar.topbar > box {
 }
 
 #network.speed { color: @px_dim; }
-#clock { padding: 0 3px; color: #ffffff; font-weight: bold; }
+#clock { padding: 0 6px; color: #ffffff; font-weight: normal; }
 
 /* Ô con bên trong cụm */
 #network.speed, #cpu, #memory, #temperature,
@@ -174,16 +176,13 @@ window#waybar.dockbar > box {
 window#waybar.dockbar #pinned,
 window#waybar.dockbar #windows,
 window#waybar.dockbar #actions { border-top: 2px solid @px_edge; box-shadow: inset 0 2px #3a2f46; }
-window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
+window#waybar.dockbar #pinned { margin-bottom: 0; padding-bottom: 2px; }   /* liền nhóm app đang mở: một vạch ngăn */
+window#waybar.dockbar #windows { margin-top: 0; padding-top: 2px; }
 
 /* Nút dock: ô vuông; rê chuột = ô nổi có mép sáng/bóng */
 #custom-apps,
-#custom-pin-browser,
-#custom-pin-terminal,
-#custom-pin-files,
-#custom-pin-code,
-#custom-pin-editor,
 #custom-tools,
+#custom-studio,
 #custom-notifications,
 #custom-hidden,
 #custom-actions,
@@ -192,12 +191,8 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
     box-shadow: none;
 }
 #custom-apps:hover,
-#custom-pin-browser:hover,
-#custom-pin-terminal:hover,
-#custom-pin-files:hover,
-#custom-pin-code:hover,
-#custom-pin-editor:hover,
 #custom-tools:hover,
+#custom-studio:hover,
 #custom-notifications:hover,
 #custom-hidden:hover,
 #custom-actions:hover {
@@ -226,7 +221,112 @@ window#waybar.dockbar #pinned { border-bottom: 2px solid @px_edge; }
     box-shadow: inset 0 0 0 2px #3d0f1a, inset 4px 4px 0 -2px #ff9aae, inset -4px -4px 0 -2px #a8344c;
 }
 #custom-hidden.has { background-color: #241c2d; }
-window#waybar.dockbar #windows #image:hover {
+window#waybar.dockbar #windows #image:hover, window#waybar.dockbar #pinned #image:hover, window#waybar.dockbar #bg #image:hover {
     background-color: #463955;
     box-shadow: inset 0 0 0 2px @px_edge, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
 }
+
+
+/* ============================ RPG HUD (topbar-pixel.jsonc) ============================ */
+/* Thẻ nhân vật: ảnh tự có khung chân dung, đứng trần trên nền thanh (không khung cụm: ảnh cao 38px,
+   khung cụm cộng 14px sẽ làm thanh phình). Rê chuột = sáng nhẹ. */
+#image.hud-player { margin: 2px 0 2px 8px;   /* ảnh 34 + lề 4 + 2px module image tự cộng = 40 */  padding: 0; background: none; border: none; box-shadow: none; }
+#image.hud-player:hover { background-color: rgba(240, 140, 187, 0.10); }
+
+/* Chế độ cuộn/Desktop đứng riêng thành ô vuông nhỏ (bản phẳng nằm trong khối Kafka) */
+#custom-layoutmode { padding: 0 6px; color: @px_dim; }
+#custom-layoutmode:hover { background-color: #463955; border-image: url("pixel/px-hover.png") 6 8 8 6 stretch; }
+#custom-layoutmode.desktop { color: #ffe08a; }
+
+/* STAGE: chữ pixel, ô đang chọn hồng (ws-popup.py dò màu #c94785 này để đặt vùng rê chuột) */
+#workspaces button { padding: 0 6px; }
+
+/* Bảng chỉ số 2 hàng (ảnh 34px, hud.py): đứng trần như thẻ nhân vật, rê chuột = sáng nhẹ */
+#image.hud-stats { margin: 2px 2px 2px 0; padding: 0 2px; background: none; border: none; box-shadow: none; }
+#image.hud-stats:hover { background-color: rgba(240, 140, 187, 0.10); }
+
+/* Nút CÀI ĐẶT CHUNG (settings-pill.py): một khung cụm, cả nút là một vùng bấm */
+#custom-settings {
+    background-color: #33293f;
+    background-image: none;
+    background-clip: padding-box;
+    border-style: solid;
+    border-width: 6px 8px 8px 6px;
+    border-image: url("pixel/px.png") 6 8 8 6 stretch;
+    margin: 1px 0 2px 0;
+    padding: 0 8px;
+    color: @px_text;
+    font-family: "FiraCode Nerd Font Propo", "FiraCode Nerd Font";
+    font-weight: 700;
+    font-size: 13px;
+    border-radius: 0;
+    box-shadow: none;
+}
+#custom-settings:hover { background-color: #463955; border-image: url("pixel/px-hover.png") 6 8 8 6 stretch; }
+#custom-settings.critical { border-image: url("pixel/px-active.png") 6 8 8 6 stretch; background-color: #c94785; }
+
+/* Dock = HOTBAR: mọi nút app/công cụ là ô kho đồ CHÌM (cùng màu ô do dock-apps.py vẽ cho thẻ app):
+   viền tối 2px + bóng trong trên-trái + mép sáng dưới-phải. Rê chuột = viền hồng (như khung chọn vật phẩm). */
+#custom-tools,
+#custom-studio,
+#custom-notifications,
+#custom-hidden {
+    background-color: #1d1626;
+    box-shadow: inset 0 0 0 2px @px_edge, inset 4px 4px 0 -2px #0f0a14, inset -4px -4px 0 -2px #4a3c59;
+}
+#custom-tools:hover,
+#custom-studio:hover,
+#custom-notifications:hover,
+#custom-hidden:hover {
+    background-color: #2c2238;
+    box-shadow: inset 0 0 0 2px #f08cbb, inset 4px 4px 0 -2px #962f62, inset -4px -4px 0 -2px #4a3c59;
+}
+window#waybar.dockbar #windows #image:hover, window#waybar.dockbar #pinned #image:hover, window#waybar.dockbar #bg #image:hover { background-color: transparent; box-shadow: none; }
+/* Ô dock CỐ ĐỊNH 40×40 cho MỌI nút (người dùng: "các khung cố định kích thước"): dock 48 = viền trái 2 +
+   lề 3 + ô 40 + lề 3. Đo bằng cách tô màu tạm từng loại ô rồi grim (2026-11-22: ô chữ từng rộng 34 ở x=6,
+   ô ảnh 42 ở x=6..47 → lệch nhau). Ô ảnh (thẻ app, dock-apps.py vẽ sẵn khung 40×40) không đệm. */
+#custom-apps,
+#custom-tools,
+#custom-studio,
+#custom-notifications,
+#custom-hidden,
+#custom-actions,
+#custom-powermenu {
+    padding: 0;
+    min-width: 40px;
+    min-height: 40px;
+    margin: 1px 3px;
+    font-size: 20px;
+}
+/* module image tự có 1px đệm mỗi bên (hộp 42 cho ảnh 40) và min-width CỘNG thêm → không đặt min-width, lề 2px */
+window#waybar.dockbar #windows #image, window#waybar.dockbar #pinned #image, window#waybar.dockbar #bg #image { margin: 1px 2px; padding: 0; }
+/* style.css cho .has đệm trái 4px (id + class thắng luật trên) → chuông có số làm ô 44px, dock 52 */
+#custom-notifications.has, #custom-notifications.idle { padding: 0; }
+
+/* ===== DOCK 4 NGĂN (pixel): nhãn chữ pixel kiểu tiêu đề túi đồ, vạch ngăn khắc chìm như các nhóm khác ===== */
+#custom-lbl-sys, #custom-lbl-fav, #custom-lbl-run, #custom-lbl-bg {
+    color: #9a8bab;
+    text-shadow: 1px 1px 0 #140e1a;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+#custom-lbl-run:hover, #custom-lbl-bg:hover, #custom-lbl-fav:hover { color: #f08cbb; }
+window#waybar.dockbar #bg { border-top: 2px solid @px_edge; box-shadow: inset 0 2px #3a2f46; margin-top: 0; padding-top: 2px; }
+window#waybar.dockbar #windows { margin-bottom: 0; padding-bottom: 2px; }
+
+/* ===== MÀU TỪNG NGĂN (người dùng: "làm rõ các màu"): SYS vàng · FAV hồng · RUN xanh lơ · BG tím.
+ * Nhãn có nền nhạt cùng màu, vạch ngăn trên + sọc dọc mép trái bằng box-shadow inset (KHÔNG cộng vào độ rộng dock). */
+window#waybar.dockbar #sys { box-shadow: inset 3px 0 rgba(255,224,138,0.85); }
+#custom-lbl-sys { color: #ffe08a; background-color: rgba(255,224,138,0.16); font-weight: bold; }
+#custom-lbl-sys:hover { color: #ffffff; background-color: rgba(255,224,138,0.30); }
+window#waybar.dockbar #pinned { box-shadow: inset 3px 0 rgba(240,140,187,0.85), inset 0 2px #f08cbb; }
+#custom-lbl-fav { color: #f08cbb; background-color: rgba(240,140,187,0.16); font-weight: bold; }
+#custom-lbl-fav:hover { color: #ffffff; background-color: rgba(240,140,187,0.30); }
+window#waybar.dockbar #windows { box-shadow: inset 3px 0 rgba(111,211,255,0.85), inset 0 2px #6fd3ff; }
+#custom-lbl-run { color: #6fd3ff; background-color: rgba(111,211,255,0.16); font-weight: bold; }
+#custom-lbl-run:hover { color: #ffffff; background-color: rgba(111,211,255,0.30); }
+window#waybar.dockbar #bg { box-shadow: inset 3px 0 rgba(185,156,255,0.85), inset 0 2px #b99cff; }
+#custom-lbl-bg { color: #b99cff; background-color: rgba(185,156,255,0.16); font-weight: bold; }
+#custom-lbl-bg:hover { color: #ffffff; background-color: rgba(185,156,255,0.30); }
+window#waybar.dockbar #pinned, window#waybar.dockbar #windows, window#waybar.dockbar #bg { border-top: 2px solid @px_edge; }

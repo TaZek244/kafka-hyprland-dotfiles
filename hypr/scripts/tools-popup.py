@@ -13,7 +13,7 @@ Chạy nền một bản duy nhất (hyprland.lua tự chạy lúc khởi độn
     tools-popup.py --toggle   bật/tắt popup của daemon đang chạy (SIGUSR1)
 
 Vị trí nút trên dock (đo bằng ảnh chụp, màn 1080p, dock Waybar `width: 60`, margin-right 12):
-nút công cụ (thứ 2: ngay dưới menu ứng dụng) nằm ở x = màn hình - 56 .. -6, y = 105 .. 153 (khung gắn sát mép). Đổi bố cục đầu dock thì đo lại HOT_*.
+nút công cụ (ô đầu ngăn SYS, dưới nhãn) nằm ở x = màn hình - 56 .. -6, y = 105 .. 153 (khung gắn sát mép). Đổi bố cục đầu dock thì đo lại HOT_*.
 """
 
 import os
@@ -31,10 +31,10 @@ SCRIPTS = os.path.expanduser("~/.config/hypr/scripts")
 PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "kafka-tools-popup.pid")
 
 # Vùng nhận chuột phủ lên nút công cụ (tính từ góc trên-phải màn hình)
-HOT_TOP, HOT_RIGHT, HOT_W, HOT_H = 91, 4, 40, 40   # nút thứ 2 (sau menu) từ khi wifi/bluetooth/bộ gõ lên thanh trên, 2026-11-18
+HOT_TOP, HOT_RIGHT, HOT_W, HOT_H = 65, 4, 40, 40   # dock 4 ngăn (2026-11-22): ITEMS = ô ĐẦU ngăn SYS, ngay dưới nhãn "SYS" (đo grim: y 65..104 ở cả hai theme)
 # Popup: mép phải cách màn hình 98px (dock 62 + lề 12 + hở 24, giống hộp chức năng ở đáy dock),
 # mép trên ngang nút công cụ
-POP_TOP, POP_RIGHT = 70, 73   # dock 48px phẳng (2026-11-18): nút tiện ích y 91..131
+POP_TOP, POP_RIGHT = 44, 73   # = HOT_TOP - 21 như trước
 SHOW_DELAY_MS, HIDE_DELAY_MS = 90, 350
 
 CSS = b"""
@@ -123,7 +123,7 @@ class ToolsPopup:
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
                                                  Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
-        kt.apply(kt.panel(".panel", "2px") + f"""
+        self.pixel = kt.apply(kt.panel(".panel", "2px", titled=True) + f"""
 .item {{ {kt.CARD} }}
 .item:hover {{ {kt.CARD_HOVER} }}
 .item.on {{ {kt.CARD_ON} }}
@@ -147,15 +147,23 @@ class ToolsPopup:
         self.pop = layer_window("popup", "kafka-tools-popup", POP_TOP, POP_RIGHT)
         self.pop.connect("enter-notify-event", self.on_enter, "pop")
         self.pop.connect("leave-notify-event", self.on_leave, "pop")
-        panel = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if self.pixel else Gtk.Orientation.HORIZONTAL,
+                        spacing=8)
         panel.get_style_context().add_class("panel")
         self.pop.add(panel)
+        if self.pixel:
+            self.px_title = kt.title_label("ITEMS")
+            panel.pack_start(self.px_title, False, False, 0)
+            content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+            panel.pack_start(content, False, False, 0)
+        else:
+            content = panel
         # 2 trang: "main" (4 tiện ích) và "shot" (6 kiểu chụp/quay). Bấm "Chụp / quay" chỉ đổi
         # trang trong chính popup, KHÔNG mở rofi: rofi hiện ngay dưới con trỏ và nhận nhầm cú bấm
         # (chọn luôn ô "Toàn màn hình" -> bấm là chụp). Popup neo mép phải nên đổi trang thì giãn sang trái.
         self.stack = Gtk.Stack(hhomogeneous=False, vhomogeneous=False)
         self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
-        panel.pack_start(self.stack, False, False, 0)
+        content.pack_start(self.stack, False, False, 0)
         main = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         shot = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
         self.stack.add_named(main, "main")
@@ -286,9 +294,13 @@ class ToolsPopup:
     def on_click(self, _btn, key):
         if key == "shot" and not recording():
             self.stack.set_visible_child_name("shot")   # giữ popup, đổi sang trang chụp/quay
+            if self.pixel:
+                self.px_title.set_text("> CAPTURE")
             return
         if key == "back":
             self.stack.set_visible_child_name("main")
+            if self.pixel:
+                self.px_title.set_text("> ITEMS")
             return
         self.hide()
         if key.startswith(("cap:", "rec:")):

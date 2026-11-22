@@ -1,0 +1,4 @@
+{
+    "_": "App ghim trên dock (thứ tự trên → dưới). Sửa bằng Kafka Studio › Dock, hoặc tay rồi chạy hypr/scripts/dock-pins.py render. Tối đa 6 (ngăn FAV).",
+    "pins": ["chromium.desktop", "kitty.desktop", "thunar.desktop", "code-oss.desktop", "org.xfce.mousepad.desktop"]
+}

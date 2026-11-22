@@ -1,0 +1,208 @@
+/* Theme pixel "KAFKA.SYS" cho hyprshell, chọn bởi hypr/scripts/ui-theme.sh qua symlink hyprshell/styles.css. */
+:root {
+    --border-color: #140e1a;
+    --border-color-active: #f08cbb;
+
+    --bg-color: #33293f;
+    --bg-color-hover: #2c2238;
+
+    --border-radius: 0px;
+    --border-size: 3px;
+    --border-style: solid;
+
+    --text-color: #fbf7fd;
+
+    --window-padding: 3px;
+    --bg-window-color: #221a2b;
+
+    --pixel-edge: #140e1a;
+    --pixel-window: #221a2b;
+    --pixel-panel: #33293f;
+    --pixel-sunken: #1a1422;
+    --pixel-inner-shadow: #0f0a14;
+    --pixel-inner-highlight: #56466a;
+    --pixel-inner-highlight-soft: #4a3c59;
+    --pixel-hover: #2c2238;
+    --pixel-dim: #d4cade;
+    --pixel-faint: #9a8bab;
+    --pixel-pink: #c94785;
+    --pixel-pink-light: #f08cbb;
+    --pixel-pink-shadow: #962f62;
+    --pixel-pink-edge: #3d1028;
+    --pixel-gold: #ffe08a;
+}
+
+* {
+    font-family: "FiraCode Nerd Font", "FiraCode Nerd Font Mono", sans-serif;
+}
+
+.monitor,
+.launcher {
+    padding: var(--window-padding);
+    color: var(--text-color);
+    background-color: var(--pixel-window);
+    border: var(--border-size) var(--border-style) var(--pixel-edge);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px var(--pixel-edge),
+                inset 2px 2px 0 var(--pixel-inner-highlight),
+                inset -2px -2px 0 var(--pixel-sunken),
+                4px 4px 0 rgba(11, 7, 16, 0.85);
+}
+
+.workspace {
+    min-height: 1.8rem;
+    padding: 2px 6px;
+    color: var(--pixel-dim);
+    background-color: var(--pixel-sunken);
+    border: var(--border-size) var(--border-style) var(--pixel-edge);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px var(--pixel-inner-shadow),
+                inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-inner-shadow);
+    font-size: 1.8rem;
+    font-weight: bolder;
+}
+
+.workspace.active {
+    color: var(--text-color);
+    background-color: var(--pixel-pink);
+    border-color: var(--pixel-pink-edge);
+    box-shadow: inset 0 0 0 2px var(--pixel-pink-light),
+                inset 2px 2px 0 var(--pixel-pink-light),
+                inset -2px -2px 0 var(--pixel-pink-shadow);
+}
+
+.client {
+    padding: 3px;
+    color: var(--text-color);
+    background-color: var(--pixel-panel);
+    border: var(--border-size) var(--border-style) var(--pixel-edge);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px var(--pixel-inner-shadow),
+                inset 2px 2px 0 var(--pixel-inner-highlight),
+                inset -2px -2px 0 var(--pixel-sunken);
+    font-size: 1.3rem;
+    font-weight: normal;
+}
+
+.client:hover {
+    background-color: var(--pixel-hover);
+    box-shadow: inset 0 0 0 2px var(--pixel-pink-shadow),
+                inset 2px 2px 0 var(--pixel-inner-highlight),
+                inset -2px -2px 0 var(--pixel-sunken);
+}
+
+.client.active {
+    color: var(--text-color);
+    background-color: var(--pixel-panel);
+    border-color: var(--pixel-pink-edge);
+    box-shadow: inset 0 0 0 2px var(--pixel-pink-light),
+                inset 2px 2px 0 var(--pixel-gold),
+                inset -2px -2px 0 var(--pixel-pink-shadow);
+}
+
+.client.no-hover:hover {
+    background-color: var(--pixel-panel);
+}
+
+.launcher-input {
+    margin: 6px;
+    padding: 4px 8px;
+    color: var(--text-color);
+    background-color: var(--pixel-sunken);
+    border: 2px solid var(--pixel-edge);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px var(--pixel-inner-shadow),
+                inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-inner-shadow);
+    font-size: 1.5rem;
+}
+
+.launcher-item,
+.launcher-item-inner,
+.launcher-plugin,
+.launcher-plugin-inner {
+    border-radius: 0;
+}
+
+.launcher-item {
+    padding: 2px;
+    background-color: var(--pixel-panel);
+    border: 2px solid var(--pixel-edge);
+    box-shadow: inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-sunken);
+}
+
+.launcher-item-inner {
+    padding: 0 6px;
+    color: var(--text-color);
+    background-color: var(--pixel-panel);
+    font-size: 1.5rem;
+}
+
+.launcher-item-inner:hover {
+    color: var(--text-color);
+    background-color: var(--pixel-pink);
+    box-shadow: inset 0 0 0 2px var(--pixel-pink-light),
+                inset -2px -2px 0 var(--pixel-pink-shadow);
+}
+
+.launcher-item-inner-color-probe-element {
+    color: var(--pixel-pink-light);
+}
+
+.launcher-plugin {
+    padding: 2px;
+    background-color: var(--pixel-panel);
+    border: 2px solid var(--pixel-edge);
+}
+
+.launcher-plugin-inner {
+    padding: 6px;
+    color: var(--pixel-dim);
+    background-color: var(--pixel-panel);
+    box-shadow: inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-sunken);
+}
+
+.launcher-plugin-inner:hover {
+    color: var(--text-color);
+    background-color: var(--pixel-hover);
+}
+
+.launcher-plugins {
+    padding: 4px 2px 2px;
+    border-top: 2px solid var(--pixel-edge);
+}
+
+.window {
+    padding: 18px;
+    color: var(--text-color);
+    background-color: var(--pixel-window);
+}
+
+label {
+    padding-top: 2px;
+    color: var(--text-color);
+}
+
+entry {
+    color: var(--text-color);
+    background-color: var(--pixel-sunken);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 2px var(--pixel-edge),
+                inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-inner-shadow);
+}
+
+tooltip {
+    padding: 5px;
+    color: var(--text-color);
+    background-color: var(--pixel-panel);
+    border: 2px solid var(--pixel-edge);
+    border-radius: 0;
+    box-shadow: inset 2px 2px 0 var(--pixel-inner-highlight-soft),
+                inset -2px -2px 0 var(--pixel-sunken),
+                4px 4px 0 rgba(11, 7, 16, 0.85);
+    font-size: 1rem;
+}

@@ -1,0 +1,648 @@
+/* ==============================================================================
+ * Giao diện GTK3 Pixel RPG HUD "KAFKA.SYS"
+ *
+ * Tệp này định dạng lại giao diện của các ứng dụng GTK3 (Thunar, Mousepad,
+ * Blueman, pavucontrol, nm-connection-editor...) theo phong cách HUD game nhập vai
+ * JRPG cổ điển:
+ * - Khung viền sắc cạnh (border-radius: 0), không bóng mờ (no blur), không dải chuyển sắc.
+ * - Hiệu ứng vát nổi (bevel) 2px cho nút bấm, vát chìm (sunken) cho ô nhập / danh sách.
+ * - Màu nhấn hồng RPG (#c94785) cho các mục được chọn, trạng thái active / checked.
+ * - Tiêu đề và nội dung sử dụng font hệ thống mặc định để bảo đảm tiếng Việt có dấu
+ *   (không ép font pixel vì font pixel không có dấu tiếng Việt).
+ *
+ * Tệp này được hypr/scripts/ui-theme.sh nạp tự động bằng lệnh @import ở cuối
+ * gtk/gtk-3.0/gtk.css khi bật giao diện pixel (Super + Alt + U).
+ * Lưu ý: Các ứng dụng GTK3 đang mở cần được khởi động lại để áp dụng giao diện mới.
+ * ============================================================================== */
+
+/* ------------------------------------------------------------------------------
+ * Bảng màu RPG HUD (Color Tokens)
+ * ------------------------------------------------------------------------------ */
+@define-color px_edge #140e1a;
+@define-color px_win_fill #221a2b;
+@define-color px_panel #33293f;
+@define-color px_hover #463955;
+@define-color px_sunken #1a1422;
+@define-color px_sidebar #1d1626;
+
+@define-color px_bevel_light #5a4a6b;
+@define-color px_bevel_shadow #241b2e;
+@define-color px_hover_bevel_light #7a6890;
+
+@define-color px_text #fbf7fd;
+@define-color px_dim #d4cade;
+@define-color px_faint #9a8bab;
+
+@define-color px_pink #c94785;
+@define-color px_pink_light #f08cbb;
+@define-color px_pink_shadow #962f62;
+@define-color px_pink_edge #3d1028;
+
+@define-color px_critical #e0506e;
+@define-color px_gold #ffe08a;
+
+/* Ghi đè biến hệ thống GTK */
+@define-color theme_base_color #1a1422;
+@define-color theme_bg_color #221a2b;
+@define-color theme_fg_color #fbf7fd;
+@define-color theme_text_color #fbf7fd;
+@define-color theme_selected_bg_color #c94785;
+@define-color theme_selected_fg_color #ffffff;
+@define-color accent_bg_color #c94785;
+
+/* ------------------------------------------------------------------------------
+ * Quy chuẩn hình học: Vuông hoàn toàn, không bo góc, không bóng mờ
+ * ------------------------------------------------------------------------------ */
+* {
+  border-radius: 0;
+  -gtk-outline-radius: 0;
+}
+
+/* ------------------------------------------------------------------------------
+ * Nền cửa sổ, Khung nhìn & Danh sách
+ * ------------------------------------------------------------------------------ */
+window,
+dialog,
+messagedialog,
+.background {
+  background-color: #221a2b;
+  color: #fbf7fd;
+}
+
+view,
+textview,
+treeview,
+iconview,
+list,
+row,
+.view {
+  background-color: #1a1422;
+  color: #fbf7fd;
+}
+
+/* ------------------------------------------------------------------------------
+ * Thanh tiêu đề (Headerbar), Toolbar, Menubar
+ * Viền đáy 2px viền tối #140e1a + 2px vạch sáng #5a4a6b
+ * Tiêu đề giữ nguyên font hệ thống mặc định để hỗ trợ tiếng Việt
+ * ------------------------------------------------------------------------------ */
+headerbar,
+.titlebar,
+toolbar,
+menubar,
+.menubar {
+  background-color: #33293f;
+  background-image: none;
+  border-style: solid;
+  border-width: 0 0 2px 0;
+  border-color: #140e1a;
+  box-shadow: inset 0 -2px 0 0 #5a4a6b;
+  color: #fbf7fd;
+}
+
+headerbar:backdrop,
+toolbar:backdrop,
+menubar:backdrop {
+  background-color: #33293f;
+  background-image: none;
+  border-color: #140e1a;
+  box-shadow: inset 0 -2px 0 0 #5a4a6b;
+  color: #d4cade;
+}
+
+headerbar .title,
+headerbar label.title {
+  color: #fbf7fd;
+  font-weight: bold;
+}
+
+headerbar .subtitle,
+headerbar label.subtitle {
+  color: #9a8bab;
+}
+
+/* ------------------------------------------------------------------------------
+ * Nút bấm (Buttons)
+ * Công thức Bevel: viền ngoài #140e1a, mép sáng #5a4a6b (trên/trái), bóng #241b2e (dưới/phải)
+ * ------------------------------------------------------------------------------ */
+button {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b, inset -4px -4px 0 -2px #241b2e;
+  color: #fbf7fd;
+}
+
+button:hover {
+  background-color: #463955;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
+  color: #fbf7fd;
+}
+
+button:active,
+button:checked {
+  background-color: #c94785;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+  color: #ffffff;
+}
+
+button:disabled {
+  background-color: #241b2e;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a;
+  color: #9a8bab;
+}
+
+button.suggested-action {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+  color: #ffffff;
+}
+
+button.suggested-action:hover {
+  background-color: #d65492;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+  color: #ffffff;
+}
+
+button.suggested-action:active,
+button.suggested-action:checked {
+  background-color: #962f62;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #962f62, inset -4px -4px 0 -2px #f08cbb;
+  color: #ffffff;
+}
+
+button.destructive-action {
+  background-color: #e0506e;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+  color: #ffffff;
+}
+
+button.destructive-action:hover {
+  background-color: #eb617d;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+  color: #ffffff;
+}
+
+button.destructive-action:active,
+button.destructive-action:checked {
+  background-color: #962f62;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #962f62, inset -4px -4px 0 -2px #f08cbb;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------------------
+ * Ô nhập liệu (Entries), Spinbuttons, Khung văn bản (Text Views)
+ * Công thức Sunken: vùng chìm #1a1422, viền ngoài #140e1a, bóng #241b2e
+ * Tiêu điểm (Focus): viền ngoài đổi sang màu hồng #c94785
+ * ------------------------------------------------------------------------------ */
+entry,
+spinbutton,
+textview text {
+  background-color: #1a1422;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #241b2e;
+  color: #fbf7fd;
+}
+
+entry:focus,
+spinbutton:focus,
+textview text:focus {
+  box-shadow: inset 0 0 0 2px #c94785, inset 4px 4px 0 -2px #241b2e;
+}
+
+entry:disabled,
+spinbutton:disabled {
+  background-color: #16101c;
+  box-shadow: inset 0 0 0 2px #140e1a;
+  color: #9a8bab;
+}
+
+spinbutton button {
+  background-color: #33293f;
+  background-image: none;
+  box-shadow: inset 0 0 0 1px #140e1a;
+  border-radius: 0;
+  color: #fbf7fd;
+}
+
+spinbutton button:hover {
+  background-color: #463955;
+}
+
+/* ------------------------------------------------------------------------------
+ * Vùng chọn (Selection) & Hàng danh sách (Row Hover)
+ * ------------------------------------------------------------------------------ */
+*:selected,
+*:selected:focus,
+selection,
+rubberband,
+row:selected,
+treeview.view:selected,
+iconview:selected,
+list row:selected {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+row:hover,
+treeview.view:hover,
+list row:hover {
+  background-color: #463955;
+  color: #fbf7fd;
+}
+
+row:selected:hover,
+treeview.view:selected:hover,
+list row:selected:hover {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------------------
+ * Thẻ Tab (Notebook Tabs)
+ * Phong cách pixel tabs: tab đang chọn có thanh gạch chân màu hồng 4px
+ * ------------------------------------------------------------------------------ */
+notebook {
+  background-color: #221a2b;
+}
+
+notebook > stack {
+  background-color: #221a2b;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #140e1a;
+  box-shadow: none;
+}
+
+notebook > header {
+  background-color: #1a1422;
+  border: none;
+  box-shadow: inset 0 -2px 0 0 #140e1a;
+}
+
+notebook > header tab {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b, inset -4px -4px 0 -2px #241b2e;
+  color: #d4cade;
+  padding: 4px 10px;
+  margin: 2px 1px 0 1px;
+}
+
+notebook > header tab:hover {
+  background-color: #463955;
+  color: #fbf7fd;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
+}
+
+notebook > header tab:checked {
+  background-color: #221a2b;
+  color: #fbf7fd;
+  box-shadow: inset 0 -4px 0 0 #c94785, inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b;
+}
+
+notebook > header.bottom tab:checked {
+  box-shadow: inset 0 4px 0 0 #c94785, inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b;
+}
+
+/* ------------------------------------------------------------------------------
+ * Thanh cuộn (Scrollbars)
+ * Vuông góc, thanh trượt rộng 8px, màu #5a4a6b, hover #7a6890
+ * ------------------------------------------------------------------------------ */
+scrollbar {
+  background-color: #1a1422;
+  border: none;
+  box-shadow: none;
+}
+
+scrollbar trough {
+  background-color: #1a1422;
+  border: none;
+  border-radius: 0;
+}
+
+scrollbar slider {
+  background-color: #5a4a6b;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  min-width: 8px;
+  min-height: 8px;
+  box-shadow: inset 0 0 0 1px #140e1a;
+}
+
+scrollbar slider:hover {
+  background-color: #7a6890;
+}
+
+scrollbar slider:active {
+  background-color: #c94785;
+}
+
+/* ------------------------------------------------------------------------------
+ * Menu & Popover
+ * Nền #221a2b, viền 2px #140e1a, mục hover nền hồng #c94785 chữ trắng
+ * ------------------------------------------------------------------------------ */
+menu,
+.menu,
+popover,
+popover.background {
+  background-color: #221a2b;
+  background-image: none;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #140e1a;
+  border-radius: 0;
+  box-shadow: none;
+  color: #fbf7fd;
+  padding: 3px;
+}
+
+menu menuitem,
+.menu menuitem,
+popover modelbutton {
+  border-radius: 0;
+  color: #fbf7fd;
+  padding: 4px 8px;
+}
+
+menu menuitem:hover,
+.menu menuitem:hover,
+popover modelbutton:hover {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+menu separator,
+popover separator {
+  background-color: #140e1a;
+  border: none;
+  min-height: 2px;
+  min-width: 2px;
+  margin: 3px 0;
+}
+
+/* ------------------------------------------------------------------------------
+ * Chú thích nổi (Tooltips) — đồng bộ Waybar Tooltip
+ * Nền #241c2d, viền 2px #140e1a
+ * ------------------------------------------------------------------------------ */
+tooltip,
+tooltip.background {
+  background-color: #241c2d;
+  background-image: none;
+  border-style: solid;
+  border-width: 2px;
+  border-color: #140e1a;
+  border-radius: 0;
+  box-shadow: none;
+  color: #fbf7fd;
+  padding: 4px 8px;
+}
+
+tooltip label {
+  color: #fbf7fd;
+}
+
+/* ------------------------------------------------------------------------------
+ * Công tắc (Switches), Hộp kiểm (Checkboxes) & Nút radio (Radios)
+ * Vuông góc, màu hồng #c94785 khi bật
+ * ------------------------------------------------------------------------------ */
+switch {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a;
+}
+
+switch:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 0 4px 0 -2px #f08cbb;
+}
+
+switch slider {
+  background-color: #fbf7fd;
+  background-image: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset -2px -2px 0 0 #241b2e;
+  min-width: 14px;
+  min-height: 14px;
+}
+
+switch:checked slider {
+  background-color: #ffffff;
+  box-shadow: inset 0 0 0 2px #3d1028;
+}
+
+checkbutton check,
+check {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 0 #241b2e;
+  color: transparent;
+  min-width: 14px;
+  min-height: 14px;
+}
+
+checkbutton check:checked,
+check:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 0 #f08cbb;
+  color: #ffffff;
+}
+
+radiobutton radio,
+radio {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 0 #241b2e;
+  color: transparent;
+  min-width: 14px;
+  min-height: 14px;
+}
+
+radiobutton radio:checked,
+radio:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 0 #f08cbb;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------------------
+ * Thanh tiến độ (Progressbar), Levelbar, Thanh trượt giá trị (Scale)
+ * ------------------------------------------------------------------------------ */
+progressbar trough {
+  background-color: #1a1422;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  min-height: 8px;
+}
+
+progressbar progress {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 0 #f08cbb, inset 0 -2px 0 0 #962f62;
+}
+
+levelbar trough {
+  background-color: #1a1422;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  min-height: 8px;
+}
+
+levelbar block.filled {
+  background-color: #c94785;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 0 #f08cbb, inset 0 -2px 0 0 #962f62;
+}
+
+levelbar block.empty {
+  background-color: #1a1422;
+  border-radius: 0;
+}
+
+scale trough {
+  background-color: #1a1422;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  min-height: 8px;
+}
+
+scale highlight {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 0 #f08cbb, inset 0 -2px 0 0 #962f62;
+}
+
+scale slider {
+  background-color: #fbf7fd;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  min-width: 14px;
+  min-height: 18px;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 0 #ffffff, inset -2px -2px 0 0 #241b2e;
+}
+
+scale slider:hover {
+  background-color: #ffe08a;
+}
+
+scale slider:active {
+  background-color: #c94785;
+}
+
+/* ------------------------------------------------------------------------------
+ * Tùy biến riêng cho Trình quản lý tệp Thunar
+ * Sidebar tối hơn (#1d1626), nút thanh đường dẫn (path bar) dạng bevel nhỏ
+ * ------------------------------------------------------------------------------ */
+.thunar .sidebar,
+.thunar placessidebar,
+placessidebar,
+placessidebar viewport {
+  background-color: #1d1626;
+  color: #fbf7fd;
+}
+
+placessidebar row {
+  color: #d4cade;
+}
+
+placessidebar row:hover {
+  background-color: #463955;
+  color: #fbf7fd;
+}
+
+placessidebar row:selected {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+.thunar .path-bar button,
+.path-bar button {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b, inset -4px -4px 0 -2px #241b2e;
+  color: #fbf7fd;
+  padding: 2px 6px;
+  margin: 1px;
+}
+
+.thunar .path-bar button:hover,
+.path-bar button:hover {
+  background-color: #463955;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
+  color: #fbf7fd;
+}
+
+.thunar .path-bar button:checked,
+.thunar .path-bar button:active,
+.path-bar button:checked,
+.path-bar button:active {
+  background-color: #c94785;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 4px 4px 0 -2px #f08cbb, inset -4px -4px 0 -2px #962f62;
+}
+
+/* ------------------------------------------------------------------------------
+ * Thanh chia ô (Paned) & Đường phân cách (Separators)
+ * ------------------------------------------------------------------------------ */
+separator {
+  background-color: #140e1a;
+  min-width: 2px;
+  min-height: 2px;
+  border: none;
+}
+
+paned > separator {
+  background-color: #140e1a;
+  min-width: 2px;
+  min-height: 2px;
+}
+
+combobox button.combo {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #5a4a6b, inset -4px -4px 0 -2px #241b2e;
+  color: #fbf7fd;
+}
+
+combobox button.combo:hover {
+  background-color: #463955;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 4px 4px 0 -2px #7a6890, inset -4px -4px 0 -2px #241b2e;
+}

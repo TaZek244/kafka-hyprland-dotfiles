@@ -52,24 +52,6 @@ MERGE_GAP = 6                                  # đoạn hồng cách nhau ≤ 6
 
 ROMAN = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X")
 
-# Bảng ánh xạ class ứng dụng -> glyph Nerd Font (chép từ hypr/scripts/column-map.sh)
-APP_ICONS = {
-    "kitty": "\uf120",
-    "chromium": "\uf268",
-    "code-oss": "\U000f0a1e",
-    "code": "\U000f0a1e",
-    "thunar": "\uf07b",
-    "mousepad": "\uf044",
-    "org.xfce.mousepad": "\uf044",
-    "mpv": "\uf144",
-    "imv": "\uf03e",
-    "kafka-btop": "\uf2db",
-    "blueman": "\U000f00af",
-    "blueman-manager": "\U000f00af",
-    "kafka-cava": "\U000f0388",
-}
-DEFAULT_ICON = "\U000f08c6"
-
 CSS = b"""
 * { font-family: "FiraCode Nerd Font"; }
 window.hotspot { background-color: transparent; }
@@ -125,18 +107,6 @@ def roman(n):
     if 1 <= n <= len(ROMAN):
         return ROMAN[n - 1]
     return str(n)
-
-
-def app_icon(cls):
-    """Trả về glyph Nerd Font tương ứng với class cửa sổ."""
-    key = (cls or "").strip().lower()
-    if key in APP_ICONS:
-        return APP_ICONS[key]
-    if key.startswith("imv"):
-        return APP_ICONS["imv"]
-    if key.startswith("blueman"):
-        return APP_ICONS["blueman"]
-    return DEFAULT_ICON
 
 
 def find_runs(row_bytes, color=TARGET_RGB, min_len=10):
@@ -215,7 +185,8 @@ def parse_ppm_row(ppm_bytes):
 def summarize(clients, active_id):
     """Tổng hợp trạng thái 10 workspace từ danh sách `clients` của Hyprland.
 
-    Trả về list 10 dict: `{id, roman, apps_text, tooltip, active, empty}`.
+    Trả về list 10 dict: `{id, roman, classes, extra, apps_text, tooltip,
+    active, empty}`.
     """
     by_ws = {i: [] for i in range(1, 11)}
     for c in clients or []:
@@ -228,30 +199,30 @@ def summarize(clients, active_id):
     for ws_id in range(1, 11):
         ws_clients = by_ws[ws_id]
         empty = len(ws_clients) == 0
-        glyphs = []
         classes = []
         for c in ws_clients:
             cls = (c.get("class") or "").strip() or "?"
-            classes.append(cls)
-            g = app_icon(cls)
-            if g not in glyphs:
-                glyphs.append(g)
+            if cls not in classes:
+                classes.append(cls)
 
         if empty:
             apps_text = "·"
             tooltip = "Trống"
         else:
-            shown = " ".join(glyphs[:3])
-            extra = len(glyphs) - 3
+            shown = " ".join(classes[:3])
+            extra = len(classes) - 3
             apps_text = f"{shown} +{extra}" if extra > 0 else shown
             counts = {}
-            for cls in classes:
+            for c in ws_clients:
+                cls = (c.get("class") or "").strip() or "?"
                 counts[cls] = counts.get(cls, 0) + 1
             tooltip = ", ".join(f"{k} ×{v}" if v > 1 else k for k, v in counts.items())
 
         result.append({
             "id": ws_id,
             "roman": roman(ws_id),
+            "classes": classes[:3],
+            "extra": max(0, len(classes) - 3),
             "apps_text": apps_text,
             "tooltip": tooltip,
             "active": ws_id == active_id,
@@ -319,7 +290,12 @@ def run_daemon():
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")          # thiếu dòng này có thể nạp nhầm Gdk 4 → ImportError
     gi.require_version("GtkLayerShell", "0.1")
-    from gi.repository import Gdk, GLib, Gtk, GtkLayerShell
+    from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell
+    try:
+        gi.require_version("GioUnix", "2.0")
+        from gi.repository import GioUnix
+    except (ValueError, ImportError):
+        GioUnix = None
 
     def layer_window(css_class, namespace, top, side_margin, edge="left"):
         """Tạo cửa sổ layer-shell lớp OVERLAY neo theo TOP và cạnh `edge` ('left'/'right')."""
@@ -359,7 +335,7 @@ def run_daemon():
             import kafka_theme as kt
 
             kt.apply(
-                kt.panel(".panel", "2px")
+                kt.panel(".panel", "2px", titled=True)
                 + f"""
 .ws {{ {kt.CARD} }}
 .ws:hover {{ {kt.CARD_HOVER} }}
@@ -376,6 +352,8 @@ def run_daemon():
             self.hot_x = None
             self.hot_w = None
             self.scroll_acc = 0.0
+            self.icon_cache = {}
+            self.app_info_cache = None
 
             # Hotspot trong suốt neo TOP + LEFT (ẩn cho tới khi dò được vị trí lần đầu)
             self.hot = layer_window("hotspot", "kafka-ws-hotspot", HOT_TOP, 0, edge="left")
@@ -394,8 +372,10 @@ def run_daemon():
             panel.get_style_context().add_class("panel")
             self.pop.add(panel)
 
-            title = Gtk.Label(label="Khu làm việc", xalign=0)
-            title.get_style_context().add_class("title")
+            title = kt.title_label("STAGE SELECT")
+            if title is None:
+                title = Gtk.Label(label="Khu làm việc", xalign=0)
+                title.get_style_context().add_class("title")
             panel.pack_start(title, False, False, 0)
 
             grid = Gtk.Grid(row_spacing=6, column_spacing=6)
@@ -412,15 +392,18 @@ def run_daemon():
                 box.set_valign(Gtk.Align.CENTER)
                 num_lbl = Gtk.Label(label=roman(i))
                 num_lbl.get_style_context().add_class("num")
+                apps_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=3)
+                apps_box.set_halign(Gtk.Align.CENTER)
                 apps_lbl = Gtk.Label(label="·")
                 apps_lbl.get_style_context().add_class("apps")
+                apps_box.pack_start(apps_lbl, False, False, 0)
                 box.pack_start(num_lbl, False, False, 0)
-                box.pack_start(apps_lbl, False, False, 0)
+                box.pack_start(apps_box, False, False, 0)
                 btn.add(box)
                 btn.connect("button-press-event", self.on_ws_press, i)
                 btn.connect("clicked", self.on_ws_clicked, i)
                 grid.attach(btn, (i - 1) % 5, (i - 1) // 5, 1, 1)
-                self.cells[i] = (btn, num_lbl, apps_lbl)
+                self.cells[i] = (btn, num_lbl, apps_box, (None, None))
 
             self.trigger_probe()
             GLib.timeout_add(PROBE_INTERVAL_MS, self.trigger_probe)
@@ -470,13 +453,102 @@ def run_daemon():
                 self.hot.show_all()
             return False
 
+        def _app_infos_by_wm_class(self):
+            """Quét Gio.AppInfo.get_all() đúng một lần, lập chỉ mục theo WM class."""
+            if self.app_info_cache is not None:
+                return self.app_info_cache
+            self.app_info_cache = {}
+            for info in Gio.AppInfo.get_all():
+                keys = []
+                try:
+                    startup_class = info.get_startup_wm_class()
+                except (AttributeError, TypeError):
+                    startup_class = None
+                if startup_class:
+                    keys.append(startup_class)
+                try:
+                    app_id = info.get_id()
+                except (AttributeError, TypeError):
+                    app_id = None
+                if app_id:
+                    keys.append(os.path.splitext(app_id)[0])
+                for key in keys:
+                    self.app_info_cache.setdefault(key.lower(), info)
+            return self.app_info_cache
+
+        def _icon_from_desktop(self, desktop_id):
+            """Lấy DesktopAppInfo theo thứ tự GioUnix rồi Gio."""
+            constructors = []
+            if GioUnix is not None and hasattr(GioUnix, "DesktopAppInfo"):
+                constructors.append(GioUnix.DesktopAppInfo)
+            if hasattr(Gio, "DesktopAppInfo"):
+                constructors.append(Gio.DesktopAppInfo)
+            for constructor in constructors:
+                try:
+                    info = constructor.new(desktop_id)
+                except (AttributeError, TypeError, GLib.Error):
+                    info = None
+                if info is not None and info.get_icon() is not None:
+                    return info.get_icon()
+            return None
+
+        def app_icon(self, cls):
+            """Tra Gio.Icon theo WM class, có cache cho từng class."""
+            key = (cls or "").strip()
+            cache_key = key.lower()
+            if cache_key in self.icon_cache:
+                return self.icon_cache[cache_key]
+
+            icon = None
+            for desktop_id in (f"{key}.desktop", f"{key.lower()}.desktop"):
+                icon = self._icon_from_desktop(desktop_id)
+                if icon is not None:
+                    break
+            if icon is None:
+                info = self._app_infos_by_wm_class().get(cache_key)
+                if info is not None:
+                    icon = info.get_icon()
+            if icon is None:
+                theme = Gtk.IconTheme.get_default()
+                for name in (key, key.lower()):
+                    if name and theme.has_icon(name):
+                        icon = Gio.ThemedIcon.new(name)
+                        break
+            if icon is None:
+                icon = Gio.ThemedIcon.new("application-x-executable")
+            self.icon_cache[cache_key] = icon
+            return icon
+
+        def _set_apps_box(self, apps_box, classes, extra, previous):
+            signature = (tuple(classes), extra)
+            if signature == previous:
+                return signature
+            for child in apps_box.get_children():
+                apps_box.remove(child)
+            if not classes:
+                label = Gtk.Label(label="·")
+                label.get_style_context().add_class("apps")
+                apps_box.pack_start(label, False, False, 0)
+            else:
+                for cls in classes:
+                    image = Gtk.Image.new_from_gicon(self.app_icon(cls), Gtk.IconSize.MENU)
+                    image.set_pixel_size(18)
+                    apps_box.pack_start(image, False, False, 0)
+                if extra > 0:
+                    label = Gtk.Label(label=f"+{extra}")
+                    label.get_style_context().add_class("apps")
+                    apps_box.pack_start(label, False, False, 0)
+            apps_box.show_all()
+            return signature
+
         # ---------- hiển thị popup ----------
         def refresh_state(self):
             clients = hypr_json("clients", [])
             act_id = active_workspace_id()
             for item in summarize(clients, act_id):
-                btn, _num_lbl, apps_lbl = self.cells[item["id"]]
-                apps_lbl.set_text(item["apps_text"])
+                btn, _num_lbl, apps_box, previous = self.cells[item["id"]]
+                current = self._set_apps_box(apps_box, item["classes"], item["extra"], previous)
+                self.cells[item["id"]] = (btn, _num_lbl, apps_box, current)
                 btn.set_tooltip_text(item["tooltip"])
                 ctx = btn.get_style_context()
                 if item["active"]:
@@ -664,7 +736,9 @@ def selftest():
         len(summary) == 10
         and ws1["active"] is True
         and ws1["empty"] is False
-        and ws1["apps_text"] == f"{APP_ICONS['kitty']} {APP_ICONS['chromium']} {APP_ICONS['thunar']}"
+        and ws1["classes"] == ["kitty", "chromium", "thunar"]
+        and ws1["extra"] == 0
+        and ws1["apps_text"] == "kitty chromium thunar"
         and ws1["tooltip"] == "kitty, chromium, thunar"
         and summarize(fake_clients + [{"class": "kitty", "workspace": {"id": 1}}], 1)[0]["tooltip"]
         == "kitty ×2, chromium, thunar"
@@ -673,12 +747,18 @@ def selftest():
         and ws2["apps_text"] == "·"
         and ws2["tooltip"] == "Trống"
         and ws3["empty"] is False
-        and ws3["apps_text"] == APP_ICONS["mpv"]
+        and ws3["classes"] == ["mpv"]
+        and ws3["extra"] == 0
+        and ws3["apps_text"] == "mpv"
+        and ws1_many["classes"] == ["kitty", "chromium", "thunar"]
+        and ws1_many["extra"] == 2
         and ws1_many["apps_text"]
-        == f"{APP_ICONS['kitty']} {APP_ICONS['chromium']} {APP_ICONS['thunar']} +2"
+        == "kitty chromium thunar +2"
     )
     check("summarize", cond_summarize)
 
+    if ok:
+        print("OK")
     return 0 if ok else 1
 
 

@@ -1,0 +1,796 @@
+/* ==============================================================================
+ * Giao diện GTK4 & Libadwaita Pixel RPG HUD "KAFKA.SYS"
+ *
+ * Tệp này định dạng lại giao diện của các ứng dụng GTK4 và Libadwaita (pavucontrol 6,
+ * satty, trình chỉnh sửa phím tắt GTK4, Nautilus / ứng dụng libadwaita...) theo phong cách
+ * HUD game nhập vai JRPG cổ điển:
+ * - Khung viền sắc cạnh (border-radius: 0), không bo góc cong, không bóng mờ nhòe (no blur).
+ * - Hiệu ứng vát nổi (bevel) cứng cáp qua inset box-shadow: mép sáng #56466a, mép bóng #1a1422,
+ *   viền ngoài #140e1a; bóng đổ cứng (hard drop shadow) 4px 4px 0 rgba(11,7,16,0.85) cho cửa sổ / popover.
+ * - Trạng thái chọn / kích hoạt (selected/active/checked): khung viền hồng nổi bật inset 0 0 0 2px #f08cbb
+ *   hoặc nền hồng RPG #c94785 chữ trắng #ffffff.
+ * - Tuân thủ quy chuẩn GTK4 CSS: không sử dụng 'content', 'overflow', 'width', 'height' (chỉ dùng min-width/min-height).
+ * - Ghi đè toàn diện CSS variables trong :root và @define-color của Libadwaita để toàn bộ hệ sinh thái Adwaita
+ *   tự động áp dụng bảng màu RPG HUD.
+ * - Quy chuẩn Font: "FiraCode Nerd Font" cho nội dung thông thường (bảo đảm tiếng Việt có dấu đầy đủ),
+ *   font pixel "Kafka Pixel" (14px, ASCII HOA) chỉ dành riêng cho tiêu đề ngắn.
+ *
+ * Tệp này được hypr/scripts/ui-theme.sh nạp tự động thông qua @import trong ~/.config/gtk-4.0/gtk.css
+ * khi chế độ giao diện pixel theme được kích hoạt (Super + Alt + U).
+ * Lưu ý: Các ứng dụng GTK4 đang chạy cần được khởi động lại để áp dụng giao diện mới.
+ * ============================================================================== */
+
+/* ------------------------------------------------------------------------------
+ * 1. Bảng màu Pixel RPG HUD Tokens & Libadwaita Named Colors
+ * ------------------------------------------------------------------------------ */
+@define-color px_edge #140e1a;
+@define-color px_win_fill #221a2b;
+@define-color px_panel #33293f;
+@define-color px_sunken #1a1422;
+@define-color px_inner_shadow #0f0a14;
+@define-color px_inner_highlight #56466a;
+@define-color px_inner_highlight_subtle #4a3c59;
+@define-color px_hover #2c2238;
+@define-color px_sidebar #1d1626;
+
+@define-color px_text #fbf7fd;
+@define-color px_dim #d4cade;
+@define-color px_faint #9a8bab;
+
+@define-color px_pink #c94785;
+@define-color px_pink_light #f08cbb;
+@define-color px_pink_shadow #962f62;
+@define-color px_pink_edge #3d1028;
+
+@define-color px_gold #ffe08a;
+@define-color px_critical #e0506e;
+
+/* Ghi đè Named Colors theo chuẩn Libadwaita & GTK4 */
+@define-color window_bg_color #221a2b;
+@define-color window_fg_color #fbf7fd;
+@define-color view_bg_color #1a1422;
+@define-color view_fg_color #fbf7fd;
+@define-color headerbar_bg_color #33293f;
+@define-color headerbar_fg_color #fbf7fd;
+@define-color headerbar_border_color #140e1a;
+@define-color headerbar_backdrop_color #33293f;
+@define-color card_bg_color #33293f;
+@define-color card_fg_color #fbf7fd;
+@define-color popover_bg_color #221a2b;
+@define-color popover_fg_color #fbf7fd;
+@define-color dialog_bg_color #221a2b;
+@define-color dialog_fg_color #fbf7fd;
+@define-color accent_bg_color #c94785;
+@define-color accent_color #c94785;
+@define-color accent_fg_color #ffffff;
+@define-color sidebar_bg_color #1d1626;
+@define-color sidebar_fg_color #fbf7fd;
+@define-color secondary_sidebar_bg_color #1a1422;
+@define-color secondary_sidebar_fg_color #fbf7fd;
+
+@define-color theme_bg_color #221a2b;
+@define-color theme_fg_color #fbf7fd;
+@define-color theme_base_color #1a1422;
+@define-color theme_text_color #fbf7fd;
+@define-color theme_selected_bg_color #c94785;
+@define-color theme_selected_fg_color #ffffff;
+
+/* Ghi đè CSS Variables trong :root cho Libadwaita */
+:root {
+  --window-bg-color: #221a2b;
+  --window-fg-color: #fbf7fd;
+  --view-bg-color: #1a1422;
+  --view-fg-color: #fbf7fd;
+  --headerbar-bg-color: #33293f;
+  --headerbar-fg-color: #fbf7fd;
+  --headerbar-border-color: #140e1a;
+  --headerbar-backdrop-color: #33293f;
+  --card-bg-color: #33293f;
+  --card-fg-color: #fbf7fd;
+  --popover-bg-color: #221a2b;
+  --popover-fg-color: #fbf7fd;
+  --dialog-bg-color: #221a2b;
+  --dialog-fg-color: #fbf7fd;
+  --accent-bg-color: #c94785;
+  --accent-color: #c94785;
+  --accent-fg-color: #ffffff;
+  --sidebar-bg-color: #1d1626;
+  --sidebar-fg-color: #fbf7fd;
+  --secondary-sidebar-bg-color: #1a1422;
+  --secondary-sidebar-fg-color: #fbf7fd;
+}
+
+/* ------------------------------------------------------------------------------
+ * 2. Quy chuẩn Hình học & Font chữ toàn cục
+ * Vuông hoàn toàn, không bo góc (border-radius 0), font FiraCode Nerd Font mặc định
+ * ------------------------------------------------------------------------------ */
+* {
+  border-radius: 0;
+  -gtk-outline-radius: 0;
+  outline-color: transparent;
+  font-family: "FiraCode Nerd Font";
+}
+
+/* ------------------------------------------------------------------------------
+ * 3. Nền cửa sổ (Window), Hộp thoại (Dialog) & Khung CSD
+ * Bóng cứng 4px 4px 0 rgba(11,7,16,0.85), viền ngoài #140e1a 2px
+ * ------------------------------------------------------------------------------ */
+window,
+dialog,
+.background {
+  background-color: #221a2b;
+  color: #fbf7fd;
+}
+
+window.csd,
+window.solid-csd,
+dialog.csd,
+messagedialog.csd {
+  box-shadow: 4px 4px 0 rgba(11, 7, 16, 0.85);
+  border: 2px solid #140e1a;
+}
+
+/* ------------------------------------------------------------------------------
+ * 4. Thanh tiêu đề (Headerbar) & Thanh công cụ (Toolbar)
+ * Viền đáy 2px viền tối #140e1a + vạch sáng nổi #56466a
+ * Tiêu đề ngắn ASCII dùng font "Kafka Pixel" 14px; phụ đề font FiraCode
+ * ------------------------------------------------------------------------------ */
+headerbar,
+.titlebar,
+.toolbar {
+  background-color: #33293f;
+  background-image: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 2px solid #140e1a;
+  box-shadow: inset 0 -2px 0 0 #56466a;
+  color: #fbf7fd;
+  padding: 4px 6px;
+}
+
+headerbar:backdrop,
+.toolbar:backdrop {
+  background-color: #33293f;
+  background-image: none;
+  border-bottom: 2px solid #140e1a;
+  box-shadow: inset 0 -2px 0 0 #4a3c59;
+  color: #d4cade;
+}
+
+headerbar windowtitle .title,
+headerbar .title,
+windowtitle title,
+.navigation-sidebar > row.header,
+.boxed-list-title {
+  color: #fbf7fd;
+  font-family: "Kafka Pixel", "FiraCode Nerd Font";
+  font-size: 14px;
+  font-weight: normal;
+}
+
+headerbar windowtitle .subtitle,
+headerbar .subtitle,
+windowtitle subtitle {
+  color: #9a8bab;
+  font-family: "FiraCode Nerd Font";
+  font-size: 11px;
+}
+
+/* ------------------------------------------------------------------------------
+ * 5. Nút bấm (Buttons)
+ * Công thức Bevel RPG: viền ngoài #140e1a, mép sáng #56466a, mép bóng #1a1422
+ * ------------------------------------------------------------------------------ */
+button {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a, inset -2px -2px 0 #1a1422;
+  color: #fbf7fd;
+  padding: 4px 10px;
+  min-height: 24px;
+  min-width: 24px;
+}
+
+button:hover {
+  background-color: #2c2238;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #7a6890, inset -2px -2px 0 #1a1422;
+  color: #fbf7fd;
+}
+
+button:active,
+button:checked {
+  background-color: #c94785;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button:disabled {
+  background-color: #1a1422;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a;
+  color: #9a8bab;
+}
+
+button.flat {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  color: #fbf7fd;
+}
+
+button.flat:hover {
+  background-color: #2c2238;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a, inset -2px -2px 0 #1a1422;
+  color: #fbf7fd;
+}
+
+button.flat:active,
+button.flat:checked {
+  background-color: #c94785;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button.suggested-action {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button.suggested-action:hover {
+  background-color: #d65492;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button.suggested-action:active,
+button.suggested-action:checked {
+  background-color: #962f62;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 #962f62, inset -2px -2px 0 #f08cbb;
+  color: #ffffff;
+}
+
+button.destructive-action {
+  background-color: #e0506e;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button.destructive-action:hover {
+  background-color: #eb617d;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #f08cbb, inset -2px -2px 0 #962f62;
+  color: #ffffff;
+}
+
+button.destructive-action:active,
+button.destructive-action:checked {
+  background-color: #962f62;
+  background-image: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #962f62, inset -2px -2px 0 #f08cbb;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------------------
+ * 6. Ô nhập liệu (Entry), Khung văn bản (Text) & Spinbutton
+ * Công thức Sunken: nền chìm #1a1422, viền ngoài #140e1a, bóng trong #0f0a14
+ * Tiêu điểm (Focus): khung viền hồng RPG #c94785
+ * ------------------------------------------------------------------------------ */
+entry,
+text,
+spinbutton,
+textview,
+textview > text {
+  background-color: #1a1422;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #0f0a14;
+  color: #fbf7fd;
+  padding: 4px 6px;
+  min-height: 24px;
+}
+
+entry:focus,
+entry:focus-within,
+text:focus,
+spinbutton:focus,
+spinbutton:focus-within,
+textview:focus,
+textview:focus-within {
+  box-shadow: inset 0 0 0 2px #c94785, inset 2px 2px 0 #0f0a14;
+}
+
+entry:disabled,
+spinbutton:disabled {
+  background-color: #16101c;
+  box-shadow: inset 0 0 0 2px #140e1a;
+  color: #9a8bab;
+}
+
+entry > text > placeholder,
+entry > placeholder {
+  color: #9a8bab;
+}
+
+spinbutton button {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px #140e1a;
+  color: #fbf7fd;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+spinbutton button:hover {
+  background-color: #2c2238;
+}
+
+/* ------------------------------------------------------------------------------
+ * 7. Popover, Dropdown & Menu Items (Modelbutton)
+ * popover > contents: nền #221a2b, viền 2px #140e1a, bóng cứng 4px 4px 0
+ * ------------------------------------------------------------------------------ */
+popover > contents {
+  background-color: #221a2b;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(11, 7, 16, 0.85);
+  color: #fbf7fd;
+  padding: 4px;
+}
+
+popover > arrow {
+  background-color: #221a2b;
+  border-color: #140e1a;
+}
+
+modelbutton,
+popover modelbutton,
+popover .menuitem {
+  border-radius: 0;
+  color: #fbf7fd;
+  padding: 4px 8px;
+  min-height: 24px;
+}
+
+modelbutton:hover,
+popover modelbutton:hover,
+popover .menuitem:hover {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+modelbutton:selected,
+popover modelbutton:selected {
+  background-color: #c94785;
+  color: #ffffff;
+}
+
+popover separator {
+  background-color: #140e1a;
+  border: none;
+  min-height: 2px;
+  min-width: 2px;
+  margin: 3px 0;
+}
+
+dropdown > button {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a, inset -2px -2px 0 #1a1422;
+  color: #fbf7fd;
+  padding: 4px 8px;
+  min-height: 24px;
+}
+
+dropdown > button:hover {
+  background-color: #2c2238;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #7a6890, inset -2px -2px 0 #1a1422;
+}
+
+/* ------------------------------------------------------------------------------
+ * 8. Danh sách (List / ListView), Cột (ColumnView) & Vùng chọn (Selection)
+ * ------------------------------------------------------------------------------ */
+list,
+listview,
+columnview,
+view,
+.view {
+  background-color: #1a1422;
+  color: #fbf7fd;
+}
+
+row,
+list > row,
+listview > row,
+columnview row {
+  background-color: transparent;
+  color: #fbf7fd;
+  padding: 4px 8px;
+  min-height: 24px;
+}
+
+row:hover,
+list > row:hover,
+listview > row:hover,
+columnview row:hover {
+  background-color: #2c2238;
+  color: #fbf7fd;
+}
+
+row:selected,
+list > row:selected,
+listview > row:selected,
+columnview row:selected,
+*:selected,
+selection {
+  background-color: #c94785;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #f08cbb;
+}
+
+row:selected:hover,
+list > row:selected:hover,
+listview > row:selected:hover,
+columnview row:selected:hover {
+  background-color: #c94785;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #f08cbb;
+}
+
+columnview > header > button {
+  background-color: #33293f;
+  background-image: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 2px solid #140e1a;
+  box-shadow: inset 0 -2px 0 0 #56466a;
+  color: #d4cade;
+  padding: 4px 8px;
+  min-height: 24px;
+}
+
+/* ------------------------------------------------------------------------------
+ * 9. Thanh trượt giá trị (Scale)
+ * Cấu trúc GTK4: scale > trough > highlight / slider
+ * ------------------------------------------------------------------------------ */
+scale trough {
+  background-color: #1a1422;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  min-height: 8px;
+  min-width: 8px;
+}
+
+scale highlight {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 0 #f08cbb, inset 0 -2px 0 0 #962f62;
+}
+
+scale slider {
+  background-color: #fbf7fd;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  min-width: 14px;
+  min-height: 18px;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 0 #ffffff, inset -2px -2px 0 0 #1a1422;
+}
+
+scale slider:hover {
+  background-color: #ffe08a;
+}
+
+scale slider:active {
+  background-color: #c94785;
+}
+
+/* ------------------------------------------------------------------------------
+ * 10. Công tắc (Switch) & Hộp kiểm (Checkbutton)
+ * Cấu trúc GTK4: switch > slider, checkbutton > check
+ * ------------------------------------------------------------------------------ */
+switch {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a;
+  min-width: 36px;
+  min-height: 20px;
+}
+
+switch:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 0 2px 0 0 #f08cbb;
+}
+
+switch > slider {
+  background-color: #fbf7fd;
+  background-image: none;
+  border-radius: 0;
+  border: none;
+  box-shadow: inset 0 0 0 2px #140e1a, inset -2px -2px 0 0 #1a1422;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+switch:checked > slider {
+  background-color: #ffffff;
+  box-shadow: inset 0 0 0 2px #3d1028;
+}
+
+checkbutton {
+  border-radius: 0;
+  padding: 2px;
+}
+
+checkbutton > check,
+check {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 0 #0f0a14;
+  color: transparent;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+checkbutton > check:checked,
+check:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 0 #f08cbb;
+  color: #ffffff;
+}
+
+checkbutton.radio > check,
+radio {
+  background-color: #1a1422;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 0 #0f0a14;
+  color: transparent;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+checkbutton.radio > check:checked,
+radio:checked {
+  background-color: #c94785;
+  border-color: #3d1028;
+  box-shadow: inset 0 0 0 2px #3d1028, inset 2px 2px 0 0 #f08cbb;
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------------------------
+ * 11. Thẻ Tab (Notebook Tabs)
+ * Cấu trúc GTK4: notebook > header > tabs > tab
+ * ------------------------------------------------------------------------------ */
+notebook {
+  background-color: #221a2b;
+}
+
+notebook > stack {
+  background-color: #221a2b;
+  border: 2px solid #140e1a;
+  box-shadow: none;
+}
+
+notebook > header {
+  background-color: #1a1422;
+  border: none;
+  box-shadow: inset 0 -2px 0 0 #140e1a;
+}
+
+notebook > header > tabs > tab {
+  background-color: #33293f;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a, inset -2px -2px 0 #1a1422;
+  color: #d4cade;
+  padding: 4px 10px;
+  margin: 2px 1px 0 1px;
+}
+
+notebook > header > tabs > tab:hover {
+  background-color: #2c2238;
+  color: #fbf7fd;
+  box-shadow: inset 0 0 0 2px #140e1a, inset 2px 2px 0 #7a6890, inset -2px -2px 0 #1a1422;
+}
+
+notebook > header > tabs > tab:checked {
+  background-color: #221a2b;
+  color: #fbf7fd;
+  box-shadow: inset 0 -4px 0 0 #c94785, inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a;
+}
+
+notebook > header.bottom > tabs > tab:checked {
+  box-shadow: inset 0 4px 0 0 #c94785, inset 0 0 0 2px #140e1a, inset 2px 2px 0 #56466a;
+}
+
+/* ------------------------------------------------------------------------------
+ * 12. Thanh cuộn (Scrollbar)
+ * Cấu trúc GTK4: scrollbar > range > trough > slider
+ * ------------------------------------------------------------------------------ */
+scrollbar {
+  background-color: #1a1422;
+  border: none;
+  box-shadow: none;
+}
+
+scrollbar trough,
+scrollbar > range > trough {
+  background-color: #1a1422;
+  border: none;
+  border-radius: 0;
+}
+
+scrollbar slider,
+scrollbar > range > trough > slider {
+  background-color: #56466a;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  min-width: 8px;
+  min-height: 8px;
+  box-shadow: inset 0 0 0 1px #140e1a;
+}
+
+scrollbar slider:hover,
+scrollbar > range > trough > slider:hover {
+  background-color: #7a6890;
+}
+
+scrollbar slider:active,
+scrollbar > range > trough > slider:active {
+  background-color: #c94785;
+}
+
+/* ------------------------------------------------------------------------------
+ * 13. Chú thích nổi (Tooltip)
+ * ------------------------------------------------------------------------------ */
+tooltip,
+tooltip.background,
+tooltip > contents {
+  background-color: #221a2b;
+  background-image: none;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(11, 7, 16, 0.85);
+  color: #fbf7fd;
+  padding: 4px 8px;
+}
+
+tooltip label {
+  color: #fbf7fd;
+  font-family: "FiraCode Nerd Font";
+}
+
+/* ------------------------------------------------------------------------------
+ * 14. Libadwaita: Cột điều hướng (.navigation-sidebar)
+ * ------------------------------------------------------------------------------ */
+.navigation-sidebar,
+placessidebar {
+  background-color: #1d1626;
+  color: #fbf7fd;
+}
+
+.navigation-sidebar row,
+.navigation-sidebar > row,
+placessidebar row {
+  color: #d4cade;
+  border-radius: 0;
+  padding: 4px 8px;
+  min-height: 24px;
+}
+
+.navigation-sidebar row:hover,
+.navigation-sidebar > row:hover,
+placessidebar row:hover {
+  background-color: #2c2238;
+  color: #fbf7fd;
+}
+
+.navigation-sidebar row:selected,
+.navigation-sidebar > row:selected,
+placessidebar row:selected {
+  background-color: #c94785;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #f08cbb;
+}
+
+/* ------------------------------------------------------------------------------
+ * 15. Libadwaita: Khung Card (.card) & Nhóm danh sách đóng hộp (.boxed-list)
+ * ------------------------------------------------------------------------------ */
+.card,
+.boxed-list {
+  background-color: #33293f;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 #56466a, inset -2px -2px 0 #1a1422;
+}
+
+.boxed-list > row {
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid #140e1a;
+  border-radius: 0;
+  background-color: transparent;
+  color: #fbf7fd;
+  padding: 6px 10px;
+}
+
+.boxed-list > row:last-child {
+  border-bottom: none;
+}
+
+.boxed-list > row:hover {
+  background-color: #2c2238;
+  color: #fbf7fd;
+}
+
+.boxed-list > row:selected {
+  background-color: #c94785;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 2px #f08cbb;
+}
+
+/* ------------------------------------------------------------------------------
+ * 16. Thanh chia ô (Paned), Đường phân cách (Separator), Tiến độ (Progress/Levelbar)
+ * ------------------------------------------------------------------------------ */
+separator,
+paned > separator {
+  background-color: #140e1a;
+  min-width: 2px;
+  min-height: 2px;
+  border: none;
+}
+
+progressbar trough,
+levelbar trough {
+  background-color: #1a1422;
+  border: 2px solid #140e1a;
+  border-radius: 0;
+  min-height: 8px;
+}
+
+progressbar progress,
+levelbar block.filled {
+  background-color: #c94785;
+  background-image: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: inset 0 2px 0 0 #f08cbb, inset 0 -2px 0 0 #962f62;
+}
+
+levelbar block.empty {
+  background-color: #1a1422;
+  border-radius: 0;
+}

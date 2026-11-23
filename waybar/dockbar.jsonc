@@ -44,7 +44,7 @@
     "custom/notifications": {
         "exec": "n=$(dunstctl count history); if [ \"$(dunstctl is-paused)\" = true ]; then i='󰂛'; c=paused; else i='󰂚'; c=idle; fi; [ \"$n\" -gt 0 ] && { t=\"$i<span size='7168' rise='10000'>$n</span>\"; c=\"$c\\\",\\\"has\"; } || t=\"$i\"; printf '{\"text\":\"%s\",\"class\":[\"%s\"],\"tooltip\":\"%s thông báo trong lịch sử\\\\nTrái: xem lại thông báo cũ · Phải: xóa hết\"}\\n' \"$t\" \"$c\" \"$n\"",
         "return-type": "json",
-        "interval": 30,
+        "interval": 300,         // dự phòng; cập nhật thật do bar-watch.sh bắn signal 10 khi dunst đổi
         "signal": 10,
         "on-click": "dunstctl history-pop; pkill -RTMIN+10 waybar",
         "on-click-right": "dunstctl history-clear; pkill -RTMIN+10 waybar"

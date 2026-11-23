@@ -226,14 +226,25 @@
     // Bấm bất kỳ ô nào = popup Trung tâm điều khiển (hypr/scripts/control-popup.py), mở đúng trang tương ứng.
     "group/control": {
         "orientation": "inherit",
-        "modules": ["network#top", "custom/vpn", "bluetooth#top", "pulseaudio", "backlight", "battery"]
+        "modules": ["network#top", "custom/vpn", "bluetooth#top", "custom/devbat", "pulseaudio", "backlight", "battery"]
+    },
+    // Pin thiết bị ngoại vi ĐANG kết nối (tai nghe/bàn phím/chuột qua Bluetooth hoặc USB): hypr/scripts/device-battery.py
+    // tự dò qua UPower/BlueZ/USB (+ Solaar nếu cài), chạy liên tục, chỉ in khi đổi; không có thiết bị báo pin → rỗng = ẩn ô.
+    "custom/devbat": {
+        "exec": "~/.config/hypr/scripts/device-battery.py",
+        "return-type": "json",
+        "restart-interval": 10,
+        "escape": false,
+        "on-click": "~/.config/hypr/scripts/control-popup.py bluetooth",
+        "on-click-right": "pkill -USR1 -f 'scripts/device-battery[.]py'",
+        "tooltip": true
     },
     // VPN (hypr/scripts/vpn.sh): kết nối WireGuard/VPN của NetworkManager hoặc Cloudflare WARP.
     // Trái: bật/tắt · Phải: chọn kết nối. Nhập file WireGuard: vpn.sh import <file.conf>
     "custom/vpn": {
         "exec": "~/.config/hypr/scripts/vpn.sh status",
         "return-type": "json",
-        "interval": 30,
+        "interval": 300,        // dự phòng; bar-watch.sh bắn signal 16 theo `nmcli monitor`
         "signal": 16,
         "on-click": "~/.config/hypr/scripts/vpn.sh toggle",
         "on-click-right": "~/.config/hypr/scripts/vpn.sh select"

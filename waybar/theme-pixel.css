@@ -245,7 +245,9 @@ window#waybar.dockbar #windows #image:hover, window#waybar.dockbar #pinned #imag
 #image.hud-stats { margin: 2px 2px 2px 0; padding: 0 2px; background: none; border: none; box-shadow: none; }
 #image.hud-stats:hover { background-color: rgba(240, 140, 187, 0.10); }
 
-/* Nút CÀI ĐẶT CHUNG (settings-pill.py): một khung cụm, cả nút là một vùng bấm */
+/* Nút CÀI ĐẶT CHUNG (settings-pill.py): một khung cụm, cả nút là một vùng bấm.
+   Ô pin thiết bị (device-battery.py) dùng cùng khung, lề phải 3px để tách khỏi nút cài đặt */
+#custom-devbat,
 #custom-settings {
     background-color: #33293f;
     background-image: none;
@@ -262,6 +264,8 @@ window#waybar.dockbar #windows #image:hover, window#waybar.dockbar #pinned #imag
     border-radius: 0;
     box-shadow: none;
 }
+#custom-devbat { margin-right: 3px; }
+#custom-devbat:hover,
 #custom-settings:hover { background-color: #463955; border-image: url("pixel/px-hover.png") 6 8 8 6 stretch; }
 #custom-settings.critical { border-image: url("pixel/px-active.png") 6 8 8 6 stretch; background-color: #c94785; }
 

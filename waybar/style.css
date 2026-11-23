@@ -206,12 +206,13 @@ window#waybar.topbar > box {
 #custom-vpn.on { color: @accent_fg; }
 #custom-vpn.connecting { color: @warn; }
 #custom-vpn.off, #custom-vpn.none { color: @faint; }
-#pulseaudio, #backlight, #battery, #network.speed, #cpu, #memory, #temperature { font-size: 14px; }
+#pulseaudio, #backlight, #battery, #custom-devbat, #network.speed, #cpu, #memory, #temperature { font-size: 14px; }
 #network.top.disconnected, #network.top.disabled,
 #bluetooth.top.off, #bluetooth.top.disabled,
 #pulseaudio.muted { color: @faint; }
 #battery.warning:not(.charging) { color: @warn; }
 #battery.critical:not(.charging) { color: @on_accent; background-color: @crit; }
+#custom-devbat { font-family: "FiraCode Nerd Font Propo"; }
 
 /* Thông báo */
 /* Thông báo (trên dock, dưới nút tiện ích): chuông + số nhỏ; có số thì bớt đệm để dock vẫn đúng 48px */

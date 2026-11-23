@@ -33,6 +33,7 @@
     "modules-right": [
         "image#hud-stats",
         "custom/ime",
+        "custom/devbat",
         "custom/settings",
         "custom/corner"
     ],

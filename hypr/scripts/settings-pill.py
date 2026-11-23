@@ -8,7 +8,8 @@ Module custom chạy LIÊN TỤC (không `interval`): mỗi dòng in ra = một 
 Cập nhật ngay khi có sự kiện, không hỏi định kỳ dày:
   * âm lượng  : `pactl subscribe` (sự kiện sink/server)
   * mạng      : `nmcli monitor`
-  * pin + sóng: hẹn giờ 15s (sysfs + /proc/net/wireless, rất rẻ)
+  * pin       : `upower --monitor` (cắm/rút sạc, đổi %)
+  * sóng Wi-Fi: hẹn giờ 15s (/proc/net/wireless, rất rẻ; NetworkManager không báo đổi cường độ)
 
   settings-pill.py            chạy cho Waybar
   settings-pill.py --once     in một dòng rồi thoát
@@ -29,6 +30,17 @@ WIFI_OFF, ETH = "\U000f092e", "\U000f0200"                       # 󰤮 󰈀
 BAT_ICONS = ["\U000f007a", "\U000f007c", "\U000f007e", "\U000f0080", "\U000f0079"]    # 󰁺 󰁼 󰁾 󰂀 󰁹
 BAT_CHG, AC = "\U000f0084", "\U000f06a5"                         # 󰂄 󰚥
 SEP = "<span color='#5a4a6b'>│</span>"
+
+
+def _die_with_parent():
+    """preexec_fn: tiến trình con nhận SIGTERM khi script chết (Waybar khởi động lại),
+    không thì `nmcli monitor`/`pactl subscribe`/`udevadm monitor` sống mồ côi mãi."""
+    try:
+        import ctypes
+        import signal
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)   # 1 = PR_SET_PDEATHSIG
+    except Exception:
+        pass
 
 
 def run(cmd, timeout=2):
@@ -164,7 +176,8 @@ class Pill:
         """Chạy lệnh theo dõi; dòng nào khớp `keep` thì đánh thức vòng in (gộp sự kiện dồn dập)."""
         while True:
             try:
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                                     preexec_fn=_die_with_parent)
                 for line in p.stdout:
                     if keep(line):
                         self.wake.set()
@@ -176,6 +189,8 @@ class Pill:
         threading.Thread(target=self.watch, daemon=True,
                          args=(["pactl", "subscribe"], lambda l: " on sink" in l or " on server" in l)).start()
         threading.Thread(target=self.watch, daemon=True, args=(["nmcli", "monitor"], lambda l: True)).start()
+        threading.Thread(target=self.watch, daemon=True,
+                         args=(["upower", "--monitor"], lambda l: "device changed" in l or "added" in l or "removed" in l)).start()
         self.emit()
         while True:
             fired = self.wake.wait(15)

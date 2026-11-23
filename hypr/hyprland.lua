@@ -55,6 +55,8 @@ hl.on("hyprland.start", function()
     -- hud.py (thẻ nhân vật/chỉ số của theme pixel) vẽ 1 lần trước Waybar rồi chạy nền; ở bản phẳng nó tự thoát.
     -- khay hệ thống tự viết (ngăn BG trên dock, tối đa 3 ô): nhận tên org.kde.StatusNotifierWatcher TRƯỚC khi app chạy ngầm khởi động
     hl.exec_cmd(scripts .. "sni-tray.py daemon")
+    -- sự kiện dunst (số thông báo) + NetworkManager (VPN) → signal cho Waybar, thay hỏi định kỳ (bar-watch.sh)
+    hl.exec_cmd(scripts .. "bar-watch.sh daemon")
     hl.exec_cmd(scripts .. "ui-theme.sh ensure; " .. scripts .. "hud.py once; waybar")
     hl.exec_cmd(scripts .. "hud.py daemon")
     hl.exec_cmd("dunst")

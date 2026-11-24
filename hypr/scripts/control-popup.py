@@ -701,7 +701,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         conn = next((x for x in bt.get("devices", []) if x.get("connected")), None)
         power_name, power_glyph = POWER_NAME.get(d["power"], (d["power"] or "?", G["balanced"]))
         values = {
-            "wifi": (wifi.get("enabled"), (wifi.get("ssid") or "Chưa kết nối") if wifi.get("enabled") else "Đã tắt",
+            "wifi": (wifi.get("enabled"), (wifi.get("ssid") or "Chưa kết nối") if wifi.get("enabled") else ("Khoá phần cứng" if wifi.get("hw_blocked") else "Đã tắt"),
                      wifi_glyph(wifi.get("strength")) if wifi.get("ssid") else (G["wifi"] if wifi.get("enabled") else G["wifi_off"])),
             "bluetooth": (bt.get("powered"), conn["name"] if conn else ("Bật" if bt.get("powered") else "Đã tắt"),
                           G["bt_on"] if conn else (G["bt"] if bt.get("powered") else G["bt_off"])),

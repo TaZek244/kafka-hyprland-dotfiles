@@ -174,21 +174,58 @@ def parse_upower(text: str) -> dict[str, Any]:
     return result
 
 
+def parse_nm_radio(text: str) -> tuple[bool, bool]:
+    """`nmcli -t -f WIFI-HW,WIFI general` -> (phần cứng bật, phần mềm bật)."""
+    parts = (text.strip().split(":") + ["", ""])[:2]
+    return parts[0] == "enabled", parts[1] == "enabled"
+
+
+def _wifi_radio() -> tuple[bool, bool]:
+    return parse_nm_radio(_run(["nmcli", "-t", "-f", "WIFI-HW,WIFI", "general"]).stdout)
+
+
+def _wlan_hard_blocked() -> bool:
+    """Khoá CỨNG (công tắc/phím máy bay của hãng) — phần mềm không mở được."""
+    for d in Path("/sys/class/rfkill").glob("rfkill*"):
+        try:
+            if (d / "type").read_text().strip() == "wlan" and (d / "hard").read_text().strip() == "1": return True
+        except OSError: pass
+    return False
+
+
 def wifi_state() -> dict[str, Any]:
+    # Trước đây chỉ kiểm `nmcli dev show` chạy được -> tắt radio vẫn báo "enabled",
+    # nên bấm "bật" lại gửi `radio wifi off` (not True) và không bao giờ bật lại được.
+    off = {"enabled": False, "ssid": None, "strength": None, "hw_blocked": False}
     try:
-        p = _run(["nmcli", "-t", "-e", "yes", "-f", "GENERAL.STATE,GENERAL.CONNECTION", "dev", "show"])
-        if p.returncode != 0: return {"enabled": False, "ssid": None, "strength": None}
+        hw, sw = _wifi_radio()
+        if not (hw and sw): return dict(off, hw_blocked=_wlan_hard_blocked())
         ssid = None
-        for line in p.stdout.splitlines():
-            if line.startswith("GENERAL.CONNECTION:"): ssid = _nm_unescape(line.split(":", 1)[1])
+        for line in _run(["nmcli", "-t", "-e", "yes", "-f", "TYPE,STATE,CONNECTION", "device"]).stdout.splitlines():
+            t, st, con = (_nm_fields(line, 3) + ["", "", ""])[:3]
+            if t == "wifi" and st == "connected" and con: ssid = _nm_unescape(con); break
         w = wifi_list(False)
         active = next((x for x in w if x["active"]), None)
-        return {"enabled": True, "ssid": ssid if ssid and ssid != "--" else (active["ssid"] if active else None), "strength": active["strength"] if active else None}
-    except Exception: return {"enabled": False, "ssid": None, "strength": None}
+        return {"enabled": True, "ssid": ssid or (active["ssid"] if active else None),
+                "strength": active["strength"] if active else None, "hw_blocked": False}
+    except Exception: return off
 
 
 def wifi_set_enabled(on: bool) -> tuple[bool, str]:
-    try: return _ok(_run(["nmcli", "radio", "wifi", "on" if on else "off"]))
+    try:
+        if on:
+            # NM coi khoá mềm của rfkill nền tảng (acer-wmi) là "phần cứng": `radio wifi on`
+            # báo thành công nhưng radio vẫn tắt -> gỡ khoá mềm rfkill trước.
+            _run(["rfkill", "unblock", "wlan"])
+        ok, msg = _ok(_run(["nmcli", "radio", "wifi", "on" if on else "off"]))
+        if not ok: return ok, msg
+        for _ in range(15):                     # chờ NM áp dụng (tối đa ~3s)
+            hw, sw = _wifi_radio()
+            if (hw and sw) == on: return True, "OK"
+            if on and not hw: _run(["rfkill", "unblock", "wlan"])
+            time.sleep(0.2)
+        if on and _wlan_hard_blocked(): return False, "Wi-Fi bị khoá phần cứng (phím máy bay / Fn)"
+        return False, "Wi-Fi chưa bật được" if on else "Wi-Fi chưa tắt được"
     except Exception: return False, _ERR
 
 
@@ -407,6 +444,8 @@ def _selftest() -> None:
     base = Path(__file__).resolve().parent / "tests" / "control-samples"   # mẫu đầu ra thật đã ẩn danh
     wifi = parse_nmcli_wifi("*:Cafe\\:Net:80:WPA2\n:Cafe\\:Net:40:--\n:Other:90:WPA2", {"Other"})
     assert wifi[0]["ssid"] == "Cafe:Net" and wifi[0]["strength"] == 80 and wifi[1]["known"]
+    assert parse_nm_radio("enabled:enabled\n") == (True, True) and parse_nm_radio("enabled:disabled") == (True, False)
+    assert parse_nm_radio("disabled:enabled") == (False, True) and parse_nm_radio("") == (False, False)
     assert parse_brightness((base / "brightnessctl.txt").read_text()) == 95
     assert parse_upower((base / "upower-bat.txt").read_text())["state"] == "full"
     objs = parse_bluez_busctl(json.loads((base / "bluez-objects.json").read_text()))

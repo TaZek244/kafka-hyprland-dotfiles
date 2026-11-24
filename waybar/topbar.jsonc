@@ -260,7 +260,7 @@
         "tooltip-format-ethernet": "Dây mạng: {ifname}\nIP: {ipaddr}\nTrái: bảng Wi-Fi",
         "tooltip-format-disconnected": "Chưa kết nối mạng\nTrái: bảng Wi-Fi · Phải: bật/tắt wifi",
         "on-click": "~/.config/hypr/scripts/control-popup.py wifi",
-        "on-click-right": "[ \"$(nmcli radio wifi)\" = enabled ] && nmcli radio wifi off || nmcli radio wifi on"
+        "on-click-right": "[ \"$(nmcli radio wifi)\" = enabled ] && nmcli radio wifi off || { rfkill unblock wlan; nmcli radio wifi on; }"
     },
     "bluetooth#top": {
         "format": "󰂯",

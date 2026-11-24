@@ -55,9 +55,11 @@ problem() {
 
 start_fcitx() {
     pkill -9 -x -u "$(id -u)" fcitx5 2>/dev/null && sleep 0.3
-    setsid -f fcitx5 -d >/dev/null 2>&1
+    # 9>&- : đừng để fcitx5 kế thừa fd khoá của daemon (nếu không, fcitx5 giữ khoá mãi → daemon mới
+    # tưởng đã có bản chạy và thoát, mất giám sát cho tới lần đăng nhập sau)
+    setsid -f fcitx5 -d 9>&- >/dev/null 2>&1
     # chờ fcitx5 nối xong (tối đa ~6s)
-    for _ in $(seq 30); do sleep 0.2; [[ -z "$(problem)" ]] && { activate_vi; return 0; }; done
+    for _ in $(seq 30); do sleep 0.2; [[ -z "$(problem)" ]] && { enforce_config; activate_vi; return 0; }; done
     return 1
 }
 
@@ -65,17 +67,43 @@ start_fcitx() {
 # EN dù ActiveByDefault=True; "-o" bật cho mọi cửa sổ (một trạng thái dùng chung).
 activate_vi() { sleep 0.3; fcitx5-remote -o 2>/dev/null; }
 
+# Một trạng thái VI/EN cho MỌI cửa sổ (kể cả từng tab/ô nhập của Chromium qua XIM). Từng hỏng vì dòng
+# "[Behavior]" trong ~/.config/fcitx5/config bị comment → hai khoá rơi vào [Hotkey/TriggerKeys], fcitx5
+# dùng mặc định ShareInputState=No (mỗi cửa sổ một trạng thái). Đặt qua D-Bus để fcitx5 áp dụng ngay và
+# tự ghi lại file đúng (sửa file tay bị fcitx5 ghi đè khi thoát). Trả 0 nếu đã đúng hoặc sửa xong.
+CTL=(busctl --user --timeout=2 call org.fcitx.Fcitx5 /controller org.fcitx.Fcitx.Controller1)
+config_wrong() {
+    local cfg
+    cfg=$("${CTL[@]}" GetConfig s 'fcitx://config/global' 2>/dev/null | tr '"' '\n') || return 1
+    grep -A2 -x 'ShareInputState' <<<"$cfg" | grep -qx 'All' || return 0
+    grep -A2 -x 'ActiveByDefault' <<<"$cfg" | grep -qx 'True' || return 0
+    return 1
+}
+enforce_config() {
+    config_wrong || return 0
+    log "cấu hình chung sai (ShareInputState/ActiveByDefault) → đặt lại"
+    "${CTL[@]}" SetConfig sv 'fcitx://config/global' 'a{sv}' 1 Behavior 'a{sv}' 2 \
+        ShareInputState s All ActiveByDefault s True >/dev/null 2>&1 || return 1
+    # Cửa sổ mở TRƯỚC lúc đổi (vd Discord) vẫn giữ trạng thái riêng cho tới lần chuyển kế tiếp
+    # (fcitx5 chỉ lan trạng thái khi có thay đổi) → chuyển EN rồi VI một lần để đồng bộ mọi cửa sổ.
+    sleep 0.3; fcitx5-remote -c 2>/dev/null; sleep 0.2; fcitx5-remote -o 2>/dev/null
+}
+
 notify() { command -v notify-send >/dev/null && notify-send -a "Bộ gõ" -i fcitx "$@"; }
 
 case "${1:-status}" in
     env) export_env ;;
     status)
         p=$(problem)
+        [[ -z "$p" ]] && config_wrong && p="ShareInputState không phải All (mỗi cửa sổ một trạng thái VI/EN)"
         if [[ -z "$p" ]]; then echo "OK: fcitx5 $(fcitx5-remote -n 2>/dev/null) (trạng thái $(fcitx5-remote 2>/dev/null))"; exit 0
         else echo "LỖI: $p"; exit 1; fi ;;
     restart)
         export_env
-        if start_fcitx; then notify "Đã khởi động lại bộ gõ" "Cửa sổ terminal mở từ trước nếu gõ không dấu thì mở cửa sổ mới."
+        # daemon chưa chạy (vd khoá từng bị fcitx5 cũ giữ) → bật lại; đã có thì bản mới tự thoát
+        start_fcitx_ok=0; start_fcitx && start_fcitx_ok=1
+        setsid -f "$(realpath "$0")" daemon 9>&- >/dev/null 2>&1
+        if ((start_fcitx_ok)); then notify "Đã khởi động lại bộ gõ" "Cửa sổ terminal mở từ trước nếu gõ không dấu thì mở cửa sổ mới."
         else notify -u critical "Bộ gõ chưa chạy được" "$(problem)"; exit 1; fi ;;
     daemon)
         exec 9>"$LOCK"
@@ -86,14 +114,14 @@ case "${1:-status}" in
             log "lúc khởi động: $p → bật lại"
             start_fcitx || log "chưa ổn: $(problem)"
         else
-            activate_vi
+            enforce_config; activate_vi
         fi
         bad=0
         while sleep "$INTERVAL"; do
             # Hyprland đã thoát (đăng xuất) → dừng giám sát
             [[ -n "$HYPRLAND_INSTANCE_SIGNATURE" && ! -S "$RUN/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" ]] && exit 0
             p=$(problem)
-            if [[ -z "$p" ]]; then bad=0; continue; fi
+            if [[ -z "$p" ]]; then bad=0; enforce_config; continue; fi
             # 2 lần liên tiếp mới xử lý (tránh lúc fcitx5 đang tự khởi động lại)
             ((++bad < 2)) && continue
             log "$p → bật lại"

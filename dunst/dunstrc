@@ -61,3 +61,9 @@
     foreground = "#ffffff"
     frame_color = "#d4af6a"
     timeout = 0
+
+# Cảnh báo của alert-watch.py khi đã hiện bảng giữa màn hình (alert-popup.py): chỉ ghi vào lịch sử
+# (nút chuông trên dock), không hiện thêm hộp dunst trùng.
+[kafka-alert-popup]
+    category = "kafka.alert.popup"
+    skip_display = true

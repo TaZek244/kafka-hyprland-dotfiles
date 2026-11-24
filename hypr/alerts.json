@@ -1,0 +1,7 @@
+{
+  "battery":     { "enabled": true, "levels": [80, 50, 30, 15], "critical": 15 },
+  "devices":     { "enabled": true, "levels": [30, 15], "critical": 10 },
+  "wifi_signal": { "enabled": true, "levels": [40, 20] },
+  "internet":    { "enabled": true, "grace_seconds": 20 },
+  "popup":       { "enabled": true, "sound": false, "volume": 80, "seconds": 10 }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """studio.py — KAFKA STUDIO: chỉnh giao diện bằng tay mà không phải nhớ đường dẫn/lệnh nạp lại.
 
-Nút 󰏘 trên dock (dưới nút tiện ích, trên thông báo). App GTK3 (class `kafka.studio`, cửa sổ nổi 1180x740), 4 tab:
+Nút 󰏘 trên dock (dưới nút tiện ích, trên thông báo). App GTK3 (class `kafka.studio`, cửa sổ nổi 1180x740), 5 tab:
 
   HÌNH NỀN   lưới ảnh trong wallpapers/: bấm = đặt ngay (wallpaper-cycle.sh set), "Đặt làm mặc định" = ghi
              ~/.local/state/kafka/wallpaper (hyprland.lua đọc lúc đăng nhập). "Thêm ảnh…": ảnh ngang chép vào
@@ -14,11 +14,13 @@ Nút 󰏘 trên dock (dưới nút tiện ích, trên thông báo). App GTK3 (cl
   MÀU SẮC    các biến `@define-color` của waybar/style.css (bản phẳng) và theme-pixel.css (bản pixel): đổi bằng
              bảng chọn màu, Waybar nạp lại ngay.
   GIAO DIỆN  đổi phẳng ⇄ pixel, viền xoay màu, bộ con trỏ, nạp lại từng thành phần.
+  CẢNH BÁO   chỉnh ngưỡng trong hypr/alerts.json (pin máy, pin thiết bị, Wi-Fi, Internet): bật/tắt, mốc %,
+              mức khẩn cấp, thời gian chờ. Lưu = ghi JSON rồi nạp lại daemon alert-watch.py; có nút thử thông báo.
 
   studio.py               mở app
-  studio.py --page wall|edit|color|look   mở thẳng vào một tab
+  studio.py --page wall|edit|dock|color|look|alert   mở thẳng vào một tab
   studio.py --open waybar/style.css       mở thẳng file đó trong tab Sửa file
-  studio.py --selftest    kiểm tra phần không cần màn hình (đọc/ghi màu, kiểm tra JSONC, danh sách file)
+  studio.py --selftest    kiểm tra phần không cần màn hình (đọc/ghi màu, kiểm tra JSONC, danh sách file, ngưỡng cảnh báo)
 """
 
 import datetime
@@ -39,6 +41,8 @@ BACKUP_DIR = os.path.join(STATE_DIR, "studio-backups")
 THUMB_DIR = os.path.expanduser("~/.cache/kafka/studio-thumbs")
 CURRENT_WALL = os.path.expanduser("~/.cache/kafka_current_wallpaper")
 SCRIPTS = os.path.join(REPO, "hypr", "scripts")
+ALERTS_FILE = os.path.join(REPO, "hypr", "alerts.json")
+ALERT_WATCH = os.path.join(SCRIPTS, "alert-watch.py")
 IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
 
 # ------------------------------------------------------------------ lệnh nạp lại từng thành phần
@@ -55,6 +59,10 @@ RELOAD = {
                f"kill $(cat $XDG_RUNTIME_DIR/kafka-tools-popup.pid 2>/dev/null) 2>/dev/null; "
                f"sleep 0.3; hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/tools-popup.py')\""),
     "dock-pins": ("Vẽ lại app ghim trên dock", f"{SCRIPTS}/dock-pins.py render"),
+    # daemon tự nạp khi alerts.json đổi; nút này để chắc chắn — chưa chạy thì bật lên
+    "alerts": ("Nạp lại cảnh báo",
+               f"{SCRIPTS}/alert-watch.py --reload 2>/dev/null || "
+               f"hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/alert-watch.py daemon')\""),
     None: ("Không cần nạp lại (mở lại là thấy)", ""),
 }
 
@@ -66,6 +74,7 @@ FILES = [
     ("Waybar", "Bố cục thanh trên — pixel", "waybar/topbar-pixel.jsonc", "json", "waybar", "jsonc"),
     ("Waybar", "Bố cục dock", "waybar/dockbar.jsonc", "json", "waybar", "jsonc"),
     ("Waybar", "App ghim trên dock", "waybar/dock-pins.json", "json", "dock-pins", "jsonc"),
+    ("Cảnh báo", "Ngưỡng cảnh báo (alerts.json)", "hypr/alerts.json", "json", "alerts", "alerts"),
     ("Popup", "Màu/khung popup pixel (kafka_theme.py)", "hypr/scripts/kafka_theme.py", "python3", "popups", "python"),
     ("Rofi", "Menu rofi chung (kafka.rasi)", "rofi/kafka.rasi", "css", None, None),
     ("Rofi", "Menu nguồn (kafka-power.rasi)", "rofi/kafka-power.rasi", "css", None, None),
@@ -128,6 +137,91 @@ def save_pins(pins, path=PINS_FILE):
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
+        f.write("\n")
+    os.replace(tmp, path)
+
+
+# ------------------------------------------------------------------ ngưỡng cảnh báo (hypr/alerts.json)
+DEFAULT_ALERTS = {
+    "battery":     {"enabled": True, "levels": [80, 50, 30, 15], "critical": 15},
+    "devices":     {"enabled": True, "levels": [30, 15], "critical": 10},
+    "wifi_signal": {"enabled": True, "levels": [40, 20]},
+    "internet":    {"enabled": True, "grace_seconds": 20},
+    "popup":       {"enabled": True, "sound": True, "volume": 80, "seconds": 10},
+}
+
+
+def parse_levels(text):
+    """Chuỗi "80, 50,30" → [80, 50, 30]: số nguyên 1..99, bỏ trùng, xếp giảm dần."""
+    out = []
+    for chunk in str(text).split(","):
+        s = chunk.strip()
+        if not s:
+            continue
+        if not re.fullmatch(r"\d+", s):
+            raise ValueError(f"Mốc '{s}' không phải số nguyên từ 1 đến 99.")
+        n = int(s)
+        if not 1 <= n <= 99:
+            raise ValueError(f"Mốc {n} nằm ngoài phạm vi 1..99.")
+        if n not in out:
+            out.append(n)
+    return sorted(out, reverse=True)
+
+
+def clean_levels(value):
+    """Chuẩn hoá mốc đọc từ file: None nghĩa là hỏng, phải lấy mặc định."""
+    if not isinstance(value, (list, tuple)):
+        return None
+    out = []
+    for n in value:
+        if isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= 99:
+            return None
+        if n not in out:
+            out.append(n)
+    return sorted(out, reverse=True)
+
+
+def load_alerts(path=ALERTS_FILE):
+    """Đọc ngưỡng cảnh báo; file hỏng/thiếu khóa thì lấy mặc định từng khóa, không bao giờ crash."""
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    out = {}
+    for key, defaults in DEFAULT_ALERTS.items():
+        val = data.get(key)
+        if not isinstance(val, dict):
+            val = {}
+        cfg = {}
+        for field, fallback in defaults.items():
+            got = val.get(field, fallback)
+            if field in ("enabled", "sound"):
+                cfg[field] = got if isinstance(got, bool) else fallback
+            elif field == "levels":
+                lv = clean_levels(got)
+                cfg[field] = lv if lv is not None else list(fallback)
+            elif isinstance(got, int) and not isinstance(got, bool):
+                cfg[field] = got
+            else:
+                cfg[field] = fallback
+        for field, got in val.items():                  # giữ khóa lạ (vd critical của Wi-Fi)
+            if field not in cfg:
+                cfg[field] = got
+        out[key] = cfg
+    for key, val in data.items():                       # giữ cả nhóm lạ để lần lưu sau không mất
+        if key not in out:
+            out[key] = val
+    return out
+
+
+def save_alerts(path, data):
+    """Ghi ngưỡng qua file tạm cùng thư mục rồi os.replace (file cũ không bao giờ bị cụt)."""
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
     os.replace(tmp, path)
 
@@ -210,6 +304,32 @@ def check_text(kind, text, path):
             json.loads(strip_jsonc(text))
         except json.JSONDecodeError as e:
             return f"JSON lỗi ở dòng {e.lineno}, cột {e.colno}: {e.msg}"
+    elif kind == "alerts":                  # alert-watch.py đọc JSON CHUẨN: lỗi là nó lặng lẽ về mặc định
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            return f"JSON lỗi ở dòng {e.lineno}, cột {e.colno}: {e.msg} (không dùng comment/dấu phẩy thừa)"
+        if not isinstance(data, dict):
+            return "Phải là một object { ... }"
+        for key, cfg in data.items():
+            if key not in DEFAULT_ALERTS or not isinstance(cfg, dict):
+                continue
+            if "enabled" in cfg and not isinstance(cfg["enabled"], bool):
+                return f"{key}.enabled phải là true/false"
+            if "levels" in cfg and (clean_levels(cfg["levels"]) is None or not cfg["levels"]):
+                return f"{key}.levels phải là danh sách số nguyên 1..99, ví dụ [80, 50, 30]"
+            crit = cfg.get("critical", 0)
+            if isinstance(crit, bool) or not isinstance(crit, int) or not 0 <= crit <= 99:
+                return f"{key}.critical phải là số nguyên 0..99"
+            for f, lo, hi in (("volume", 0, 100), ("seconds", 3, 120)):
+                v = cfg.get(f, lo)
+                if isinstance(v, bool) or not isinstance(v, int) or not lo <= v <= hi:
+                    return f"{key}.{f} phải là số nguyên {lo}..{hi}"
+            if "sound" in cfg and not isinstance(cfg["sound"], bool):
+                return f"{key}.sound phải là true/false"
+            grace = cfg.get("grace_seconds", 20)
+            if isinstance(grace, bool) or not isinstance(grace, int) or grace < 0:
+                return f"{key}.grace_seconds phải là số nguyên ≥ 0"
     elif kind == "python":
         try:
             compile(text, path, "exec")
@@ -404,6 +524,7 @@ scrolledwindow {{ background-color: transparent; }}
             for key, icon, name, build in (("wall", "󰸉", "Hình nền", self.page_wall),
                                            ("edit", "󰈮", "Sửa file", self.page_edit),
                                            ("dock", "󱂬", "Dock", self.page_dock),
+                                           ("alert", "󰀦", "Cảnh báo", self.page_alert),
                                            ("color", "󰏘", "Màu sắc", self.page_color),
                                            ("look", "󰔎", "Giao diện", self.page_look)):
                 b = Gtk.Button()
@@ -1221,6 +1342,178 @@ scrolledwindow {{ background-color: transparent; }}
                     self.file_list.select_row(r)
                     return
 
+        # ================= CẢNH BÁO =================
+        def page_alert(self):
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            box.get_style_context().add_class("page")
+            h = Gtk.Label(label="Ngưỡng cảnh báo", xalign=0)
+            h.get_style_context().add_class("h1")
+            box.pack_start(h, False, False, 0)
+            note = Gtk.Label(label="Cảnh báo khi giá trị tụt xuống dưới từng mốc. Mốc ghi dạng số cách nhau dấu phẩy, "
+                                    "ví dụ 80, 50, 30. Mốc ≤ mức khẩn cấp thì bảng không tự tắt (rung + kêu lại). "
+                                    "Mọi cảnh báo vẫn nằm trong lịch sử thông báo (nút chuông).", xalign=0)
+            note.set_line_wrap(True)
+            note.get_style_context().add_class("hint")
+            box.pack_start(note, False, False, 0)
+
+            # (khóa, tiêu đề, có mốc %, ô số bên cạnh)
+            specs = (
+                ("battery", "Pin máy", "levels", "critical"),
+                ("devices", "Pin thiết bị ngoại vi", "levels", "critical"),
+                ("wifi_signal", "Sóng Wi-Fi", "levels", None),
+                ("internet", "Internet", None, "grace_seconds"),
+            )
+            self.alert_widgets = {}
+            for key, title, has_levels, has_number in specs:
+                card = Gtk.Box(spacing=12)
+                card.get_style_context().add_class("card")
+                head = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+                head.set_valign(Gtk.Align.CENTER)
+                t = Gtk.Label(label=title, xalign=0)
+                t.get_style_context().add_class("h1")
+                head.pack_start(t, False, False, 0)
+                card.pack_start(head, True, True, 0)
+
+                w = {"title": title, "on": Gtk.Switch(), "levels": None,
+                     "critical": None, "grace_seconds": None}
+                w["on"].set_valign(Gtk.Align.CENTER)
+                inp = Gtk.Box(spacing=6)
+                if has_levels:
+                    lv = Gtk.Entry()
+                    lv.set_width_chars(20)
+                    lv.set_placeholder_text("80, 50, 30")
+                    w["levels"] = lv
+                    lab = Gtk.Label(label="Mốc (%)", xalign=1)
+                    lab.get_style_context().add_class("hint")
+                    inp.pack_start(lab, False, False, 0)
+                    inp.pack_start(lv, False, False, 0)
+                if has_number == "critical":
+                    sp = Gtk.SpinButton.new_with_range(0, 99, 1)
+                    sp.set_numeric(True)
+                    w["critical"] = sp
+                    lab = Gtk.Label(label="Khẩn cấp ≤", xalign=1)
+                    lab.get_style_context().add_class("hint")
+                    inp.pack_start(lab, False, False, 0)
+                    inp.pack_start(sp, False, False, 0)
+                elif has_number == "grace_seconds":
+                    sp = Gtk.SpinButton.new_with_range(5, 600, 1)
+                    sp.set_numeric(True)
+                    w["grace_seconds"] = sp
+                    lab = Gtk.Label(label="Báo sau (giây)", xalign=1)
+                    lab.get_style_context().add_class("hint")
+                    inp.pack_start(lab, False, False, 0)
+                    inp.pack_start(sp, False, False, 0)
+                if inp.get_children():
+                    card.pack_start(inp, False, False, 0)
+                on_lab = Gtk.Label(label="Bật", xalign=1)
+                on_lab.get_style_context().add_class("hint")
+                card.pack_end(w["on"], False, False, 0)
+                card.pack_end(on_lab, False, False, 0)
+                box.pack_start(card, False, False, 0)
+                self.alert_widgets[key] = w
+
+            # bảng giữa màn hình kiểu game + âm thanh (alert-popup.py)
+            card = Gtk.Box(spacing=12)
+            card.get_style_context().add_class("card")
+            t = Gtk.Label(label="Bảng giữa màn hình + âm thanh", xalign=0)
+            t.get_style_context().add_class("h1")
+            t.set_valign(Gtk.Align.CENTER)
+            card.pack_start(t, True, True, 0)
+            pw = {"on": Gtk.Switch(), "sound": Gtk.Switch(),
+                  "volume": Gtk.SpinButton.new_with_range(0, 100, 5), "seconds": Gtk.SpinButton.new_with_range(3, 120, 1)}
+            for key, text in (("seconds", "Hiện (giây)"), ("sound", "Âm thanh"), ("volume", "Âm lượng %"), ("on", "Bật")):
+                lab = Gtk.Label(label=text, xalign=1)
+                lab.get_style_context().add_class("hint")
+                pw[key].set_valign(Gtk.Align.CENTER)
+                card.pack_start(lab, False, False, 0)
+                card.pack_start(pw[key], False, False, 0)
+            box.pack_start(card, False, False, 0)
+            self.alert_popup_w = pw
+
+            self.alert_fill(load_alerts())
+            bottom = Gtk.Box(spacing=8)
+            bottom.pack_start(self.btn("Lưu", self.alert_save, "accent"), False, False, 0)
+            bottom.pack_start(self.btn("Về mặc định", self.alert_reset), False, False, 0)
+            bottom.pack_start(self.btn("Thử thông báo", self.alert_test), False, False, 0)
+            self.alert_status = Gtk.Label(label="", xalign=0)
+            self.alert_status.get_style_context().add_class("status")
+            self.alert_status.set_line_wrap(True)
+            bottom.pack_start(self.alert_status, True, True, 0)
+            box.pack_start(bottom, False, False, 0)
+            return box
+
+        def alert_fill(self, data):
+            pc = data.get("popup") or DEFAULT_ALERTS["popup"]
+            pw = self.alert_popup_w
+            pw["on"].set_active(pc.get("enabled", True) is True)
+            pw["sound"].set_active(pc.get("sound", True) is True)
+            pw["volume"].set_value(pc.get("volume", 80))
+            pw["seconds"].set_value(pc.get("seconds", 10))
+            for key, w in self.alert_widgets.items():
+                cfg = data.get(key) or {}
+                w["on"].set_active(cfg.get("enabled", True) is True)
+                if w["levels"] is not None:
+                    w["levels"].set_text(", ".join(str(n) for n in cfg.get("levels", [])))
+                if w["critical"] is not None:
+                    w["critical"].set_value(cfg.get("critical", 0))
+                if w["grace_seconds"] is not None:
+                    w["grace_seconds"].set_value(cfg.get("grace_seconds", 20))
+
+        def alert_reset(self):
+            self.alert_fill(DEFAULT_ALERTS)
+            self.say(self.alert_status, "Đã điền mặc định — bấm Lưu để áp dụng.")
+
+        def alert_save(self):
+            data = load_alerts()
+            for key, w in self.alert_widgets.items():
+                cfg = data.get(key) or dict(DEFAULT_ALERTS.get(key, {}))
+                data[key] = cfg
+                cfg["enabled"] = w["on"].get_active()
+                if w["levels"] is not None:
+                    try:
+                        levels = parse_levels(w["levels"].get_text())
+                    except ValueError as e:
+                        return self.say(self.alert_status, f"{w['title']}: {e}", True)
+                    if not levels and cfg["enabled"]:
+                        return self.say(self.alert_status, f"{w['title']}: cần ít nhất một mốc khi đã bật.", True)
+                    cfg["levels"] = levels
+                if w["critical"] is not None:
+                    cfg["critical"] = int(w["critical"].get_value())
+                if w["grace_seconds"] is not None:
+                    cfg["grace_seconds"] = int(w["grace_seconds"].get_value())
+            pw = self.alert_popup_w
+            data["popup"] = dict(data.get("popup") or {}, enabled=pw["on"].get_active(), sound=pw["sound"].get_active(),
+                                 volume=int(pw["volume"].get_value()), seconds=int(pw["seconds"].get_value()))
+            try:
+                if os.path.exists(ALERTS_FILE):
+                    backup(ALERTS_FILE)              # như mọi lần lưu khác của Studio: Sửa file › Hoàn tác lấy lại được
+                save_alerts(ALERTS_FILE, data)
+            except OSError as e:
+                return self.say(self.alert_status, f"Không ghi được alerts.json: {e}", True)
+            self.say(self.alert_status, "Đã lưu")
+
+            def reload():
+                try:
+                    p = subprocess.Popen(["python3", ALERT_WATCH, "--reload"],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    return p.wait(timeout=10)
+                except (OSError, subprocess.TimeoutExpired):
+                    return 1
+
+            def done(rc):
+                if rc:
+                    self.say(self.alert_status, "Đã lưu — daemon chưa chạy")
+            self.bg(reload, done)
+
+        def alert_test(self):
+            try:
+                subprocess.Popen(["python3", ALERT_WATCH, "--test"],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except OSError as e:
+                self.say(self.alert_status, f"Không gửi được thông báo thử: {e}", True)
+                return
+            self.say(self.alert_status, "Đã gửi thông báo thử.")
+
         # ================= GIAO DIỆN =================
         def page_look(self):
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
@@ -1278,7 +1571,7 @@ scrolledwindow {{ background-color: transparent; }}
             grid.set_selection_mode(Gtk.SelectionMode.NONE)
             grid.set_max_children_per_line(4)
             grid.set_homogeneous(True)
-            for key in ("waybar", "walker", "dunst", "hyprshell", "kitty", "hyprland", "popups"):
+            for key in ("waybar", "walker", "dunst", "hyprshell", "kitty", "hyprland", "popups", "alerts"):
                 name, cmd = RELOAD[key]
                 grid.add(self.btn(name, lambda c=cmd, n=name: self.run_look(c, f"{n}: xong")))
             card("Nạp lại thành phần", "Khi một phần giao diện hiện sai sau khi sửa tay.", grid)
@@ -1333,6 +1626,35 @@ def selftest():
         with open(pf) as f:
             d = json.load(f)
         assert d == {"_": "ghi chú", "pins": ["x.desktop", "y.desktop"]}, d
+        assert parse_levels("80, 50,30") == [80, 50, 30]
+        assert parse_levels("30,80,80") == [80, 30]
+        for bad in ("abc", "0", "100"):
+            try:
+                parse_levels(bad)
+            except ValueError as e:
+                assert str(e), e
+            else:
+                raise AssertionError(f"parse_levels({bad!r}) phải báo lỗi")
+        af = os.path.join(td, "alerts.json")
+        assert load_alerts(af) == DEFAULT_ALERTS                       # file chưa có
+        with open(af, "w") as f:
+            f.write("{ hỏng")
+        assert load_alerts(af) == DEFAULT_ALERTS                       # file hỏng
+        alerts = load_alerts(af)
+        alerts["battery"]["levels"] = [50, 90]
+        alerts["wifi_signal"]["notes"] = "khóa lạ vẫn sống"
+        alerts["custom"] = {"abc": 1}
+        save_alerts(af, alerts)
+        back = load_alerts(af)
+        assert back["battery"]["levels"] == [90, 50], back
+        assert back["wifi_signal"]["notes"] == "khóa lạ vẫn sống" and back["custom"] == {"abc": 1}, back
+        assert not os.path.exists(af + ".tmp")
+        assert check_text("alerts", json.dumps(DEFAULT_ALERTS), af) is None
+        assert check_text("alerts", '{"battery": {"levels": [80,]}}', af)               # dấu phẩy thừa
+        assert check_text("alerts", '{"battery": {"levels": [0, 50]}}', af)
+        assert check_text("alerts", '{"devices": {"critical": 100}}', af)
+        with open(ALERTS_FILE) as f:
+            assert check_text("alerts", f.read(), ALERTS_FILE) is None, "hypr/alerts.json hỏng"
     assert load_pins(), "waybar/dock-pins.json trống/hỏng"
     print("studio.py selftest OK")
     return 0

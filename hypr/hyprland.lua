@@ -57,7 +57,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd(scripts .. "sni-tray.py daemon")
     -- sự kiện dunst (số thông báo) + NetworkManager (VPN) → signal cho Waybar, thay hỏi định kỳ (bar-watch.sh)
     hl.exec_cmd(scripts .. "bar-watch.sh daemon")
-    hl.exec_cmd(scripts .. "ui-theme.sh ensure; " .. scripts .. "hud.py once; waybar")
+    hl.exec_cmd(scripts .. "waybar-start.sh")   -- ensure + hud once + waybar, ghi log ~/.local/state/kafka/waybar.log, thoát sớm thì thử lại
     hl.exec_cmd(scripts .. "hud.py daemon")
     hl.exec_cmd("dunst")
     -- cảnh báo khi pin máy/thiết bị, sóng Wi-Fi, Internet tụt dưới mốc (hypr/alerts.json, sửa trong Studio › Cảnh báo)

@@ -49,6 +49,7 @@ json_escape() {
     local s=$1 out="" i ch
     for ((i = 0; i < ${#s}; i++)); do
         ch=${s:i:1}
+        # shellcheck disable=SC1003  # '\\' = hai ký tự \\ (escape dấu \ cho JSON), cố ý
         case $ch in
             "\\") out+='\\' ;;
             '"') out+='\"' ;;
@@ -147,7 +148,7 @@ resolve() {
         for entry in "${CONNS[@]}"; do
             IFS=$'\t' read -r name type active state <<<"$entry"
             if [[ $name == "$sel" ]]; then
-                BACKEND=nm
+                BACKEND="nm"
                 BACK_NAME=$name
                 BACK_STATE=$(state_class "$active" "$state")
                 return 0
@@ -169,7 +170,7 @@ resolve() {
     fi
     if ((${#CONNS[@]})); then
         IFS=$'\t' read -r name type active state <<<"${CONNS[0]}"
-        BACKEND=nm
+        BACKEND="nm"
         BACK_NAME=$name
         BACK_STATE=$(state_class "$active" "$state")
         return 0

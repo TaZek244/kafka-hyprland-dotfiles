@@ -39,7 +39,7 @@ for file in "${CANDIDATES[@]}"; do
     if [ -n "${CACHE_MTIME[$file]+x}" ] && [ "${CACHE_MTIME[$file]}" = "$mtime" ]; then
         read -r width height <<<"${CACHE_DIMS[$file]}"
     elif [ "${#IDENTIFY_CMD[@]}" -gt 0 ]; then
-        read -r width height < <("${IDENTIFY_CMD[@]}" "$file[0]" 2>/dev/null)
+        read -r width height < <("${IDENTIFY_CMD[@]}" "${file}[0]" 2>/dev/null)
     fi
 
     if [ "${#IDENTIFY_CMD[@]}" -gt 0 ]; then

@@ -129,7 +129,8 @@ capture_image() {
 }
 
 edit_image() {
-    local output="$screenshots_dir/edit_$(date +%Y%m%d_%H%M%S).png"
+    local output
+    output="$screenshots_dir/edit_$(date +%Y%m%d_%H%M%S).png"
     local raw_status satty_status=0 raw_file="$runtime_dir/kafka-capture-raw-$$.png"
     mkdir -p -- "$screenshots_dir" || return 1
 
@@ -265,10 +266,15 @@ case "${1:-}" in
     menu) show_menu ;;
     full | window | region) capture_image "$1" ;;
     edit) edit_image ;;
-    rec) [[ "${2:-}" == "full" || "${2:-}" == "region" ]] && start_recording "$2" || {
-        usage
-        exit 2
-    } ;;
+    rec)
+        # Kiểu sai → in cách dùng. (Trước đây "A && start_recording || usage" in cả cách dùng
+        # khi start_recording thất bại.)
+        if [[ "${2:-}" != "full" && "${2:-}" != "region" ]]; then
+            usage
+            exit 2
+        fi
+        start_recording "$2"
+        ;;
     stop) stop_recording ;;
     status) json_status ;;
     *)

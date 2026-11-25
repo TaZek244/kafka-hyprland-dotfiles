@@ -1,134 +1,89 @@
 # 🕷 Kafka Hyprland Dotfiles
 
-Bộ cấu hình **Hyprland 0.57+** viết bằng Lua (`hypr/hyprland.lua`) lấy cảm hứng từ nhân vật **Kafka (Honkai: Star Rail)** trên Arch Linux. Hệ thống tích hợp hai phong cách giao diện: bản **phẳng** hiện đại và bản **pixel "RPG HUD"** hoài niệm.
+Hyprland 0.57+ Lua configuration (`hypr/hyprland.lua`) themed after **Kafka (Honkai: Star Rail)** for Arch Linux and Ubuntu/Debian, with live switching between a modern flat UI and a pixel "RPG HUD" theme.
 
----
+## Features
 
-## ✨ Tính năng chính
+* **Scrolling & Desktop Modes**: Horizontal scrolling column layout (`scrolling`) with instant toggle to free-floating Desktop mode (`Super + D`).
+* **Unified L-Frame Shell**: Top status bar and right vertical dock (`waybar`) merged into an L-shaped frame with app grouping and `xN` instance badges.
+* **Flat & Pixel RPG HUD Themes**: Live toggle (`Super + Alt + U`) between flat styling and a pixel RPG HUD with character card and stat bars.
+* **Popups & Daemons**: Control center popup (Wi-Fi, Bluetooth, Cloudflare WARP / WireGuard VPN, audio, brightness), synced LRCLIB lyrics & Cava visualizer pill, peripheral battery monitor (UPower, BlueZ, Solaar), and threshold alerts (`hypr/alerts.json`).
+* **Launchers & Greeter**: GTK4 app launcher (`walker` + `elephant` with `=` calc and `.` emoji), `hyprshell` overview/switcher, theme-aware `hyprlock`, and `greetd` login supporting **ReGreet** (GTK4) and **KAFKA.SYS** (custom pixel greeter) with `agreety` fallback.
+* **Kafka Studio & Custom Assets**: GUI settings tool (`hypr/scripts/studio.py`), keybind editor (`hypr/scripts/keybinds-editor.py`), custom Papirus folder icons (`Kafka`), and cursor themes (`Kafka-Cursor`, `Kafka-Pixel`, `Kafka-BEN`).
 
-* **Bố cục cuộn & Chế độ Desktop**: Sử dụng layout cuộn ngang (`scrolling`) linh hoạt, chuyển đổi tức thì sang chế độ Desktop cửa sổ nổi tự do (`Super + D`).
-* **Khung chữ L liền khối**: Thanh trạng thái phía trên và dock dọc bên phải ghép thành khung chữ L, tự động gộp các cửa sổ cùng ứng dụng kèm huy hiệu `xN`.
-* **Giao diện Pixel RPG HUD**: Đổi tức thì giữa giao diện phẳng và pixel RPG HUD bằng `Super + Alt + U` (kèm HUD thẻ nhân vật và thanh chỉ số).
-* **Trung tâm điều khiển Popup**: Bấm vào cụm trạng thái để mở popup điều chỉnh nhanh Wi-Fi, Bluetooth, VPN (Cloudflare WARP / Proton), âm thanh và độ sáng.
-* **Theo dõi pin thiết bị ngoại vi**: Tự động nhận diện và hiển thị mức pin tai nghe, chuột, bàn phím đang kết nối qua UPower, BlueZ và Solaar (Logitech).
-* **Popup âm nhạc & Lời bài hát**: Ô "Đang phát" cạnh đồng hồ kèm hiệu ứng sóng nhạc cực quang và popup hiển thị lời bài hát đồng bộ từ LRCLIB.
-* **Trình khởi chạy Walker**: Khởi chạy ứng dụng cực nhanh bằng GTK4, hỗ trợ gõ tiếng Việt, tính toán (`=`) và tìm kiếm emoji (`.`).
-* **Màn hình khóa & Đăng nhập Pixel**: Màn hình khóa `hyprlock` đồng bộ hình nền hiện tại cùng trình đăng nhập `greetd` pixel "KAFKA.SYS" (kèm dự phòng ReGreet và agreety).
-* **Kafka Studio**: Ứng dụng đồ họa trung tâm cho phép xem trước, đổi hình nền, bảng màu và tùy chỉnh các file cấu hình trực quan.
-* **Bộ con trỏ & Icon Kafka**: Bộ icon thư mục Papirus gradient hồng–tím độc quyền kết hợp cùng bộ con trỏ chuột Kafka tùy biến.
+Keybindings reference: [KEYBINDINGS.md](KEYBINDINGS.md).
 
-⌨️ Phím tắt: xem [KEYBINDINGS.md](KEYBINDINGS.md).
+## Requirements
 
----
+* **Reference Resolution**: 1920x1080 (1080p).
+* **Arch Linux (full support)**: Automated package installation via `pacman` and AUR (`yay` or `paru`; `install.sh` can bootstrap `yay-bin`).
+* **Ubuntu / Debian (partial automation)**: `apt` installs base packages, downloads Nerd Fonts to `~/.local/share/fonts/NerdFonts`, and creates a `~/.local/bin/magick` wrapper for ImageMagick 6. Missing/outdated `apt` packages must be installed manually (printed by `install.sh`):
+  * **Required**: `Hyprland >= 0.57` (Lua config), `hyprlock`, `hypridle`, `rofi >= 2.0` (Wayland).
+  * **Companion tools**: `awww`, `hyprshell`, `walker` + `elephant` (with plugins), `hyprshot`, `satty`, `cliphist`, `cloudflare-warp` (`pkg.cloudflareclient.com`), and `ReGreet` (optional; defaults to `KAFKA.SYS` on Debian/Ubuntu).
 
-## 📋 Yêu cầu hệ thống
-
-* **Hệ điều hành**: Arch Linux với Hyprland 0.57+ (cấu hình Lua), quyền `sudo` và trình quản lý AUR (`yay` hoặc `paru`).
-* **Độ phân giải tham chiếu**: 1920×1080 (1080p).
-
----
-
-## 🚀 Cài đặt nhanh
+## Installation & Usage
 
 ```bash
 git clone https://github.com/TaZek244/kafka-hyprland-dotfiles.git ~/kafka-hyprland-dotfiles
 cd ~/kafka-hyprland-dotfiles && ./install.sh
 ```
 
-> **Lưu ý**: **Không** chạy bằng `sudo ./install.sh` (script sẽ tự gọi `sudo` khi cần).
+Do **not** run with `sudo`; the script calls `sudo` only when needed. Running `./install.sh` without arguments opens an interactive menu (`1` Full install, `2` Link configs + system + check without `sudo`, `3` Pick steps, `4` `--dry-run`, `5` Install `greetd`, `6` Optional extras `grub`/`health`).
 
-Khi chạy không kèm tham số, `./install.sh` mở menu tương tác:
-* **1)** Cài đầy đủ (khuyên dùng cho máy mới)
-* **2)** Chỉ liên kết cấu hình + tạo file tự sinh (không cài gói, không cần `sudo`)
-* **3)** Chọn từng bước muốn chạy
-* **4)** Chạy thử (`--dry-run`, không thay đổi hệ thống)
-* **5)** Cài màn hình đăng nhập (`greetd`)
-* **q)** Thoát
-
-### 🐧 Hệ điều hành hỗ trợ
-
-* **Arch Linux (đầy đủ)**: Tự động cài toàn bộ gói qua kho chính thức (`pacman`) và AUR (`yay` / `paru`).
-* **Ubuntu / Debian (bán phần)**: `apt` tự động cài phần lớn gói nền tảng, tự tải Nerd Font và tạo lệnh `magick` giả trong `~/.local/bin` (tương thích ImageMagick 6). Các thành phần chưa có hoặc quá cũ trên `apt` cần cài tay (script sẽ tự in danh sách kèm link hướng dẫn khi chạy trên Ubuntu):
-  * **Bắt buộc**: **Hyprland ≥ 0.57** (hỗ trợ cấu hình Lua), `hyprlock` / `hypridle` (nếu `apt` thiếu), **Rofi ≥ 2.0** (bản hỗ trợ Wayland).
-  * **Thành phần phụ trợ**: `awww` (hình nền động), `hyprshell` (`Alt+Tab`), `walker` + `elephant` (launcher), `hyprshot` + `satty` (chụp/chú thích ảnh), `cliphist` (bản trên `apt` quá cũ), **Cloudflare WARP** (cài từ kho `apt` riêng `pkg.cloudflareclient.com`), **ReGreet** (được thay bằng giao diện `KAFKA.SYS`).
-
-### 📦 Các bước cài đặt (`steps`)
-
-| Bước | Mô tả công việc |
+| Step | Action |
 | :--- | :--- |
-| `packages` | Cài đặt các gói phần mềm theo bản phân phối (Arch hoặc Ubuntu/Debian). |
-| `fonts` | Cài đặt bộ phông chữ FiraCode Nerd Font & JetBrainsMono Nerd Font. |
-| `link` | Tạo symlink cấu hình vào `~/.config` (tự sao lưu bản cũ vào `~/.config/backup_before_kafka_<thời gian>`). |
-| `assets` | Sinh bộ ảnh phụ (banner Rofi, màn hình khóa, avatar) từ thư mục `wallpapers/`. |
-| `system` | Cấp quyền chạy script, tạo file tự sinh, cài font pixel, icon, con trỏ, giao diện GTK tối và ứng dụng mặc định. |
-| `fcitx` | Cấu hình bộ gõ tiếng Việt `fcitx5` + Unikey (chuyển đổi bằng `Ctrl + Space`). |
-| `services` | Kích hoạt dịch vụ `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `warp-svc` và `elephant`. |
-| `check` | Kiểm tra toàn diện môi trường và chạy bài tự kiểm tra (`selftest`). |
-
-### 💡 Các lệnh thường dùng
+| `packages` | Install packages (`pacman` + AUR on Arch; `apt` + manual checklist on Ubuntu/Debian). |
+| `fonts` | Install FiraCode and JetBrainsMono Nerd Fonts (auto-downloaded on Ubuntu/Debian). |
+| `link` | Symlink configs into `~/.config` (backs up existing paths to `~/.config/backup_before_kafka_<timestamp>`). |
+| `assets` | Generate Rofi banner, Walker background, thumbnail, and greeter background from `wallpapers/`. |
+| `system` | Set script permissions, generate runtime stubs, build pixel font, icons, cursors, dark GTK3, and XDG default apps. |
+| `fcitx` | Write `fcitx5` + Unikey Vietnamese IME config (`Ctrl + Space` toggle). |
+| `services` | Enable `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `warp-svc`, and user service `elephant`. |
+| `check` | Verify required binaries, Python GTK/LayerShell modules, `Hyprland --verify-config`, and script selftests. |
 
 ```bash
-./install.sh --list                        # Liệt kê danh sách các bước cài đặt
-./install.sh --dry-run                     # Chạy thử nghiệm, chỉ in lệnh chứ không ghi file
-./install.sh -y                            # Cài đặt đầy đủ và tự động đồng ý mọi câu hỏi
-./install.sh --only link,system            # Chỉ chạy bước liên kết cấu hình và thiết lập hệ thống
-./install.sh --skip packages               # Chạy mọi bước trừ bước cài đặt gói
-./install.sh --only assets --force-assets  # Tạo lại toàn bộ ảnh phụ sau khi thay ảnh trong wallpapers/
-./install.sh --greetd                      # Cài đặt màn hình đăng nhập greetd
-./install.sh --greetd-switch               # Cài greetd và tắt trình đăng nhập cũ để chuyển hẳn sang greetd
-./install.sh --help                        # Xem toàn bộ hướng dẫn tham số dòng lệnh
+./install.sh --list                        # List steps and optional extras
+./install.sh -n / -y                       # Dry run (--dry-run) / non-interactive (--yes)
+./install.sh --only link,system,check      # Link configs and build user assets without sudo
+./install.sh --skip packages --no-aur      # Skip package step or skip AUR packages on Arch
+./install.sh --only assets --force-assets  # Rebuild derived images after changing wallpapers/
+./install.sh --only fcitx --force-fcitx    # Overwrite existing fcitx5 profile/config
+./install.sh --greetd / --greetd-switch    # Install greetd / also disable gdm/sddm/lightdm & enable greetd
+./install.sh --extras grub,health          # Install optional sibling repos (aliases: --grub, --health)
+./install.sh --only none --extras health   # Install only an optional extra, skip the main steps
 ```
 
-### 🔐 Màn hình đăng nhập (`greetd`)
+* **Login Manager (`greetd`)**: Arch installs **ReGreet** by default (use `./greetd/install-greetd.sh --kafka` for **KAFKA.SYS**, `--regreet` to switch back, `--theme` to sync CSS, `--cursors` to copy cursors). Ubuntu/Debian uses **KAFKA.SYS** automatically if `regreet` is absent. Auto-detects `greeter` (Arch) or `_greetd` (Ubuntu/Debian).
+* **Optional Extras (`--extras`)**: Searches `KAFKA_GRUB_REPO` / `KAFKA_HEALTH_REPO`, sibling directories, `~/Desktop`, `~`, and `~/.local/src`, prompting to clone if missing:
+  * `grub` ([**grub-theme-3os**](https://github.com/TaZek244/grub-theme-3os)): `KAFKA.SYS` Plymouth splash and GRUB theme (`sudo`; passes `--ubuntu` on Debian/Ubuntu, extra args via `KAFKA_GRUB_ARGS`; check partition UUIDs in its `lib/config.sh` first).
+  * `health` (**pc-health-watch**): Freeze pre-warning and post-reset blackbox (`systemd --user`; private repo requiring `gh auth login` or pre-cloned `KAFKA_HEALTH_REPO`; run `install.sh --setup-system` in its repo for system hooks).
 
-* **Arch Linux**: Hỗ trợ cả giao diện GTK4 **ReGreet** (mặc định) và giao diện pixel **KAFKA.SYS** (`./greetd/install-greetd.sh --kafka`).
-* **Ubuntu / Debian**: Chỉ sử dụng giao diện **KAFKA.SYS** (do kho `apt` không có gói ReGreet).
-* Script tự động nhận diện tài khoản hệ thống (`greeter` trên Arch hoặc `_greetd` trên Ubuntu) và tự tắt `gdm` / `gdm3` / `sddm` / `lightdm` khi dùng tùy chọn `--greetd-switch` (hoặc `--switch`).
+## Configuration & Troubleshooting
 
-### Công cụ thêm (tuỳ chọn)
+* **Wallpapers**: No copyrighted Kafka artwork is bundled. Place `kafka_landscape_3.jpg` (16:9) and `kafka_main.jpg` (portrait) in `wallpapers/` and run `./install.sh --only assets --force-assets` (generates gradient placeholders if empty).
+* **Kafka Studio & Keybinds**: Run `python3 ~/.config/hypr/scripts/studio.py` (or from the dock) to configure wallpapers, `@define-color` palettes (`waybar/style.css`, `waybar/theme-pixel.css`), themes, configs, and alerts. Edit custom keybinds via `python3 ~/.config/hypr/scripts/keybinds-editor.py` (`hypr/keybinds.lua`).
+* **Troubleshooting**:
+  * **Vietnamese IME**: Run `~/.config/hypr/scripts/ime-guard.sh status` or middle-click `VI / EN` on the topbar to restart `fcitx5` (reopen existing terminals).
+  * **Waybar / Reload**: Reload config with `hyprctl reload` or `killall -SIGUSR2 waybar`. If the system tray disappears, restart via Hyprland: `killall waybar; hyprctl dispatch "hl.dsp.exec_cmd('waybar')"`.
+  * **Walker empty list**: Match `elephant` and plugin versions, then run `systemctl --user restart elephant.service; pkill -x walker; setsid -f walker --gapplication-service`.
+  * **Broken `greetd`**: In TTY (`Ctrl + Alt + F2`), run `~/kafka-hyprland-dotfiles/greetd/install-greetd.sh --revert` (or copy `/etc/greetd/config-fallback.toml` to `/etc/greetd/config.toml`) to fall back to `agreety`.
 
-`install.sh` có thể cài thêm 2 công cụ ở repo riêng, chạy **sau** các bước chính và chỉ khi được chọn: `./install.sh --extras grub,health` (viết tắt `--grub`, `--health`; chỉ cài công cụ: `./install.sh --only none --extras health`; hoặc chọn mục **6** trong menu).
+## Uninstall
 
-| Công cụ | Repo & Mô tả |
-| :--- | :--- |
-| `grub` | [**grub-theme-3os**](https://github.com/TaZek244/grub-theme-3os): Màn hình chào/tạm biệt Plymouth `KAFKA.SYS` (cần `sudo`). Arch chạy `sudo ./install.sh`, Ubuntu tự chạy `--ubuntu` (ẩn menu GRUB của Ubuntu). Viết cho máy đa boot của tác giả (UUID trong `lib/config.sh`), máy khác hãy đọc `README` của repo đó trước; truyền thêm tham số qua `KAFKA_GRUB_ARGS="--effects"`. |
-| `health` | **pc-health-watch**: Cảnh báo trước khi máy đơ và hộp đen sau khi phải reset (`systemd --user`, không cần `sudo`). Cài xong tự chạy `healthwatch check`; nên chạy thêm `install.sh --setup-system` trong repo đó. |
+Remove symlinks in `~/.config` (`hypr`, `waybar`, `rofi`, `kitty`, `dunst`, `fastfetch`, `cava`, `hyprshell`, `btop`, `walker`, `imv`, `mpv`, `gtk-3.0/{settings.ini,gtk.css}`), restore `~/.config/backup_before_kafka_<timestamp>/`, remove `~/.local/share/icons/{Kafka,Kafka-Cursor,Kafka-Pixel,Kafka-BEN}` and `~/.local/share/fonts/KafkaPixel.ttf`, and run `./greetd/install-greetd.sh --revert` if `greetd` was enabled.
 
-* **Tìm & tải repo**: Tự động tìm sẵn trên máy (qua biến `KAFKA_GRUB_REPO` / `KAFKA_HEALTH_REPO`, thư mục cạnh repo này, `~/Desktop`, `~`, `~/.local/src`); nếu chưa có sẽ hỏi xác nhận rồi `git clone` vào cạnh repo này. `pc-health-watch` hiện là repo private nên cần `gh auth login` trước hoặc tự clone rồi đặt `KAFKA_HEALTH_REPO`.
-* Dùng kèm `--dry-run` để xem trước các lệnh sẽ chạy.
+## Project Layout
 
----
+* `install.sh`, `lib/distro.sh`: Installer and distro package definitions (Arch & Ubuntu/Debian).
+* `hypr/`: `hyprland.lua`, `hyprlock*.conf`, `hypridle.conf`, `alerts.json`, and helper scripts (`hypr/scripts/`).
+* `waybar/`, `walker/`, `rofi/`, `greetd/`: Bar/dock configs, launcher themes, Rofi menus, ReGreet & `KAFKA.SYS` greeter.
+* `cursors/`, `icons/`, `fonts/`, `gtk/`: Builders for Kafka cursors, Papirus folder icons, `KafkaPixel.ttf`, and GTK3 dark theme.
+* `kitty/`, `dunst/`, `cava/`, `fastfetch/`, `hyprshell/`, `btop/`, `imv/`, `mpv/`: Component configs.
 
-## 🖼️ Ảnh nền
+## Credits
 
-Repo **không đính kèm ảnh nhân vật Kafka** do bản quyền thuộc HoYoverse và các họa sĩ. Tải ảnh của bạn vào `wallpapers/` (`kafka_landscape_3.jpg` cho màn hình 16:9, `kafka_main.jpg` cho banner dọc) rồi chạy `./install.sh --only assets --force-assets`. Nếu để trống, hệ thống sẽ tự sinh ảnh dải màu thay thế.
+Built on [Hyprland](https://hypr.land/), [Waybar](https://github.com/Alexays/Waybar), [Walker](https://github.com/abenz1267/walker) & [Elephant](https://github.com/abenz1267/elephant), [hyprshell](https://github.com/H3rmt/hyprshell), [Rofi](https://github.com/davatorium/rofi), [ReGreet](https://github.com/rharish101/ReGreet), [Kitty](https://sw.kovidgoyal.net/kitty/), [Dunst](https://dunst-project.org/), [Cava](https://github.com/karlstav/cava) and [Fcitx5-Unikey](https://github.com/fcitx/fcitx5-unikey). Cava shaders `cava/shaders/orion_*.frag` by **rezky_nightky**; Vietnamese lunar calendar algorithm by **Hồ Ngọc Đức**.
 
----
+## License
 
-## 🎨 Tùy biến
-
-Mở **Kafka Studio** từ dock (`scripts/studio.py`) để chỉnh hình nền và tùy chọn hệ thống trực quan. Bảng màu giao diện được định nghĩa tập trung qua các biến `@define-color` tại `waybar/style.css` (bản phẳng) và `waybar/theme-pixel.css` (bản pixel).
-
----
-
-## 🛠️ Khắc phục sự cố
-
-* **Không gõ được tiếng Việt**: Kiểm tra bằng `~/.config/hypr/scripts/ime-guard.sh status` hoặc bấm giữa ô `VI / EN` trên thanh trên để khởi động lại bộ gõ (mở terminal mới nếu cửa sổ cũ kẹt kết nối).
-* **Waybar mất khay hệ thống**: Khởi động lại qua Hyprland để nhận đầy đủ môi trường D-Bus: `killall waybar; hyprctl dispatch "hl.dsp.exec_cmd('waybar')"`.
-* **Màn hình đăng nhập greetd bị lỗi**: Nhấn `Ctrl + Alt + F2` vào TTY và chạy `~/kafka-hyprland-dotfiles/greetd/install-greetd.sh --revert` để chuyển về chế độ dòng lệnh `agreety`.
-* **Walker hiển thị danh sách trống**: Đảm bảo cài đặt đồng bộ bản `-bin` (`elephant-bin` và các plugin), sau đó chạy `systemctl --user restart elephant.service; pkill -x walker; setsid -f walker --gapplication-service`.
-* **Tải lại giao diện sau khi sửa cấu hình**: Dùng `hyprctl reload` để nạp lại Hyprland hoặc `killall -SIGUSR2 waybar` để nạp lại Waybar.
-
----
-
-## 🙏 Ghi công (Credits)
-
-* **Shaders sóng nhạc Cava**: Các shader OpenGL `orion_circle.frag`, `orion_circle_rotate.frag`, `orion_saturn_core.frag`, `orion_saturn_subring.frag` trong `cava/shaders/` thuộc bản quyền của tác giả **rezky_nightky** (giữ nguyên ghi chú bản quyền và giấy phép SPDX trong từng file nguồn).
-* **Phần mềm nguồn mở**: Xây dựng trên nền tảng [Hyprland](https://hypr.land/), [Waybar](https://github.com/Alexays/Waybar), [Walker](https://github.com/abenz1267/walker) & [Elephant](https://github.com/abenz1267/elephant), [hyprshell](https://github.com/H3rmt/hyprshell), [Rofi](https://github.com/davatorium/rofi), [ReGreet](https://github.com/rharish101/ReGreet), [Kitty](https://sw.kovidgoyal.net/kitty/), [Dunst](https://dunst-project.org/), [Cava](https://github.com/karlstav/cava), [Fcitx5-Unikey](https://github.com/fcitx/fcitx5-unikey) và thuật toán âm lịch Việt Nam của **Hồ Ngọc Đức**.
-* **Tuyên bố miễn trừ**: Nhân vật **Kafka** và trò chơi **Honkai: Star Rail** là tài sản trí tuệ và thương hiệu của **HoYoverse / COGNOSPHERE PTE. LTD.** Đây là dự án cấu hình máy tính do người hâm mộ thực hiện (fan-made), hoàn toàn phi thương mại và không có bất kỳ liên kết chính thức nào với HoYoverse.
-
----
-
-## 📄 Giấy phép (License)
-
-Mã nguồn script và các file cấu hình trong kho lưu trữ này được phát hành theo giấy phép **MIT** (xem chi tiết trong file [`LICENSE`](LICENSE)), ngoại trừ các file có ghi chú bản quyền và giấy phép riêng ở đầu file: bộ shader `cava/shaders/orion_*` (MIT, rezky_nightky) và `hypr/scripts/lunar_vn.py` (chuyển ngữ thuật toán âm lịch của Hồ Ngọc Đức, chỉ dùng cá nhân, phi thương mại).
+Released under the [MIT License](LICENSE), except `cava/shaders/orion_*.frag` (MIT, copyright **rezky_nightky**) and `hypr/scripts/lunar_vn.py` (port of **Hồ Ngọc Đức**'s Vietnamese lunar calendar algorithm; personal, non-commercial use only). **Kafka** and **Honkai: Star Rail** are trademarks of **HoYoverse / COGNOSPHERE PTE. LTD.**; this is an unofficial fan project and ships no game assets.

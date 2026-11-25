@@ -85,6 +85,18 @@ Khi chạy không kèm tham số, `./install.sh` mở menu tương tác:
 * **Ubuntu / Debian**: Chỉ sử dụng giao diện **KAFKA.SYS** (do kho `apt` không có gói ReGreet).
 * Script tự động nhận diện tài khoản hệ thống (`greeter` trên Arch hoặc `_greetd` trên Ubuntu) và tự tắt `gdm` / `gdm3` / `sddm` / `lightdm` khi dùng tùy chọn `--greetd-switch` (hoặc `--switch`).
 
+### Công cụ thêm (tuỳ chọn)
+
+`install.sh` có thể cài thêm 2 công cụ ở repo riêng, chạy **sau** các bước chính và chỉ khi được chọn: `./install.sh --extras grub,health` (viết tắt `--grub`, `--health`; chỉ cài công cụ: `./install.sh --only none --extras health`; hoặc chọn mục **6** trong menu).
+
+| Công cụ | Repo & Mô tả |
+| :--- | :--- |
+| `grub` | [**grub-theme-3os**](https://github.com/TaZek244/grub-theme-3os): Màn hình chào/tạm biệt Plymouth `KAFKA.SYS` (cần `sudo`). Arch chạy `sudo ./install.sh`, Ubuntu tự chạy `--ubuntu` (ẩn menu GRUB của Ubuntu). Viết cho máy đa boot của tác giả (UUID trong `lib/config.sh`), máy khác hãy đọc `README` của repo đó trước; truyền thêm tham số qua `KAFKA_GRUB_ARGS="--effects"`. |
+| `health` | **pc-health-watch**: Cảnh báo trước khi máy đơ và hộp đen sau khi phải reset (`systemd --user`, không cần `sudo`). Cài xong tự chạy `healthwatch check`; nên chạy thêm `install.sh --setup-system` trong repo đó. |
+
+* **Tìm & tải repo**: Tự động tìm sẵn trên máy (qua biến `KAFKA_GRUB_REPO` / `KAFKA_HEALTH_REPO`, thư mục cạnh repo này, `~/Desktop`, `~`, `~/.local/src`); nếu chưa có sẽ hỏi xác nhận rồi `git clone` vào cạnh repo này. `pc-health-watch` hiện là repo private nên cần `gh auth login` trước hoặc tự clone rồi đặt `KAFKA_HEALTH_REPO`.
+* Dùng kèm `--dry-run` để xem trước các lệnh sẽ chạy.
+
 ---
 
 ## 🖼️ Ảnh nền

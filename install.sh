@@ -23,11 +23,22 @@ declare -A STEP_DESC=(
     [services]="Bật NetworkManager, bluetooth, power-profiles-daemon, WARP, elephant"
     [check]="Kiểm tra lệnh còn thiếu, Hyprland --verify-config, selftest"
 )
+# Công cụ thêm (tuỳ chọn, repo riêng): --extras grub,health. Tìm bản có sẵn trên máy, không có thì clone.
+EXTRA_LIST=(grub health)
+declare -A EXTRA_DESC=(
+    [grub]="grub-theme-3os: màn hình chào/tạm biệt Plymouth KAFKA.SYS (Ubuntu: ẩn menu GRUB) — cần sudo"
+    [health]="pc-health-watch: cảnh báo trước khi máy đơ + hộp đen (systemd --user)"
+)
+declare -A EXTRA_REPO=([grub]=grub-theme-3os [health]=pc-health-watch)
+declare -A EXTRA_URL=(
+    [grub]="${KAFKA_GRUB_URL:-https://github.com/TaZek244/grub-theme-3os.git}"
+    [health]="${KAFKA_HEALTH_URL:-https://github.com/TaZek244/pc-health-watch.git}"
+)
 # Thư mục cấu hình được symlink nguyên khối vào ~/.config/<tên>
 LINK_DIRS=(hypr waybar rofi kitty dunst fastfetch cava hyprshell btop walker imv mpv)
 
 DRY=0 YES=0 NO_AUR=0 FORCE_FCITX=0 FORCE_ASSETS=0 LIST_ONLY=0
-GREETD="" ONLY="" SKIP=""
+GREETD="" ONLY="" SKIP="" EXTRAS=""
 WARNINGS=0 STEP_WARN=0
 declare -A RESULT
 HAD_ARGS=$#
@@ -73,7 +84,7 @@ heading() {
         i=$((i + 1))
         [[ "$s" == "$1" ]] && break
     done
-    if [[ "$1" == greetd ]]; then
+    if [[ " ${STEPS[*]} " != *" $1 "* ]]; then # greetd, công cụ thêm: ngoài danh sách bước
         printf '\n%s━━ [+] %s — %s%s\n' "$c_yel" "$1" "$2" "$c_off"
     else
         printf '\n%s━━ [%d/%d] %s — %s%s\n' "$c_yel" "$i" "$total" "$1" "$2" "$c_off"
@@ -96,6 +107,7 @@ VÍ DỤ
   ./install.sh --skip packages,services   Tự cài gói rồi, chỉ cấu hình
   ./install.sh --only assets --force-assets   Tạo lại ảnh sau khi đổi ảnh trong wallpapers/
   ./install.sh --greetd-switch            Cài và chuyển hẳn sang màn hình đăng nhập greetd
+  ./install.sh --only none --extras health   Chỉ cài công cụ thêm pc-health-watch
 
 CÁC BƯỚC (chạy theo thứ tự)
   packages  Cài gói (pacman + AUR trên Arch, apt trên Ubuntu/Debian)
@@ -112,6 +124,14 @@ TUỲ CHỌN
   --skip <a,b>       Bỏ qua các bước liệt kê
   --greetd           Cài thêm màn hình đăng nhập greetd (chưa đổi trình đăng nhập)
   --greetd-switch    Cài greetd và đổi hẳn sang nó (tắt gdm/gdm3/sddm/lightdm)
+  --extras <a,b>     Cài thêm công cụ ở repo riêng (tuỳ chọn, chạy sau các bước):
+                       grub    grub-theme-3os: màn hình chào/tạm biệt Plymouth KAFKA.SYS
+                               (Arch: sudo ./install.sh; Ubuntu: --ubuntu, ẩn menu GRUB của Ubuntu).
+                               Viết cho máy đa boot của tác giả (UUID trong lib/config.sh): đọc README trước.
+                       health  pc-health-watch: cảnh báo trước khi máy đơ + hộp đen (không cần sudo)
+                     Repo tìm ở: KAFKA_GRUB_REPO / KAFKA_HEALTH_REPO, cạnh repo này, ~/Desktop, ~;
+                     không có thì clone vào cạnh repo này. Thêm tham số cho grub: KAFKA_GRUB_ARGS="--effects"
+  --grub, --health   Viết tắt của --extras grub / --extras health
   -n, --dry-run      Chỉ in lệnh, không làm gì
   -y, --yes          Không hỏi xác nhận
   --no-aur           (Arch) Bỏ qua gói AUR
@@ -127,6 +147,8 @@ list_steps() {
     local s
     printf 'Các bước của install.sh:\n'
     for s in "${STEPS[@]}"; do printf '  %-9s %s\n' "$s" "${STEP_DESC[$s]}"; done
+    printf 'Công cụ thêm (--extras):\n'
+    for s in "${EXTRA_LIST[@]}"; do printf '  %-9s %s\n' "$s" "${EXTRA_DESC[$s]}"; done
 }
 
 # ==============================================================================
@@ -146,6 +168,13 @@ while (($#)); do
         --skip=*) SKIP="${1#*=}" ;;
         --greetd) GREETD=install ;;
         --greetd-switch) GREETD=switch ;;
+        --extras)
+            EXTRAS="${EXTRAS:+$EXTRAS,}${2:?--extras cần danh sách: ${EXTRA_LIST[*]}}"
+            shift
+            ;;
+        --extras=*) EXTRAS="${EXTRAS:+$EXTRAS,}${1#*=}" ;;
+        --grub) EXTRAS="${EXTRAS:+$EXTRAS,}grub" ;;
+        --health) EXTRAS="${EXTRAS:+$EXTRAS,}health" ;;
         -n | --dry-run) DRY=1 ;;
         -y | --yes) YES=1 ;;
         --no-aur) NO_AUR=1 ;;
@@ -163,7 +192,10 @@ if ((LIST_ONLY)); then
     exit 0
 fi
 for s in ${ONLY//,/ } ${SKIP//,/ }; do
-    [[ " ${STEPS[*]} " == *" $s "* ]] || die "Bước không tồn tại: $s (có: ${STEPS[*]})"
+    [[ "$s" == none || " ${STEPS[*]} " == *" $s "* ]] || die "Bước không tồn tại: $s (có: ${STEPS[*]})"
+done
+for s in ${EXTRAS//,/ }; do
+    [[ " ${EXTRA_LIST[*]} " == *" $s "* ]] || die "Công cụ thêm không tồn tại: $s (có: ${EXTRA_LIST[*]})"
 done
 ((EUID == 0)) && die "Đừng chạy bằng root/sudo: script tự gọi sudo khi cần."
 
@@ -197,8 +229,9 @@ menu() {
     printf '  3) Chọn từng bước\n'
     printf '  4) Chạy thử (--dry-run)                     — chỉ in lệnh\n'
     printf '  5) Cài màn hình đăng nhập (greetd)\n'
+    printf '  6) Công cụ thêm (Plymouth/GRUB, pc-health-watch)  — repo riêng, tuỳ chọn\n'
     printf '  q) Thoát\n'
-    read -r -p 'Lựa chọn [1-5/q]: ' choice
+    read -r -p 'Lựa chọn [1-6/q]: ' choice
     case "$choice" in
         1 | "") ;;
         2) ONLY=link,system,check ;;
@@ -209,6 +242,13 @@ menu() {
             ;;
         4) DRY=1 YES=1 ;;
         5) GREETD=install ONLY=none ;;
+        6)
+            ONLY=none
+            for s in "${EXTRA_LIST[@]}"; do
+                ask "Cài $s (${EXTRA_DESC[$s]})?" && EXTRAS="${EXTRAS:+$EXTRAS,}$s"
+            done
+            [[ -n "$EXTRAS" ]] || exit 0
+            ;;
         q | Q) exit 0 ;;
         *) die "Lựa chọn không hợp lệ: $choice" ;;
     esac
@@ -222,6 +262,7 @@ show_plan() {
         n=$((n + 1))
         printf '  %d. %-9s %s\n' "$n" "$s" "${STEP_DESC[$s]}"
     done
+    for s in ${EXTRAS//,/ }; do printf '  +  %-9s %s\n' "$s" "${EXTRA_DESC[$s]}"; done
     [[ -n "$GREETD" ]] && printf '  +  %-9s %s\n' greetd "Màn hình đăng nhập greetd$([[ $GREETD == switch ]] && echo ' (đổi hẳn)')"
     ((DRY)) && info "${c_yel}Chế độ thử (--dry-run): không thay đổi gì.${c_off}"
     printf '\n'
@@ -712,6 +753,71 @@ step_greetd() {
 }
 
 # ==============================================================================
+#  Công cụ thêm (tuỳ chọn --extras grub,health / menu 6): repo riêng
+# ==============================================================================
+# extra_repo <khoá>: in đường dẫn repo của công cụ; không có trên máy thì clone (hỏi trước)
+extra_repo() {
+    local k="$1" name="${EXTRA_REPO[$1]}" var d
+    var="KAFKA_${k^^}_REPO"
+    for d in "${!var:-}" "$(dirname "$REPO_DIR")/$name" "$HOME/Desktop/$name" "$HOME/$name" "$HOME/.local/src/$name"; do
+        [[ -n "$d" && -x "$d/install.sh" ]] && {
+            printf '%s' "$d"
+            return 0
+        }
+    done
+    d="$(dirname "$REPO_DIR")/$name"
+    info "Chưa có $name trên máy." >&2
+    ask "Clone ${EXTRA_URL[$k]} vào $d?" || return 1
+    if ((DRY)); then
+        printf '  $ git clone %s %s\n' "${EXTRA_URL[$k]}" "$d" >&2
+    else
+        git clone --depth 1 "${EXTRA_URL[$k]}" "$d" >&2 || {
+            warn "Không clone được (repo private thì cần 'gh auth login'). Hoặc tự clone rồi đặt KAFKA_${k^^}_REPO=<thư mục>." >&2
+            return 1
+        }
+    fi
+    printf '%s' "$d"
+}
+
+# in_repo <thư mục> <lệnh…>: chạy lệnh trong repo công cụ (--dry-run và repo chưa clone: chỉ in)
+in_repo() {
+    local d="$1"
+    shift
+    if [[ ! -d "$d" ]] && ((DRY)); then
+        printf '  %s$ (cd %s && %s)%s\n' "$c_dim" "$d" "$*" "$c_off"
+        return 0
+    fi
+    (cd "$d" && run "$@")
+}
+
+step_grub() {
+    heading grub "grub-theme-3os (Plymouth / GRUB)"
+    local d args=()
+    d="$(extra_repo grub)" || return 1
+    info "Repo: $d"
+    info "${c_yel}Lưu ý:${c_off} viết cho máy đa boot của tác giả (UUID phân vùng trong $d/lib/config.sh); máy khác thì đọc README và sửa config trước."
+    if [[ -n "${KAFKA_GRUB_ARGS:-}" ]]; then
+        read -r -a args <<<"$KAFKA_GRUB_ARGS"
+    elif [[ "$DISTRO" == debian ]]; then
+        args=(--ubuntu) # màn hình chào/tạm biệt + ẩn menu GRUB của Ubuntu
+    fi
+    ask "Chạy: sudo ./install.sh ${args[*]} (trong $d)?" || return 0
+    in_repo "$d" sudo ./install.sh "${args[@]}"
+}
+
+step_health() {
+    heading health "pc-health-watch"
+    local d
+    d="$(extra_repo health)" || return 1
+    info "Repo: $d"
+    in_repo "$d" ./install.sh || return 1
+    if ((! DRY)) && command -v healthwatch >/dev/null; then
+        healthwatch check || STEP_WARN=$((STEP_WARN + 1))
+    fi
+    info "Nên chạy thêm (cần sudo, mỗi bước đều hỏi): $d/install.sh --setup-system"
+}
+
+# ==============================================================================
 #  8. check
 # ==============================================================================
 # hint_for <lệnh>: cách có lệnh đó trên Ubuntu/Debian
@@ -809,7 +915,7 @@ run_step() {
 summary() {
     local s r color
     printf '\n%s━━ Tổng kết ━━%s\n' "$c_pink" "$c_off"
-    for s in "${STEPS[@]}" greetd; do
+    for s in "${STEPS[@]}" ${EXTRAS//,/ } greetd; do
         [[ "$s" == greetd && -z "$GREETD" ]] && continue
         r="${RESULT[$s]:-bỏ qua}"
         case "$r" in
@@ -824,6 +930,7 @@ summary() {
     printf '\n%sViệc tiếp theo%s\n' "$c_pink" "$c_off"
     info "• Đăng xuất rồi chọn phiên Hyprland (hoặc gõ start-hyprland ở TTY). Đang trong Hyprland: hyprctl reload"
     info "• Ảnh nền riêng: đặt vào wallpapers/ rồi ./install.sh --only assets --force-assets"
+    [[ -z "$EXTRAS" ]] && info "• Công cụ thêm (tuỳ chọn): ./install.sh --only none --extras grub,health   (xem --help)"
     [[ -z "$GREETD" ]] && info "• Màn hình đăng nhập Kafka: ./install.sh --greetd   (đổi hẳn: --greetd-switch)"
     if [[ "$DISTRO" == debian && "${RESULT[packages]:-bỏ qua}" != "bỏ qua" ]]; then
         info "• Ubuntu/Debian: cài tay các thành phần trong khung \"Cần cài thủ công\" ở trên, rồi ./install.sh --only check"
@@ -846,4 +953,5 @@ for s in "${STEPS[@]}"; do
     want "$s" && run_step "$s"
 done
 [[ -n "$GREETD" ]] && run_step greetd
+for s in ${EXTRAS//,/ }; do run_step "$s"; done
 summary

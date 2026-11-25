@@ -35,7 +35,55 @@ git clone https://github.com/TaZek244/kafka-hyprland-dotfiles.git ~/kafka-hyprla
 cd ~/kafka-hyprland-dotfiles && ./install.sh
 ```
 
-*Tùy chọn hữu ích*: `--dry-run` (thử nghiệm không ghi), `--only a,b` (chỉ chạy bước chỉ định), `--skip a,b` (bỏ qua bước), `--greetd` (cài greetd), `-y` (tự động đồng ý).
+> **Lưu ý**: **Không** chạy bằng `sudo ./install.sh` (script sẽ tự gọi `sudo` khi cần).
+
+Khi chạy không kèm tham số, `./install.sh` mở menu tương tác:
+* **1)** Cài đầy đủ (khuyên dùng cho máy mới)
+* **2)** Chỉ liên kết cấu hình + tạo file tự sinh (không cài gói, không cần `sudo`)
+* **3)** Chọn từng bước muốn chạy
+* **4)** Chạy thử (`--dry-run`, không thay đổi hệ thống)
+* **5)** Cài màn hình đăng nhập (`greetd`)
+* **q)** Thoát
+
+### 🐧 Hệ điều hành hỗ trợ
+
+* **Arch Linux (đầy đủ)**: Tự động cài toàn bộ gói qua kho chính thức (`pacman`) và AUR (`yay` / `paru`).
+* **Ubuntu / Debian (bán phần)**: `apt` tự động cài phần lớn gói nền tảng, tự tải Nerd Font và tạo lệnh `magick` giả trong `~/.local/bin` (tương thích ImageMagick 6). Các thành phần chưa có hoặc quá cũ trên `apt` cần cài tay (script sẽ tự in danh sách kèm link hướng dẫn khi chạy trên Ubuntu):
+  * **Bắt buộc**: **Hyprland ≥ 0.57** (hỗ trợ cấu hình Lua), `hyprlock` / `hypridle` (nếu `apt` thiếu), **Rofi ≥ 2.0** (bản hỗ trợ Wayland).
+  * **Thành phần phụ trợ**: `awww` (hình nền động), `hyprshell` (`Alt+Tab`), `walker` + `elephant` (launcher), `hyprshot` + `satty` (chụp/chú thích ảnh), `cliphist` (bản trên `apt` quá cũ), **Cloudflare WARP** (cài từ kho `apt` riêng `pkg.cloudflareclient.com`), **ReGreet** (được thay bằng giao diện `KAFKA.SYS`).
+
+### 📦 Các bước cài đặt (`steps`)
+
+| Bước | Mô tả công việc |
+| :--- | :--- |
+| `packages` | Cài đặt các gói phần mềm theo bản phân phối (Arch hoặc Ubuntu/Debian). |
+| `fonts` | Cài đặt bộ phông chữ FiraCode Nerd Font & JetBrainsMono Nerd Font. |
+| `link` | Tạo symlink cấu hình vào `~/.config` (tự sao lưu bản cũ vào `~/.config/backup_before_kafka_<thời gian>`). |
+| `assets` | Sinh bộ ảnh phụ (banner Rofi, màn hình khóa, avatar) từ thư mục `wallpapers/`. |
+| `system` | Cấp quyền chạy script, tạo file tự sinh, cài font pixel, icon, con trỏ, giao diện GTK tối và ứng dụng mặc định. |
+| `fcitx` | Cấu hình bộ gõ tiếng Việt `fcitx5` + Unikey (chuyển đổi bằng `Ctrl + Space`). |
+| `services` | Kích hoạt dịch vụ `NetworkManager`, `bluetooth`, `power-profiles-daemon`, `warp-svc` và `elephant`. |
+| `check` | Kiểm tra toàn diện môi trường và chạy bài tự kiểm tra (`selftest`). |
+
+### 💡 Các lệnh thường dùng
+
+```bash
+./install.sh --list                        # Liệt kê danh sách các bước cài đặt
+./install.sh --dry-run                     # Chạy thử nghiệm, chỉ in lệnh chứ không ghi file
+./install.sh -y                            # Cài đặt đầy đủ và tự động đồng ý mọi câu hỏi
+./install.sh --only link,system            # Chỉ chạy bước liên kết cấu hình và thiết lập hệ thống
+./install.sh --skip packages               # Chạy mọi bước trừ bước cài đặt gói
+./install.sh --only assets --force-assets  # Tạo lại toàn bộ ảnh phụ sau khi thay ảnh trong wallpapers/
+./install.sh --greetd                      # Cài đặt màn hình đăng nhập greetd
+./install.sh --greetd-switch               # Cài greetd và tắt trình đăng nhập cũ để chuyển hẳn sang greetd
+./install.sh --help                        # Xem toàn bộ hướng dẫn tham số dòng lệnh
+```
+
+### 🔐 Màn hình đăng nhập (`greetd`)
+
+* **Arch Linux**: Hỗ trợ cả giao diện GTK4 **ReGreet** (mặc định) và giao diện pixel **KAFKA.SYS** (`./greetd/install-greetd.sh --kafka`).
+* **Ubuntu / Debian**: Chỉ sử dụng giao diện **KAFKA.SYS** (do kho `apt` không có gói ReGreet).
+* Script tự động nhận diện tài khoản hệ thống (`greeter` trên Arch hoặc `_greetd` trên Ubuntu) và tự tắt `gdm` / `gdm3` / `sddm` / `lightdm` khi dùng tùy chọn `--greetd-switch` (hoặc `--switch`).
 
 ---
 

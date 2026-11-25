@@ -62,9 +62,10 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("dunst")
     -- cảnh báo khi pin máy/thiết bị, sóng Wi-Fi, Internet tụt dưới mốc (hypr/alerts.json, sửa trong Studio › Cảnh báo)
     hl.exec_cmd("sleep 5 && " .. scripts .. "alert-watch.py daemon")
-    hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
+    -- tác nhân polkit: Arch để ở /usr/lib/polkit-gnome, Ubuntu/Debian ở /usr/lib/policykit-1-gnome hoặc /usr/libexec
+    hl.exec_cmd("for a in /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 /usr/libexec/polkit-gnome-authentication-agent-1; do [ -x \"$a\" ] && exec \"$a\"; done")
     -- Agent vị trí geoclue (Hyprland không có sẵn như GNOME/KDE): thiếu thì app không lấy được vị trí
-    hl.exec_cmd("[ -x /usr/lib/geoclue-2.0/demos/agent ] && /usr/lib/geoclue-2.0/demos/agent")
+    hl.exec_cmd("for a in /usr/lib/geoclue-2.0/demos/agent /usr/libexec/geoclue-2.0/demos/agent; do [ -x \"$a\" ] && exec \"$a\"; done")   -- Arch | Ubuntu/Debian
     hl.exec_cmd("nm-applet --indicator")
     -- awww-daemon chạy mãi không thoát, nên không nối bằng && (vế sau sẽ không bao giờ chạy)
     hl.exec_cmd("awww-daemon")

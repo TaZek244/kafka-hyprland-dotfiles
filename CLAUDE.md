@@ -10,6 +10,7 @@ File này định nghĩa các quy ước kỹ thuật, lệnh kiểm tra nhanh v
   ```bash
   ./install.sh
   ```
+  Chạy không tham số = menu; `--help`, `--list`, `--dry-run`. Hỗ trợ **Arch + Ubuntu/Debian**: tên gói theo distro ở **`lib/distro.sh`** (dùng chung với `greetd/install-greetd.sh`; nhóm `core tools apps py ime fonts optional greetd`, Arch thêm `aur`, Debian thêm `maybe` = chỉ có ở bản Ubuntu mới, cùng danh sách cài tay `_manual_debian`). Thêm/đổi gói thì sửa cả hai cột. Thử nhánh Ubuntu trên Arch: `KAFKA_DISTRO=debian ./install.sh --dry-run -y`. Ubuntu: ImageMagick 6 → `install.sh` tạo `~/.local/bin/magick` (gọi `convert`); greetd user là `_greetd` (install-greetd.sh tự sửa `user =` khi chép), không có ReGreet → `--kafka`, fallback agreety chạy NGOÀI cage. Đường dẫn khác nhau giữa distro (polkit agent, geoclue agent) thì `hyprland.lua` thử lần lượt từng đường dẫn.
 * **Waybar lúc đăng nhập** do **`hypr/scripts/waybar-start.sh`** bật (2026-11-25, lỗi "đăng nhập xong không có thanh + dock, phải Super + Shift + B"): log `~/.local/state/kafka/waybar.log` (bản trước `.1`), Waybar thoát trong 20s đầu thì thử lại tối đa 5 lần.
 * **Tải lại cấu hình Hyprland (tự động, hoặc ép tải lại):**
   ```bash

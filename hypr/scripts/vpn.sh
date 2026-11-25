@@ -167,7 +167,7 @@ cmd_status() {
     esac
     if [[ $BACKEND == none ]]; then
         cls=none
-        tooltip='Chưa có VPN. Cài WARP: yay -S cloudflare-warp-bin (xem README) hoặc nhập file WireGuard: vpn.sh import <file.conf>'
+        tooltip='Chưa có VPN. Cài WARP: Arch: yay -S cloudflare-warp-bin, Ubuntu: kho apt pkg.cloudflareclient.com (xem README) hoặc nhập file WireGuard: vpn.sh import <file.conf>'
     else
         tooltip=$(printf '%s — %s\nTrái: bật/tắt · Phải: chọn kết nối' "$BACK_NAME" "$label")
     fi

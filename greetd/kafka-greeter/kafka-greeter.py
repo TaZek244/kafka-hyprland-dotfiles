@@ -38,10 +38,22 @@ def hexc(h, a=1.0):
 
 
 C = {
-    "edge": hexc("#140e1a"), "panel": hexc("#261e30", 0.94), "card": hexc("#30263c"), "hover": hexc("#4a3c59"),
-    "hi": hexc("#56466a"), "sh": hexc("#1d1626"), "text": hexc("#fbf7fd"), "dim": hexc("#d4cade"),
-    "faint": hexc("#9a8bab"), "pink": hexc("#c94785"), "pink_hi": hexc("#f08cbb"), "pink_sh": hexc("#962f62"),
-    "pink_fg": hexc("#f08cbb"), "crit": hexc("#e0506e"), "crit_fg": hexc("#ff9aae"), "ok": hexc("#7fd6a8"),
+    "edge": hexc("#140e1a"),
+    "panel": hexc("#261e30", 0.94),
+    "card": hexc("#30263c"),
+    "hover": hexc("#4a3c59"),
+    "hi": hexc("#56466a"),
+    "sh": hexc("#1d1626"),
+    "text": hexc("#fbf7fd"),
+    "dim": hexc("#d4cade"),
+    "faint": hexc("#9a8bab"),
+    "pink": hexc("#c94785"),
+    "pink_hi": hexc("#f08cbb"),
+    "pink_sh": hexc("#962f62"),
+    "pink_fg": hexc("#f08cbb"),
+    "crit": hexc("#e0506e"),
+    "crit_fg": hexc("#ff9aae"),
+    "ok": hexc("#7fd6a8"),
     "shadow": hexc("#0b0710", 0.85),
 }
 
@@ -77,7 +89,7 @@ class Model:
         self.status, self.status_kind = "ENTER PASSWORD", "info"
         self.busy = False
         self.shake_t0 = -10.0
-        self.confirm = None          # ("reboot"|"poweroff", hạn)
+        self.confirm = None  # ("reboot"|"poweroff", hạn)
 
     @property
     def user(self):
@@ -122,14 +134,15 @@ class Model:
 class Painter:
     def __init__(self, model):
         import cairo
+
         self.cairo = cairo
         self.m = model
         self.bg = self._load("bg-pixel.png")
-        self.avatar = self._load("avatar.png")      # ảnh mặt GIỮ NÉT (người dùng: không pixel hoá), khung vẫn pixel
+        self.avatar = self._load("avatar.png")  # ảnh mặt GIỮ NÉT (người dùng: không pixel hoá), khung vẫn pixel
         self.static = None
         self.static_size = None
         self.drops = []
-        self.hits = []               # [(x, y, w, h, action)]
+        self.hits = []  # [(x, y, w, h, action)]
         self.hover = None
         self.t0 = time.monotonic()
 
@@ -150,17 +163,19 @@ class Painter:
 
     def frame(self, ctx, x, y, w, h, P, fill, hi, sh, edge, r=3):
         """Khung pixel: góc bậc thang r ô, viền ngoài 1 ô, mép sáng trên-trái / bóng dưới-phải 1 ô."""
+
         def body(inset, col):
             ctx.set_source_rgba(*col)
             i = inset
             ri = max(0, r - i)
-            for k in range(ri):                    # các bậc góc (hàng trên + dưới)
+            for k in range(ri):  # các bậc góc (hàng trên + dưới)
                 cut = ri - k
                 cut = int(round(ri - math.sqrt(max(0, ri * ri - (ri - k - 0.5) ** 2)))) if ri > 1 else cut
                 ctx.rectangle(x + (i + cut) * P, y + (i + k) * P, w - 2 * (i + cut) * P, P)
                 ctx.rectangle(x + (i + cut) * P, y + h - (i + k + 1) * P, w - 2 * (i + cut) * P, P)
             ctx.rectangle(x + i * P, y + (i + ri) * P, w - 2 * i * P, h - 2 * (i + ri) * P)
             ctx.fill()
+
         body(0, edge)
         body(1, sh)
         # mép sáng: phủ nửa trên-trái của lớp 1 bằng hi (vẽ khối lệch lên-trái rồi lớp fill đè)
@@ -191,7 +206,7 @@ class Painter:
             ctx.get_source().set_filter(cairo.FILTER_NEAREST)
             ctx.paint()
             ctx.restore()
-        else:                                       # không có ảnh: chạng vạng tím, dải màu bậc thang
+        else:  # không có ảnh: chạng vạng tím, dải màu bậc thang
             steps = 18
             for i in range(steps):
                 k = i / (steps - 1)
@@ -222,8 +237,14 @@ class Painter:
     def _rain(self, ctx, w, h, P, dt):
         target = w // (P * 6)
         while len(self.drops) < target:
-            self.drops.append([random.randrange(0, w // P) * P, random.uniform(-h, 0),
-                               random.uniform(0.6, 1.4), random.choice((3, 4, 5, 6))])
+            self.drops.append(
+                [
+                    random.randrange(0, w // P) * P,
+                    random.uniform(-h, 0),
+                    random.uniform(0.6, 1.4),
+                    random.choice((3, 4, 5, 6)),
+                ]
+            )
         for d in self.drops:
             d[1] += d[2] * 70 * P * dt
             if d[1] > h:
@@ -285,8 +306,15 @@ class Painter:
         ic = max(2, P * 3 // 5)
         pf.draw_icon(ctx, "spider", tb[0] + 4 * P, tb[1] + (11 * P - 9 * ic) // 2, ic, C["text"])
         title_cell = max(2, P * 3 // 5)
-        pf.draw_text(ctx, "KAFKA.SYS // LOGIN", tb[0] + 6 * P + 9 * ic, tb[1] + (11 * P - 7 * title_cell) // 2,
-                     title_cell, C["text"], hexc("#3d1028"))
+        pf.draw_text(
+            ctx,
+            "KAFKA.SYS // LOGIN",
+            tb[0] + 6 * P + 9 * ic,
+            tb[1] + (11 * P - 7 * title_cell) // 2,
+            title_cell,
+            C["text"],
+            hexc("#3d1028"),
+        )
         for i, col in enumerate((C["text"], C["text"], C["text"])):
             bx = tb[0] + tb[2] - (5 + i * 5) * P
             self.rect(ctx, bx, tb[1] + 4 * P, 3 * P, 3 * P, hexc("#3d1028"))
@@ -344,7 +372,7 @@ class Painter:
         if not m.busy and int(t * 2.2) % 2 == 0:
             curx = cx0 + min(n, maxdots) * 4 * P + (0 if n else pf.text_width("PASSWORD", max(2, P * 3 // 5)) + 2 * P)
             self.rect(ctx, curx, py_ + 3 * P, P, 6 * P, C["pink_fg"])
-        if m.busy:                                   # thanh chờ chạy ngang
+        if m.busy:  # thanh chờ chạy ngang
             k = (t * 1.4) % 1.0
             bw_ = rw // 4
             bx = rx + P + int((rw - 2 * P - bw_) * k) // P * P
@@ -364,8 +392,19 @@ class Painter:
         bw, bh = 32 * P, 11 * P
         bx, by = rx + rw - bw, dy + 55 * P
         hov = self.hover == "login"
-        self.frame(ctx, bx, by, bw, bh, P, hexc("#d9568f") if hov else C["pink"], C["pink_hi"], C["pink_sh"],
-                   hexc("#3d1028"), r=2)
+        self.frame(
+            ctx,
+            bx,
+            by,
+            bw,
+            bh,
+            P,
+            hexc("#d9568f") if hov else C["pink"],
+            C["pink_hi"],
+            C["pink_sh"],
+            hexc("#3d1028"),
+            r=2,
+        )
         self.text_center(ctx, "> ENTER", bx + bw // 2, by + (bh - 7 * sc) // 2, sc, C["text"], False)
         self.hit(bx, by, bw, bh, "login")
 
@@ -394,13 +433,20 @@ class Painter:
             fill = C["crit"] if armed else (C["hover"] if hov else C["card"])
             self.frame(ctx, x, y, S, S, P, fill, C["crit_fg"] if armed else C["hi"], C["sh"], C["edge"], r=2)
             ic = max(1, P)
-            pf.draw_icon(ctx, "power" if what == "poweroff" else "reboot", x + (S - 9 * ic) // 2,
-                         y + (S - 9 * ic) // 2, ic, C["text"])
+            pf.draw_icon(
+                ctx,
+                "power" if what == "poweroff" else "reboot",
+                x + (S - 9 * ic) // 2,
+                y + (S - 9 * ic) // 2,
+                ic,
+                C["text"],
+            )
             self.hit(x, y, S, S, what)
         if m.confirm and now < m.confirm[1]:
             lab = "CLICK AGAIN TO " + ("SHUT DOWN" if m.confirm[0] == "poweroff" else "REBOOT")
-            pf.draw_text(ctx, lab, w - 8 * P - pf.text_width(lab, sc), h - 8 * P - S - 8 * P, sc, C["crit_fg"],
-                         C["shadow"])
+            pf.draw_text(
+                ctx, lab, w - 8 * P - pf.text_width(lab, sc), h - 8 * P - S - 8 * P, sc, C["crit_fg"], C["shadow"]
+            )
 
     def _arrow(self, ctx, ch, x, y, P, action, now, cell=None):
         cell = cell or P
@@ -418,6 +464,7 @@ class Painter:
 # ---------------------------------------------------------------- ứng dụng GTK
 def run(args):
     import gi
+
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     from gi.repository import Gdk, GLib, Gtk
@@ -432,8 +479,10 @@ def run(args):
     mock = None
     if demo:
         me = os.environ.get("USER", "kafka")
-        users = [{"name": me, "uid": 1000, "gecos": "Stellaron Hunter", "home": ""},
-                 {"name": "kafka", "uid": 1001, "gecos": "", "home": ""}]
+        users = [
+            {"name": me, "uid": 1000, "gecos": "Stellaron Hunter", "home": ""},
+            {"name": "kafka", "uid": 1001, "gecos": "", "home": ""},
+        ]
         sessions = ipc.list_sessions() or [{"name": "Hyprland", "exec": ["start-hyprland"]}]
         mock = ipc.MockGreetd(users={me: "pass", "kafka": "pass"})
         sock = mock.start()
@@ -492,6 +541,7 @@ def run(args):
                 GLib.idle_add(done, e)
             except Exception as e:  # noqa: BLE001 — không để greeter chết vì lỗi lạ
                 GLib.idle_add(done, ipc.GreetdError("error", str(e)))
+
         threading.Thread(target=worker, daemon=True).start()
 
     def done(err):
@@ -572,7 +622,7 @@ def run(args):
         win.fullscreen()
     win.show_all()
     GLib.timeout_add(1000 // FPS, tick)
-    if demo and "--autotype" in args:            # thử luồng đăng nhập không cần bàn phím: --autotype "sai,pass"
+    if demo and "--autotype" in args:  # thử luồng đăng nhập không cần bàn phím: --autotype "sai,pass"
         tries = args[args.index("--autotype") + 1].split(",")
 
         def auto(i=0):
@@ -580,6 +630,7 @@ def run(args):
                 model.password = tries[i]
                 do_login()
                 GLib.timeout_add(2500, lambda: auto(i + 1) or False)
+
         GLib.timeout_add(1500, lambda: auto() or False)
     try:
         Gtk.main()
@@ -591,6 +642,7 @@ def run(args):
 def shot(args):
     """Vẽ 1 khung ra PNG (không cần màn hình) để xem trước."""
     import cairo
+
     out = args[args.index("--shot") + 1]
     w, h = 1920, 1080
     if "--window" in args:
@@ -598,6 +650,7 @@ def shot(args):
     sys.path.insert(0, HERE)
     try:
         import greetd_ipc as ipc
+
         sessions = ipc.list_sessions()
     except Exception:
         sessions = []
@@ -608,9 +661,9 @@ def shot(args):
     p = Painter(m)
     surf = cairo.ImageSurface(cairo.FORMAT_RGB24, w, h)
     ctx = cairo.Context(surf)
-    for _ in range(40):                       # cho mưa rơi vào khung hình
+    for _ in range(40):  # cho mưa rơi vào khung hình
         p.draw(ctx, w, h, 1 / FPS)
-    p.t0 -= 10                                # câu thoại đã gõ xong
+    p.t0 -= 10  # câu thoại đã gõ xong
     p.draw(ctx, w, h, 1 / FPS)
     surf.write_to_png(out)
     print(out)
@@ -623,10 +676,16 @@ def selftest():
         nonlocal ok
         print(("PASS: " if cond else "FAIL: ") + name)
         ok = ok and cond
-    m = Model([{"name": "a"}, {"name": "b"}], [{"name": "S1", "exec": ["x"]}, {"name": "S2", "exec": ["y"]}],
-              {"user": "b", "session": "S2"})
+
+    m = Model(
+        [{"name": "a"}, {"name": "b"}],
+        [{"name": "S1", "exec": ["x"]}, {"name": "S2", "exec": ["y"]}],
+        {"user": "b", "session": "S2"},
+    )
     check("nhớ người dùng/phiên cũ", m.user["name"] == "b" and m.session["name"] == "S2")
-    m.key_char("p"); m.key_char("w"); m.key_char("\x07")
+    m.key_char("p")
+    m.key_char("w")
+    m.key_char("\x07")
     check("gõ ký tự in được, bỏ ký tự điều khiển", m.password == "pw")
     m.backspace()
     check("backspace", m.password == "p")
@@ -640,7 +699,9 @@ def selftest():
     check("quá 3s phải xác nhận lại", m.power_press("poweroff", 204.0) is False)
     m2 = Model([], [], {"user": "zzz"})
     check("danh sách rỗng vẫn có mặc định", m2.user["name"] and m2.session["exec"])
-    check("font có đủ chữ cho giao diện", all(ch in pf.GLYPHS for ch in "KAFKA.SYS // LOGIN ENTER PASSWORD:0123456789<>"))
+    check(
+        "font có đủ chữ cho giao diện", all(ch in pf.GLYPHS for ch in "KAFKA.SYS // LOGIN ENTER PASSWORD:0123456789<>")
+    )
     print("selftest", "ok" if ok else "FAIL")
     return 0 if ok else 1
 

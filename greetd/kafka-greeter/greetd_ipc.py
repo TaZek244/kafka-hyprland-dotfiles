@@ -125,10 +125,12 @@ class GreetdClient:
 
     def post_response(self, response: str | None = None) -> dict[str, Any]:
         """Trả lời thông điệp xác thực (auth_message) từ greetd/PAM."""
-        return self._send({
-            "type": "post_auth_message_response",
-            "response": response,
-        })
+        return self._send(
+            {
+                "type": "post_auth_message_response",
+                "response": response,
+            }
+        )
 
     def start_session(
         self,
@@ -136,11 +138,13 @@ class GreetdClient:
         env: list[str] | None = None,
     ) -> dict[str, Any]:
         """Yêu cầu greetd khởi chạy phiên làm việc sau khi đã xác thực thành công."""
-        return self._send({
-            "type": "start_session",
-            "cmd": list(cmd),
-            "env": list(env) if env is not None else [],
-        })
+        return self._send(
+            {
+                "type": "start_session",
+                "cmd": list(cmd),
+                "env": list(env) if env is not None else [],
+            }
+        )
 
     def cancel_session(self) -> dict[str, Any]:
         """Huỷ phiên đang mở hoặc đang xác thực dở dang."""
@@ -318,29 +322,38 @@ class MockGreetd:
             if rtype == "create_session":
                 username = req.get("username")
                 if not isinstance(username, str) or not username:
-                    _write_packet(conn, {
-                        "type": "error",
-                        "error_type": "error",
-                        "description": "Missing username",
-                    })
+                    _write_packet(
+                        conn,
+                        {
+                            "type": "error",
+                            "error_type": "error",
+                            "description": "Missing username",
+                        },
+                    )
                     continue
                 current_user = username
                 authenticated = False
                 awaiting_password = True
                 # Luôn hỏi mật khẩu kể cả khi user không tồn tại (giống hành vi PAM)
-                _write_packet(conn, {
-                    "type": "auth_message",
-                    "auth_message_type": "secret",
-                    "auth_message": "Password:",
-                })
+                _write_packet(
+                    conn,
+                    {
+                        "type": "auth_message",
+                        "auth_message_type": "secret",
+                        "auth_message": "Password:",
+                    },
+                )
 
             elif rtype == "post_auth_message_response":
                 if not awaiting_password or current_user is None:
-                    _write_packet(conn, {
-                        "type": "error",
-                        "error_type": "error",
-                        "description": "No active authentication prompt",
-                    })
+                    _write_packet(
+                        conn,
+                        {
+                            "type": "error",
+                            "error_type": "error",
+                            "description": "No active authentication prompt",
+                        },
+                    )
                     continue
 
                 response = req.get("response")
@@ -351,19 +364,25 @@ class MockGreetd:
                     _write_packet(conn, {"type": "success"})
                 else:
                     authenticated = False
-                    _write_packet(conn, {
-                        "type": "error",
-                        "error_type": "auth_error",
-                        "description": "Authentication failed",
-                    })
+                    _write_packet(
+                        conn,
+                        {
+                            "type": "error",
+                            "error_type": "auth_error",
+                            "description": "Authentication failed",
+                        },
+                    )
 
             elif rtype == "start_session":
                 if not authenticated or current_user is None:
-                    _write_packet(conn, {
-                        "type": "error",
-                        "error_type": "error",
-                        "description": "Session not authenticated",
-                    })
+                    _write_packet(
+                        conn,
+                        {
+                            "type": "error",
+                            "error_type": "error",
+                            "description": "Session not authenticated",
+                        },
+                    )
                     continue
                 cmd = [str(x) for x in req.get("cmd", [])]
                 env = [str(x) for x in req.get("env", [])]
@@ -377,11 +396,14 @@ class MockGreetd:
                 _write_packet(conn, {"type": "success"})
 
             else:
-                _write_packet(conn, {
-                    "type": "error",
-                    "error_type": "error",
-                    "description": f"Unknown request type: {rtype}",
-                })
+                _write_packet(
+                    conn,
+                    {
+                        "type": "error",
+                        "error_type": "error",
+                        "description": f"Unknown request type: {rtype}",
+                    },
+                )
 
 
 def list_users(passwd: str = "/etc/passwd") -> list[dict[str, Any]]:
@@ -411,12 +433,14 @@ def list_users(passwd: str = "/etc/passwd") -> list[dict[str, Any]]:
                 if "nologin" in shell_lower or "false" in shell_lower:
                     continue
                 display_gecos = gecos.split(",")[0].strip() if gecos else ""
-                users.append({
-                    "name": name,
-                    "uid": uid,
-                    "gecos": display_gecos,
-                    "home": home,
-                })
+                users.append(
+                    {
+                        "name": name,
+                        "uid": uid,
+                        "gecos": display_gecos,
+                        "home": home,
+                    }
+                )
     except OSError:
         return []
 
@@ -482,11 +506,13 @@ def list_sessions(
             if not cmd:
                 continue
 
-            sessions.append({
-                "name": name,
-                "exec": cmd,
-                "file": fpath,
-            })
+            sessions.append(
+                {
+                    "name": name,
+                    "exec": cmd,
+                    "file": fpath,
+                }
+            )
 
     def _sort_key(item: dict[str, Any]) -> tuple[int, str]:
         has_hypr = any("start-hyprland" in part for part in item["exec"])
@@ -588,9 +614,7 @@ def selftest() -> int:
         users = list_users(passwd_file)
         expected_names = [u["name"] for u in users]
         ok = (
-            expected_names == ["kafka", "silverwolf"]
-            and users[0]["uid"] == 1000
-            and users[1]["gecos"] == "Silver Wolf"
+            expected_names == ["kafka", "silverwolf"] and users[0]["uid"] == 1000 and users[1]["gecos"] == "Silver Wolf"
         )
         _record(ok, "list_users lọc đúng UID 1000..59999, bỏ nologin/false và sắp theo UID")
 
@@ -600,30 +624,15 @@ def selftest() -> int:
 
         # File 1: Exec có %U
         with open(os.path.join(sess_dir, "sway.desktop"), "w", encoding="utf-8") as f:
-            f.write(
-                "[Desktop Entry]\n"
-                "Name=Sway\n"
-                "Exec=sway --config /etc/sway/config %U\n"
-                "Type=Application\n"
-            )
+            f.write("[Desktop Entry]\nName=Sway\nExec=sway --config /etc/sway/config %U\nType=Application\n")
 
         # File 2: start-hyprland (phải được ưu tiên xếp đầu)
         with open(os.path.join(sess_dir, "hyprland.desktop"), "w", encoding="utf-8") as f:
-            f.write(
-                "[Desktop Entry]\n"
-                "Name=Hyprland (Kafka)\n"
-                "Exec=/usr/bin/start-hyprland %f\n"
-                "Type=Application\n"
-            )
+            f.write("[Desktop Entry]\nName=Hyprland (Kafka)\nExec=/usr/bin/start-hyprland %f\nType=Application\n")
 
         # File 3: Hidden=true (phải bị bỏ qua)
         with open(os.path.join(sess_dir, "hidden.desktop"), "w", encoding="utf-8") as f:
-            f.write(
-                "[Desktop Entry]\n"
-                "Name=Hidden WM\n"
-                "Exec=hidden-wm\n"
-                "Hidden=true\n"
-            )
+            f.write("[Desktop Entry]\nName=Hidden WM\nExec=hidden-wm\nHidden=true\n")
 
         # File 4: File hỏng cú pháp / không có [Desktop Entry]
         with open(os.path.join(sess_dir, "broken.desktop"), "w", encoding="utf-8") as f:

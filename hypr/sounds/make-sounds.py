@@ -29,30 +29,30 @@ MAX_VOL = 0.45
 # hoặc ("gap", thời_lượng). Các tần số được làm tròn từ nốt nhạc tương ứng.
 SOUNDS = {
     "alert-warn": [
-        ("note", 659.26, 0.15, 0.50, MAX_VOL),   # E5
+        ("note", 659.26, 0.15, 0.50, MAX_VOL),  # E5
         ("gap", 0.025),
-        ("note", 987.77, 0.15, 0.50, MAX_VOL),   # B5
+        ("note", 987.77, 0.15, 0.50, MAX_VOL),  # B5
         ("gap", 0.025),
     ],
     "alert-critical": [
-        ("note", 880.00, 0.12, 0.40, MAX_VOL),   # A5
+        ("note", 880.00, 0.12, 0.40, MAX_VOL),  # A5
         ("gap", 0.025),
-        ("note", 659.26, 0.12, 0.60, MAX_VOL),   # E5
+        ("note", 659.26, 0.12, 0.60, MAX_VOL),  # E5
         ("gap", 0.025),
-        ("note", 440.00, 0.12, 0.40, MAX_VOL),   # A4
+        ("note", 440.00, 0.12, 0.40, MAX_VOL),  # A4
         ("gap", 0.080),
-        ("note", 880.00, 0.12, 0.60, MAX_VOL),   # A5
+        ("note", 880.00, 0.12, 0.60, MAX_VOL),  # A5
         ("gap", 0.025),
-        ("note", 659.26, 0.12, 0.40, MAX_VOL),   # E5
+        ("note", 659.26, 0.12, 0.40, MAX_VOL),  # E5
         ("gap", 0.025),
-        ("note", 440.00, 0.12, 0.60, MAX_VOL),   # A4
+        ("note", 440.00, 0.12, 0.60, MAX_VOL),  # A4
     ],
     "alert-ok": [
-        ("note", 523.25, 0.09, 0.50, MAX_VOL),   # C5
+        ("note", 523.25, 0.09, 0.50, MAX_VOL),  # C5
         ("gap", 0.025),
-        ("note", 659.26, 0.09, 0.50, MAX_VOL),   # E5
+        ("note", 659.26, 0.09, 0.50, MAX_VOL),  # E5
         ("gap", 0.025),
-        ("note", 783.99, 0.09, 0.50, MAX_VOL),   # G5
+        ("note", 783.99, 0.09, 0.50, MAX_VOL),  # G5
         ("gap", 0.025),
         ("note", 1046.50, 0.09, 0.50, MAX_VOL),  # C6
         ("gap", 0.015),
@@ -70,8 +70,7 @@ def note(freq, dur, duty=0.5, vol=0.45):
     """Trả về một nốt: sóng vuông + sóng tam giác thấp hơn một quãng tám."""
     count = max(1, int(round(dur * SAMPLE_RATE)))
     attack = min(max(1, int(round(ATTACK * SAMPLE_RATE))), max(1, count // 3))
-    release = min(max(1, int(round(RELEASE * SAMPLE_RATE))),
-                  max(1, count - attack - 1))
+    release = min(max(1, int(round(RELEASE * SAMPLE_RATE))), max(1, count - attack - 1))
 
     samples = []
     for i in range(count):
@@ -137,8 +136,7 @@ def main():
         samples = render(events)
         path = os.path.join(folder, name + ".wav")
         write_wav(path, samples)
-        print("%s: %.3f s" % (os.path.basename(path),
-                              len(samples) / SAMPLE_RATE))
+        print("%s: %.3f s" % (os.path.basename(path), len(samples) / SAMPLE_RATE))
     return 0
 
 

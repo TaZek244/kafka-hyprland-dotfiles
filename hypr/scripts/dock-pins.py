@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 
-MAX_SLOTS = 6      # ngăn FAV: TỐI ĐA 6 app ghim (người dùng 2026-11-22); ô không dùng thì ẩn
+MAX_SLOTS = 6  # ngăn FAV: TỐI ĐA 6 app ghim (người dùng 2026-11-22); ô không dùng thì ẩn
 OUT_PX = 40
 SCRIPT = Path(os.path.realpath(__file__))
 REPO = SCRIPT.parents[2]
@@ -19,6 +19,7 @@ RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "kafka-dock"
 
 # GTK phải được yêu cầu đúng phiên bản trước khi nạp các namespace của PyGObject.
 import gi
+
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, Gio, Gtk
@@ -26,6 +27,7 @@ from gi.repository import Gdk, Gio, Gtk
 try:
     gi.require_version("GioUnix", "2.0")
     from gi.repository import GioUnix
+
     DesktopAppInfo = GioUnix.DesktopAppInfo
 except (ImportError, ValueError):
     DesktopAppInfo = Gio.DesktopAppInfo
@@ -147,9 +149,16 @@ def render_surface(app):
         dark = (20 / 255, 14 / 255, 26 / 255)
         inner = (29 / 255, 22 / 255, 38 / 255)
         context.set_source_rgb(*dark)
-        context.move_to(2, 0); context.line_to(38, 0); context.line_to(40, 2)
-        context.line_to(40, 38); context.line_to(38, 40); context.line_to(2, 40)
-        context.line_to(0, 38); context.line_to(0, 2); context.close_path(); context.fill()
+        context.move_to(2, 0)
+        context.line_to(38, 0)
+        context.line_to(40, 2)
+        context.line_to(40, 38)
+        context.line_to(38, 40)
+        context.line_to(2, 40)
+        context.line_to(0, 38)
+        context.line_to(0, 2)
+        context.close_path()
+        context.fill()
         rect(2, 2, 36, 36, inner)
         rect(2, 2, 36, 2, (15 / 255, 10 / 255, 20 / 255))
         rect(2, 2, 2, 36, (15 / 255, 10 / 255, 20 / 255))
@@ -175,7 +184,10 @@ def render(signal=True):
     for index, (desktop_id, app) in enumerate(pins, 1):
         write_png(RUNTIME_DIR / f"pin{index}.png", app)
         name = app.get_name() or desktop_id
-        write_atomic(RUNTIME_DIR / f"pin{index}.txt", lambda path, value=str(name): Path(path).write_text(value.replace("\n", " "), encoding="utf-8"))
+        write_atomic(
+            RUNTIME_DIR / f"pin{index}.txt",
+            lambda path, value=str(name): Path(path).write_text(value.replace("\n", " "), encoding="utf-8"),
+        )
     for index in range(len(pins) + 1, MAX_SLOTS + 1):
         # 6 là GIỚI HẠN: ô không có app thì xoá ảnh → Waybar ẩn ô
         for suffix in ("png", "txt"):
@@ -184,14 +196,16 @@ def render(signal=True):
             except FileNotFoundError:
                 pass
     if signal and not os.environ.get("KAFKA_DOCK_NO_SIGNAL"):
-        subprocess.run(["pkill", "-RTMIN+19", "waybar"], stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL, check=False)
+        subprocess.run(
+            ["pkill", "-RTMIN+19", "waybar"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False
+        )
     return pins
 
 
 def command_slot(index):
     """In đường dẫn ảnh và tooltip cho module image của Waybar."""
-    pins = render(signal=False) if not (RUNTIME_DIR / f"pin{index}.png").exists() else None
+    if not (RUNTIME_DIR / f"pin{index}.png").exists():
+        render(signal=False)
     png = RUNTIME_DIR / f"pin{index}.png"
     txt = RUNTIME_DIR / f"pin{index}.txt"
     if not png.exists() or not txt.exists():
@@ -210,8 +224,12 @@ def command_click(index):
         return
     desktop_id, app = valid[index - 1]
     try:
-        subprocess.Popen(["gtk-launch", desktop_id[:-8] if desktop_id.endswith(".desktop") else desktop_id],
-                         start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.Popen(
+            ["gtk-launch", desktop_id[:-8] if desktop_id.endswith(".desktop") else desktop_id],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     except (OSError, FileNotFoundError):
         try:
             app.launch([], None)
@@ -224,8 +242,14 @@ def command_list():
     result = []
     for desktop_id in load_pins():
         app = app_info(desktop_id)
-        result.append({"id": desktop_id, "name": app.get_name() if app else desktop_id,
-                       "icon": app_icon(app), "exists": app is not None})
+        result.append(
+            {
+                "id": desktop_id,
+                "name": app.get_name() if app else desktop_id,
+                "icon": app_icon(app),
+                "exists": app is not None,
+            }
+        )
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
 
 
@@ -236,9 +260,15 @@ def command_apps():
         try:
             if not app.should_show():
                 continue
-            result.append({"id": app.get_id() or "", "name": app.get_name() or "",
-                           "icon": app_icon(app), "generic": app.get_generic_name() or "",
-                           "exec": app.get_commandline() or ""})
+            result.append(
+                {
+                    "id": app.get_id() or "",
+                    "name": app.get_name() or "",
+                    "icon": app_icon(app),
+                    "generic": app.get_generic_name() or "",
+                    "exec": app.get_commandline() or "",
+                }
+            )
         except Exception:
             continue
     result.sort(key=lambda item: item["name"].casefold())
@@ -265,17 +295,21 @@ def selftest():
             assert (RUNTIME_DIR / "pin1.png").exists()
             assert not (RUNTIME_DIR / "pin2.png").exists()
             import struct
+
             png_header = (RUNTIME_DIR / "pin1.png").read_bytes()
             assert png_header[:8] == b"\x89PNG\r\n\x1a\n"
             width, height = struct.unpack(">II", png_header[16:24])
             assert (width, height) == (40, 40)
-            slot = subprocess.run([sys.executable, str(SCRIPT), "slot", "2"], capture_output=True,
-                                  text=True, env=os.environ, check=True)
+            slot = subprocess.run(
+                [sys.executable, str(SCRIPT), "slot", "2"], capture_output=True, text=True, env=os.environ, check=True
+            )
             assert slot.stdout.strip() == ""
-            list_result = subprocess.run([sys.executable, str(SCRIPT), "list"], capture_output=True,
-                                         text=True, env=os.environ, check=True)
-            apps_result = subprocess.run([sys.executable, str(SCRIPT), "apps"], capture_output=True,
-                                         text=True, env=os.environ, check=True)
+            list_result = subprocess.run(
+                [sys.executable, str(SCRIPT), "list"], capture_output=True, text=True, env=os.environ, check=True
+            )
+            apps_result = subprocess.run(
+                [sys.executable, str(SCRIPT), "apps"], capture_output=True, text=True, env=os.environ, check=True
+            )
             listed = json.loads(list_result.stdout)
             installed = json.loads(apps_result.stdout)
             assert isinstance(listed, list) and len(listed) == 2
@@ -296,7 +330,8 @@ def selftest():
 
 def main():
     if len(sys.argv) == 2 and sys.argv[1] == "--selftest":
-        selftest(); return
+        selftest()
+        return
     command = sys.argv[1] if len(sys.argv) > 1 else "render"
     if command == "render":
         render()

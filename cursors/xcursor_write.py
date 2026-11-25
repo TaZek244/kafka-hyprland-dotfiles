@@ -29,8 +29,8 @@ def read_png(path):
         raise ValueError(f"{path}: không phải PNG")
     pos, idat, w = 8, b"", None
     while pos < len(data):
-        ln, typ = struct.unpack(">I4s", data[pos:pos + 8])
-        body = data[pos + 8:pos + 8 + ln]
+        ln, typ = struct.unpack(">I4s", data[pos : pos + 8])
+        body = data[pos + 8 : pos + 8 + ln]
         if typ == b"IHDR":
             w, h, depth, ctype, _c, _f, inter = struct.unpack(">IIBBBBB", body)
             if depth != 8 or ctype not in (2, 6) or inter:
@@ -48,7 +48,7 @@ def read_png(path):
     i = 0
     for _ in range(h):
         ft = raw[i]
-        line = bytearray(raw[i + 1:i + 1 + stride])
+        line = bytearray(raw[i + 1 : i + 1 + stride])
         i += 1 + stride
         for x in range(stride):
             a = line[x - bpp] if x >= bpp else 0
@@ -67,25 +67,27 @@ def read_png(path):
             out += line
         else:
             for x in range(w):
-                out += line[x * 3:x * 3 + 3] + b"\xff"
+                out += line[x * 3 : x * 3 + 3] + b"\xff"
     return w, h, bytes(out)
 
 
 def _argb_premul(rgba):
     px = []
     for k in range(0, len(rgba), 4):
-        r, g, b, a = rgba[k:k + 4]
+        r, g, b, a = rgba[k : k + 4]
         px.append((a << 24) | (((r * a + 127) // 255) << 16) | (((g * a + 127) // 255) << 8) | ((b * a + 127) // 255))
     return struct.pack(f"<{len(px)}I", *px)
 
 
 def write_xcursor(out_path, frames):
     imgs = []
-    for f in sorted(frames, key=lambda f: f["size"]):        # sort ổn định: giữ thứ tự khung trong cùng cỡ
+    for f in sorted(frames, key=lambda f: f["size"]):  # sort ổn định: giữ thứ tự khung trong cùng cỡ
         w, h, rgba = read_png(f["png"])
         xh = max(0, min(int(f["xhot"]), w - 1))
         yh = max(0, min(int(f["yhot"]), h - 1))
-        chunk = struct.pack("<9I", 36, IMAGE_TYPE, int(f["size"]), 1, w, h, xh, yh, int(f.get("delay", 0))) + _argb_premul(rgba)
+        chunk = struct.pack(
+            "<9I", 36, IMAGE_TYPE, int(f["size"]), 1, w, h, xh, yh, int(f.get("delay", 0))
+        ) + _argb_premul(rgba)
         imgs.append((int(f["size"]), chunk))
     n = len(imgs)
     pos = 16 + 12 * n
@@ -108,10 +110,12 @@ def parse_xcursor(path):
         raise ValueError("sai magic")
     res = []
     for k in range(n):
-        typ, sub, pos = struct.unpack("<III", d[16 + 12 * k:28 + 12 * k])
-        _hl, _t, size, _v, w, h, xh, yh, delay = struct.unpack("<9I", d[pos:pos + 36])
-        pix = struct.unpack(f"<{w * h}I", d[pos + 36:pos + 36 + 4 * w * h])
-        res.append({"toc_size": sub, "size": size, "w": w, "h": h, "xhot": xh, "yhot": yh, "delay": delay, "pixels": pix})
+        typ, sub, pos = struct.unpack("<III", d[16 + 12 * k : 28 + 12 * k])
+        _hl, _t, size, _v, w, h, xh, yh, delay = struct.unpack("<9I", d[pos : pos + 36])
+        pix = struct.unpack(f"<{w * h}I", d[pos + 36 : pos + 36 + 4 * w * h])
+        res.append(
+            {"toc_size": sub, "size": size, "w": w, "h": h, "xhot": xh, "yhot": yh, "delay": delay, "pixels": pix}
+        )
     return res
 
 
@@ -120,7 +124,7 @@ def _write_png(path, w, h, rgba, filt=0):
     """PNG RGBA tối giản, mã hoá mọi hàng bằng bộ lọc filt (0 None, 1 Sub, 4 Paeth)."""
     stride, raw, prev = w * 4, b"", bytes(w * 4)
     for y in range(h):
-        line = rgba[y * stride:(y + 1) * stride]
+        line = rgba[y * stride : (y + 1) * stride]
         enc = bytearray()
         for x in range(stride):
             a = line[x - 4] if x >= 4 else 0
@@ -132,9 +136,14 @@ def _write_png(path, w, h, rgba, filt=0):
 
     def chunk(t, b):
         return struct.pack(">I", len(b)) + t + b + struct.pack(">I", zlib.crc32(t + b) & 0xFFFFFFFF)
+
     with open(path, "wb") as f:
-        f.write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
-                + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+        f.write(
+            b"\x89PNG\r\n\x1a\n"
+            + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(raw))
+            + chunk(b"IEND", b"")
+        )
 
 
 def selftest():
@@ -144,6 +153,7 @@ def selftest():
         nonlocal ok
         print(("PASS " if cond else "FAIL ") + name)
         ok = ok and bool(cond)
+
     with tempfile.TemporaryDirectory() as t:
         px = bytes([255, 0, 0, 128, 0, 255, 0, 255, 10, 20, 30, 0, 200, 100, 50, 64])
         for f in (0, 1, 4):
@@ -155,12 +165,20 @@ def selftest():
         _write_png(p4, 4, 5, big, 4)
         check("read_png Paeth 4x5", read_png(p4) == (4, 5, big))
         out = os.path.join(t, "cur")
-        write_xcursor(out, [{"size": 32, "png": p4, "xhot": 9, "yhot": 1, "delay": 50},
-                            {"size": 24, "png": os.path.join(t, "a0.png"), "xhot": 1, "yhot": 1, "delay": 70},
-                            {"size": 24, "png": os.path.join(t, "a1.png"), "xhot": 0, "yhot": 0, "delay": 70}])
+        write_xcursor(
+            out,
+            [
+                {"size": 32, "png": p4, "xhot": 9, "yhot": 1, "delay": 50},
+                {"size": 24, "png": os.path.join(t, "a0.png"), "xhot": 1, "yhot": 1, "delay": 70},
+                {"size": 24, "png": os.path.join(t, "a1.png"), "xhot": 0, "yhot": 0, "delay": 70},
+            ],
+        )
         r = parse_xcursor(out)
         check("magic + ntoc", len(r) == 3)
-        check("sắp theo cỡ, giữ thứ tự khung", [x["size"] for x in r] == [24, 24, 32] and r[0]["xhot"] == 1 and r[1]["xhot"] == 0)
+        check(
+            "sắp theo cỡ, giữ thứ tự khung",
+            [x["size"] for x in r] == [24, 24, 32] and r[0]["xhot"] == 1 and r[1]["xhot"] == 0,
+        )
         check("toc subtype = size", all(x["toc_size"] == x["size"] for x in r))
         check("kẹp hotspot", r[2]["xhot"] == 3 and r[2]["yhot"] == 1)
         check("delay", r[0]["delay"] == 70 and r[2]["delay"] == 50)
@@ -181,8 +199,15 @@ def main(argv):
         if len(parts) not in (4, 5):
             print(f"sai cú pháp: {spec} (cần size:png:xhot:yhot[:delay])", file=sys.stderr)
             return 2
-        frames.append({"size": int(parts[0]), "png": parts[1], "xhot": int(parts[2]), "yhot": int(parts[3]),
-                       "delay": int(parts[4]) if len(parts) == 5 else 0})
+        frames.append(
+            {
+                "size": int(parts[0]),
+                "png": parts[1],
+                "xhot": int(parts[2]),
+                "yhot": int(parts[3]),
+                "delay": int(parts[4]) if len(parts) == 5 else 0,
+            }
+        )
     write_xcursor(argv[0], frames)
     return 0
 

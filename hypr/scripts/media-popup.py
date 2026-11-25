@@ -52,10 +52,10 @@ CACHE_BASE = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
 ART_CACHE_DIR = os.path.join(CACHE_BASE, "kafka", "art")
 
 # Glyph Nerd Font (FiraCode Nerd Font Propo)
-G_PREV = "\U000f04ae"   # 󰒮
-G_PLAY = "\U000f040a"   # 󰐊
+G_PREV = "\U000f04ae"  # 󰒮
+G_PLAY = "\U000f040a"  # 󰐊
 G_PAUSE = "\U000f03e4"  # 󰏤
-G_NEXT = "\U000f04ad"   # 󰒭
+G_NEXT = "\U000f04ad"  # 󰒭
 G_MUSIC = "\U000f0387"  # 󰎇
 
 CSS = """
@@ -235,6 +235,7 @@ button.lyric-btn:hover {
 # ==============================================================================
 # Các hàm thuần (Pure Functions) — Kiểm thử qua --selftest
 # ==============================================================================
+
 
 def fmt_time(sec):
     """Định dạng số giây thành chuỗi 'm:ss' hoặc 'h:mm:ss' (ví dụ: '0:00', '3:07', '1:02:03')."""
@@ -478,6 +479,7 @@ def fallback_line_index_at(lines, t):
 # Quản lý PID (Single Instance)
 # ==============================================================================
 
+
 def running_pid():
     """Trả về PID nếu media-popup.py đang chạy, ngược lại None."""
     try:
@@ -514,6 +516,7 @@ def remove_pidfile():
 # ==============================================================================
 # Kiểm thử tự động (--selftest)
 # ==============================================================================
+
 
 def run_selftest():
     """Kiểm tra các hàm thuần không cần màn hình và không import Gtk."""
@@ -578,6 +581,7 @@ def run_selftest():
 # Giao diện GTK3 + GtkLayerShell
 # ==============================================================================
 
+
 def run_app(arg_x=None):
     import cairo
     import gi
@@ -622,9 +626,9 @@ def run_app(arg_x=None):
             # Lời bài hát
             self.song_key = None
             self._lyrics_req_id = 0
-            self.lyric_lines = []      # [(sec, text), ...]
-            self.lyric_widgets = []    # [Gtk.Label, ...]
-            self.lyric_buttons = []    # [Gtk.Button, ...]
+            self.lyric_lines = []  # [(sec, text), ...]
+            self.lyric_widgets = []  # [Gtk.Label, ...]
+            self.lyric_buttons = []  # [Gtk.Button, ...]
             self.active_lyric_idx = -1
             self._scroll_anim_id = None
             self._scroll_start = 0.0
@@ -653,8 +657,11 @@ def run_app(arg_x=None):
                 prov,
                 Gtk.STYLE_PROVIDER_PRIORITY_USER + 1,
             )
-            import kafka_theme as kt      # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật; đè cả ánh màu ảnh bìa
-            self._pixel = kt.apply(kt.panel(".panel", "8px 8px 4px 8px", titled=True) + f"""
+            import kafka_theme as kt  # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật; đè cả ánh màu ảnh bìa
+
+            self._pixel = kt.apply(
+                kt.panel(".panel", "8px 8px 4px 8px", titled=True)
+                + f"""
 button.ctrl-btn {{ {kt.CARD} border-radius: 8px; }}
 button.ctrl-btn:hover {{ {kt.CARD_HOVER} }}
 button.play-btn {{ {kt.CARD_ON} border-radius: 10px; }}
@@ -663,7 +670,8 @@ button.play-btn:hover {{ background-color: #d9568f; }}
 .lyric-line.active {{ text-shadow: 1px 1px 0 rgba(10, 6, 14, 0.6), 0 0 10px rgba(201, 71, 133, 0.7); }}
 button.lyric-btn {{ border-radius: 6px; }}
 button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shadow: none; }}
-""")
+"""
+            )
 
             self.set_app_paintable(True)
             vis = self.get_screen().get_rgba_visual()
@@ -697,7 +705,8 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
             self.panel.set_size_request(PANEL_W, -1)
             self.add(self.panel)
             if self._pixel:
-                import kafka_theme as kt   # kt của _apply_css là biến cục bộ hàm khác
+                import kafka_theme as kt  # kt của _apply_css là biến cục bộ hàm khác
+
                 self.px_title = kt.title_label("BGM PLAYER")
                 self.panel.pack_start(self.px_title, False, False, 0)
 
@@ -1125,6 +1134,7 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
             if getattr(self, "_pixel", False):
                 return
             import colorsys
+
             rgb = None
             if pixbuf is not None:
                 try:
@@ -1137,13 +1147,16 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
             if rgb is None:
                 rgb = (0xC9 / 255, 0x47 / 255, 0x85 / 255)
             r, g, b = (int(c * 255) for c in rgb)
-            css = (".panel { background-image: linear-gradient(165deg, "
-                   f"rgba({r},{g},{b},0.38), rgba(30,22,40,0.18) 55%, rgba(18,13,26,0.35)); }}\n"
-                   f".lyric-line.active {{ text-shadow: 0 0 14px rgba({r},{g},{b},0.9), 0 0 2px rgba(255,255,255,0.6); }}")
+            css = (
+                ".panel { background-image: linear-gradient(165deg, "
+                f"rgba({r},{g},{b},0.38), rgba(30,22,40,0.18) 55%, rgba(18,13,26,0.35)); }}\n"
+                f".lyric-line.active {{ text-shadow: 0 0 14px rgba({r},{g},{b},0.9), 0 0 2px rgba(255,255,255,0.6); }}"
+            )
             if not hasattr(self, "_tint_prov"):
                 self._tint_prov = Gtk.CssProvider()
-                Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), self._tint_prov,
-                                                         Gtk.STYLE_PROVIDER_PRIORITY_USER + 2)
+                Gtk.StyleContext.add_provider_for_screen(
+                    Gdk.Screen.get_default(), self._tint_prov, Gtk.STYLE_PROVIDER_PRIORITY_USER + 2
+                )
             self._tint_prov.load_from_data(css.encode("utf-8"))
 
         def _draw_art(self, _widget, ctx):
@@ -1581,10 +1594,7 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
         # ---------- Đóng khi bấm ra ngoài / Esc / SIGTERM ----------
         def _on_button_press(self, _widget, ev):
             alloc = self.panel.get_allocation()
-            inside = (
-                alloc.x <= ev.x <= alloc.x + alloc.width
-                and alloc.y <= ev.y <= alloc.y + alloc.height
-            )
+            inside = alloc.x <= ev.x <= alloc.x + alloc.width and alloc.y <= ev.y <= alloc.y + alloc.height
             if not inside:
                 self.quit()
                 return True
@@ -1620,6 +1630,7 @@ button.lyric-btn:hover {{ background-color: rgba(255, 255, 255, 0.07); box-shado
     try:
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_signal = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_signal = GLib.unix_signal_add
@@ -1669,6 +1680,7 @@ def main():
         return 0
 
     import gi
+
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     gi.require_version("GtkLayerShell", "0.1")

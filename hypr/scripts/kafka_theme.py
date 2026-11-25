@@ -33,15 +33,16 @@ CRIT = "#e0506e"
 # cỡ px chia hết cho 7 thì nét sắc (14px = 2px/điểm, 28 = 4, 42 = 6). Chỉ có chữ HOA không dấu + số.
 PIXEL_FONT = "Kafka Pixel"
 
+
 def _bevel(edge, hi, sh):
     """Viền tối 2px + mép sáng trên-trái 2px + bóng dưới-phải 2px (vuông, không blur)."""
-    return (f"box-shadow: inset 0 0 0 2px {edge}, inset 4px 4px 0 -2px {hi}, inset -4px -4px 0 -2px {sh};")
+    return f"box-shadow: inset 0 0 0 2px {edge}, inset 4px 4px 0 -2px {hi}, inset -4px -4px 0 -2px {sh};"
 
 
 CARD = f"background-color: {CARD_BG}; background-image: none; border: none; border-radius: 0; " + _bevel(EDGE, HI, SH)
 CARD_HOVER = f"background-color: {HOVER_BG}; " + _bevel(EDGE, "#7a6890", "#2a2034")
 CARD_ON = f"background-color: {PINK}; background-image: none; color: #ffffff; " + _bevel(PINK_EDGE, PINK_HI, PINK_SH)
-CARD_FLAT = f"background-color: rgba(20, 14, 26, 0.45); border-radius: 0; box-shadow: inset 0 0 0 2px {EDGE}, inset 4px 4px 0 -2px {SH};"   # vùng chìm
+CARD_FLAT = f"background-color: rgba(20, 14, 26, 0.45); border-radius: 0; box-shadow: inset 0 0 0 2px {EDGE}, inset 4px 4px 0 -2px {SH};"  # vùng chìm
 
 
 def is_pixel():
@@ -51,9 +52,9 @@ def is_pixel():
         return False
 
 
-WIN_CUT = (6, 9, 9, 6)          # trên phải dưới trái — khớp make_win() trong make-frames.py
-WIN_TITLE_H = 24                # cao dải tiêu đề (win-title.png)
-WIN_FILL = "rgba(34, 26, 43, 0.985)"   # gần đục: popup hay nằm trên chữ sáng (terminal), 0.96 còn lộ
+WIN_CUT = (6, 9, 9, 6)  # trên phải dưới trái — khớp make_win() trong make-frames.py
+WIN_TITLE_H = 24  # cao dải tiêu đề (win-title.png)
+WIN_FILL = "rgba(34, 26, 43, 0.985)"  # gần đục: popup hay nằm trên chữ sáng (terminal), 0.96 còn lộ
 
 
 def panel(selector=".panel", padding="4px", titled=False):
@@ -68,16 +69,18 @@ def panel(selector=".panel", padding="4px", titled=False):
     elif len(p) == 3:
         p = p + [p[1]]
     top = p[0] if titled else p[0] + WIN_TITLE_H + 6
-    pad = f"{top}px {p[1] + 4}px {p[2] + 4}px {p[3] + 4}px"   # chừa dải tiêu đề + lề trong
+    pad = f"{top}px {p[1] + 4}px {p[2] + 4}px {p[3] + 4}px"  # chừa dải tiêu đề + lề trong
     # GTK3 vẽ border-image ĐÈ nền và KHÔNG vẽ phần giữa → nền = 3 lớp trong padding-box (trên cùng trước):
     # 3 ô vuông (phải-trên), dải tiêu đề lặp ngang (trên), màu nền (gradient một màu).
-    return (f"{selector} {{ background-color: transparent; border-radius: 0; box-shadow: none; "
-            f'background-image: url("{dots}"), url("{title}"), linear-gradient({WIN_FILL}, {WIN_FILL}); '
-            f"background-repeat: no-repeat, repeat-x, no-repeat; background-position: right top, left top, center; "
-            f"background-origin: padding-box, padding-box, padding-box; "
-            f"background-clip: padding-box, padding-box, padding-box; "
-            f"border-style: solid; border-width: {t}px {r}px {b}px {l}px; border-color: transparent; "
-            f'border-image: url("{win}") {t} {r} {b} {l} stretch; padding: {pad}; }}\n')
+    return (
+        f"{selector} {{ background-color: transparent; border-radius: 0; box-shadow: none; "
+        f'background-image: url("{dots}"), url("{title}"), linear-gradient({WIN_FILL}, {WIN_FILL}); '
+        f"background-repeat: no-repeat, repeat-x, no-repeat; background-position: right top, left top, center; "
+        f"background-origin: padding-box, padding-box, padding-box; "
+        f"background-clip: padding-box, padding-box, padding-box; "
+        f"border-style: solid; border-width: {t}px {r}px {b}px {l}px; border-color: transparent; "
+        f'border-image: url("{win}") {t} {r} {b} {l} stretch; padding: {pad}; }}\n'
+    )
 
 
 def title_label(text):
@@ -85,8 +88,10 @@ def title_label(text):
     if not is_pixel():
         return None
     import gi
+
     gi.require_version("Gtk", "3.0")
     from gi.repository import Gtk
+
     label = Gtk.Label(label=f"> {(text or '').upper()}", xalign=0.0)
     label.get_style_context().add_class("px-title")
     return label
@@ -121,12 +126,15 @@ def apply(extra="", screen=None):
     if not is_pixel():
         return False
     import gi
+
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     from gi.repository import Gdk, Gtk
+
     prov = Gtk.CssProvider()
-    extra = re.sub(r"border-radius:\s*[^;}]+", "border-radius: 0", extra)   # ô vuông ở mọi popup
+    extra = re.sub(r"border-radius:\s*[^;}]+", "border-radius: 0", extra)  # ô vuông ở mọi popup
     prov.load_from_data((COMMON + extra).encode())
-    Gtk.StyleContext.add_provider_for_screen(screen or Gdk.Screen.get_default(), prov,
-                                             Gtk.STYLE_PROVIDER_PRIORITY_USER + 5)
+    Gtk.StyleContext.add_provider_for_screen(
+        screen or Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_USER + 5
+    )
     return True

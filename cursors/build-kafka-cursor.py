@@ -23,27 +23,44 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 THEME = "Kafka-Cursor"
-SIZES = (24, 32, 40, 48, 64)      # cỡ Xcursor; mặc định 32 (mũi tên thu 0.74 nên ~ cỡ con trỏ 24 thường, mặt Kafka đủ rõ)
+SIZES = (24, 32, 40, 48, 64)  # cỡ Xcursor; mặc định 32 (mũi tên thu 0.74 nên ~ cỡ con trỏ 24 thường, mặt Kafka đủ rõ)
 WAIT_FRAMES = 12
-WAIT_DELAY = 70                    # ms mỗi khung
+WAIT_DELAY = 70  # ms mỗi khung
 
 PINK = "#e0559a"
 PINK_HI = "#ff8cc0"
 VIOLET = "#a95ee8"
 PLUM_A = "#3a1a3c"
 PLUM_B = "#1f0f24"
-OUTLINE = 1.7                      # nửa độ dày viền hồng (vẽ nét 2×OUTLINE rồi tô đè)
+OUTLINE = 1.7  # nửa độ dày viền hồng (vẽ nét 2×OUTLINE rồi tô đè)
 
 REPO = os.path.dirname(HERE)
 FACE_SRC = os.path.join(REPO, "wallpapers", "Kafka_thumbail.jpg")
-FACE_CROP = "360x360+200+30"        # khung mặt + cặp kính trên đầu (ảnh 736x736)
+FACE_CROP = "360x360+200+30"  # khung mặt + cặp kính trên đầu (ảnh 736x736)
 
 
 def face_data_uri():
     """Cắt mặt Kafka từ ảnh trong repo → PNG 160px, làm nét nhẹ (hiển thị ở ~16–24px), nhúng base64."""
     import base64
-    p = subprocess.run(["magick", FACE_SRC, "-crop", FACE_CROP, "+repage", "-resize", "160x160",
-                        "-modulate", "100,115", "-unsharp", "0x1.2+0.8", "png:-"], capture_output=True, check=True)
+
+    p = subprocess.run(
+        [
+            "magick",
+            FACE_SRC,
+            "-crop",
+            FACE_CROP,
+            "+repage",
+            "-resize",
+            "160x160",
+            "-modulate",
+            "100,115",
+            "-unsharp",
+            "0x1.2+0.8",
+            "png:-",
+        ],
+        capture_output=True,
+        check=True,
+    )
     return "data:image/png;base64," + base64.b64encode(p.stdout).decode()
 
 
@@ -62,15 +79,19 @@ DEFS = f"""<defs>
 
 
 def svg(body):
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">{DEFS}'
-            f'<g filter="url(#sh)">{body}</g></svg>')
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">{DEFS}'
+        f'<g filter="url(#sh)">{body}</g></svg>'
+    )
 
 
 def solid(shapes, outline=OUTLINE, extra=""):
     """Khối liền: vẽ viền hồng (nét dày) cho mọi hình rồi tô thân đè lên → viền bao ngoài của hợp các hình."""
-    return (f'<g stroke="url(#edge)" stroke-width="{outline * 2}" stroke-linejoin="round" '
-            f'stroke-linecap="round" fill="url(#edge)">{shapes}</g>'
-            f'<g fill="url(#body)" stroke="none">{shapes}</g>{extra}')
+    return (
+        f'<g stroke="url(#edge)" stroke-width="{outline * 2}" stroke-linejoin="round" '
+        f'stroke-linecap="round" fill="url(#edge)">{shapes}</g>'
+        f'<g fill="url(#body)" stroke="none">{shapes}</g>{extra}'
+    )
 
 
 # ---------- các mảnh hình ----------
@@ -80,7 +101,7 @@ ARROW = "M5,3.2 L5,23.6 L9.9,19 L13.3,26.6 L16.5,25.1 L13.2,17.7 L19.9,17.4 Z"
 def arrow_web():
     """Mạng nhện mờ trong thân mũi tên, tâm ở mũi."""
     cx, cy = 5, 3.2
-    spokes = [62, 72, 82]                       # độ, đo từ trục x, đi xuống
+    spokes = [62, 72, 82]  # độ, đo từ trục x, đi xuống
     rings = (6.5, 11, 15.5)
     out = []
     for a in spokes:
@@ -94,10 +115,12 @@ def arrow_web():
             qx, qy = mx + (cx - mx) * 0.1, my + (cy - my) * 0.1
             d += f" Q{qx:.2f},{qy:.2f} {x1:.2f},{y1:.2f}"
         out.append(d)
-    return (f'<clipPath id="ac"><path d="{ARROW}"/></clipPath>'
-            f'<path clip-path="url(#ac)" d="{" ".join(out)}" fill="none" stroke="{PINK}" '
-            f'stroke-opacity="0.45" stroke-width="0.6" stroke-linecap="round"/>'
-            f'<path d="M6.3,6.2 L6.3,13" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.8" stroke-linecap="round"/>')
+    return (
+        f'<clipPath id="ac"><path d="{ARROW}"/></clipPath>'
+        f'<path clip-path="url(#ac)" d="{" ".join(out)}" fill="none" stroke="{PINK}" '
+        f'stroke-opacity="0.45" stroke-width="0.6" stroke-linecap="round"/>'
+        f'<path d="M6.3,6.2 L6.3,13" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.8" stroke-linecap="round"/>'
+    )
 
 
 def arrow():
@@ -105,8 +128,10 @@ def arrow():
 
 
 def badge(inner, cx=23.5, cy=23.5, r=5.6):
-    return (f'<circle cx="{cx}" cy="{cy}" r="{r + 1.2}" fill="{PLUM_B}"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="url(#edge)"/>{inner}')
+    return (
+        f'<circle cx="{cx}" cy="{cy}" r="{r + 1.2}" fill="{PLUM_B}"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="url(#edge)"/>{inner}'
+    )
 
 
 def face_badge(cx=22, cy=22, r=8.6, ring=True):
@@ -115,10 +140,12 @@ def face_badge(cx=22, cy=22, r=8.6, ring=True):
     if FACE is None:
         FACE = face_data_uri()
     cid = f"fc{int(cx * 10)}{int(cy * 10)}{int(r * 10)}"
-    g = (f'<clipPath id="{cid}"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath>'
-         f'<circle cx="{cx}" cy="{cy}" r="{r + 1.6}" fill="{PLUM_B}"/>'
-         f'<image clip-path="url(#{cid})" x="{cx - r}" y="{cy - r}" width="{2 * r}" height="{2 * r}" '
-         f'preserveAspectRatio="xMidYMid slice" href="{FACE}"/>')
+    g = (
+        f'<clipPath id="{cid}"><circle cx="{cx}" cy="{cy}" r="{r}"/></clipPath>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r + 1.6}" fill="{PLUM_B}"/>'
+        f'<image clip-path="url(#{cid})" x="{cx - r}" y="{cy - r}" width="{2 * r}" height="{2 * r}" '
+        f'preserveAspectRatio="xMidYMid slice" href="{FACE}"/>'
+    )
     if ring:
         g += f'<circle cx="{cx}" cy="{cy}" r="{r + 0.4}" fill="none" stroke="url(#edge)" stroke-width="1.3"/>'
     return g
@@ -130,8 +157,10 @@ def small_arrow():
 
 
 def plus(cx, cy, s=2.8, w=1.7, col="#ffffff"):
-    return (f'<path d="M{cx - s},{cy} H{cx + s} M{cx},{cy - s} V{cy + s}" stroke="{col}" '
-            f'stroke-width="{w}" stroke-linecap="round"/>')
+    return (
+        f'<path d="M{cx - s},{cy} H{cx + s} M{cx},{cy - s} V{cy + s}" stroke="{col}" '
+        f'stroke-width="{w}" stroke-linecap="round"/>'
+    )
 
 
 def spinner(frame, cx=16, cy=16, r=9.0, w=3.2, web=True):
@@ -140,29 +169,43 @@ def spinner(frame, cx=16, cy=16, r=9.0, w=3.2, web=True):
     a0, a1 = math.radians(ang - 90), math.radians(ang + 150)
     x0, y0 = cx + r * math.cos(a0), cy + r * math.sin(a0)
     x1, y1 = cx + r * math.cos(a1), cy + r * math.sin(a1)
-    g = (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PLUM_B}" stroke-width="{w + 2.2}"/>'
-         f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PINK}" stroke-opacity="0.22" stroke-width="{w}"/>'
-         f'<path d="M{x0:.2f},{y0:.2f} A{r},{r} 0 1 1 {x1:.2f},{y1:.2f}" fill="none" stroke="url(#edge)" '
-         f'stroke-width="{w}" stroke-linecap="round"/>')
+    g = (
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PLUM_B}" stroke-width="{w + 2.2}"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PINK}" stroke-opacity="0.22" stroke-width="{w}"/>'
+        f'<path d="M{x0:.2f},{y0:.2f} A{r},{r} 0 1 1 {x1:.2f},{y1:.2f}" fill="none" stroke="url(#edge)" '
+        f'stroke-width="{w}" stroke-linecap="round"/>'
+    )
     if web == "face":
         head = math.radians(ang + 150)
         sx, sy = cx + r * math.cos(head), cy + r * math.sin(head)
         g += face_badge(cx, cy, r - w / 2 - 0.9, ring=False)
         # con nhện nhỏ bò ở đầu cung
-        g += (f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="2.3" fill="{PLUM_B}"/>'
-              f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="1.4" fill="{PINK_HI}"/>')
+        g += (
+            f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="2.3" fill="{PLUM_B}"/>'
+            f'<circle cx="{sx:.2f}" cy="{sy:.2f}" r="1.4" fill="{PINK_HI}"/>'
+        )
     elif web:
         rw = r - w / 2 - 1.2
-        spokes = " ".join(f"M{cx},{cy} L{cx + rw * math.cos(math.radians(k * 60 + ang / 3)):.2f},"
-                          f"{cy + rw * math.sin(math.radians(k * 60 + ang / 3)):.2f}" for k in range(6))
+        spokes = " ".join(
+            f"M{cx},{cy} L{cx + rw * math.cos(math.radians(k * 60 + ang / 3)):.2f},"
+            f"{cy + rw * math.sin(math.radians(k * 60 + ang / 3)):.2f}"
+            for k in range(6)
+        )
         hexes = ""
         for f in (0.45, 0.85):
-            pts = [(cx + rw * f * math.cos(math.radians(k * 60 + ang / 3)),
-                    cy + rw * f * math.sin(math.radians(k * 60 + ang / 3))) for k in range(7)]
+            pts = [
+                (
+                    cx + rw * f * math.cos(math.radians(k * 60 + ang / 3)),
+                    cy + rw * f * math.sin(math.radians(k * 60 + ang / 3)),
+                )
+                for k in range(7)
+            ]
             hexes += "M" + " L".join(f"{x:.2f},{y:.2f}" for x, y in pts) + " "
-        g += (f'<circle cx="{cx}" cy="{cy}" r="{rw + 0.6}" fill="{PLUM_B}" fill-opacity="0.85"/>'
-              f'<path d="{spokes} {hexes}" fill="none" stroke="{PINK}" stroke-opacity="0.75" stroke-width="0.55"/>'
-              f'<circle cx="{cx}" cy="{cy}" r="1.3" fill="{PINK_HI}"/>')
+        g += (
+            f'<circle cx="{cx}" cy="{cy}" r="{rw + 0.6}" fill="{PLUM_B}" fill-opacity="0.85"/>'
+            f'<path d="{spokes} {hexes}" fill="none" stroke="{PINK}" stroke-opacity="0.75" stroke-width="0.55"/>'
+            f'<circle cx="{cx}" cy="{cy}" r="1.3" fill="{PINK_HI}"/>'
+        )
     return g
 
 
@@ -175,10 +218,15 @@ def hand(kind="point"):
     else:  # fist
         fingers = [(10.6, 11.4, 3.9, 8), (14.4, 10.8, 3.8, 8.6), (18.0, 11.2, 3.6, 8.2), (21.4, 12.6, 3.3, 7)]
     rects = "".join(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{w / 2}"/>' for x, y, w, h in fingers)
-    palm = ('<path d="M10.6,15.5 H24.9 V21.4 C24.9,26.2 22.1,28.9 17.8,28.9 H15.4 C12.6,28.9 11.1,27.6 9.6,25.7 '
-            'L5.4,19.9 C4.6,18.8 4.9,17.4 6.1,16.9 C7.1,16.5 8.1,16.8 8.8,17.6 L10.6,19.7 Z"/>')
-    seams = "".join(f'<path d="M{x},{y + 1.6} V{min(y + h - 0.5, 21)}" stroke="{PINK}" stroke-opacity="0.55" '
-                    f'stroke-width="0.7" stroke-linecap="round"/>' for x, y, w, h in fingers[1:])
+    palm = (
+        '<path d="M10.6,15.5 H24.9 V21.4 C24.9,26.2 22.1,28.9 17.8,28.9 H15.4 C12.6,28.9 11.1,27.6 9.6,25.7 '
+        'L5.4,19.9 C4.6,18.8 4.9,17.4 6.1,16.9 C7.1,16.5 8.1,16.8 8.8,17.6 L10.6,19.7 Z"/>'
+    )
+    seams = "".join(
+        f'<path d="M{x},{y + 1.6} V{min(y + h - 0.5, 21)}" stroke="{PINK}" stroke-opacity="0.55" '
+        f'stroke-width="0.7" stroke-linecap="round"/>'
+        for x, y, w, h in fingers[1:]
+    )
     shine = f'<path d="M12.2,{fingers[0][1] + 2} V{fingers[0][1] + 6}" stroke="#fff" stroke-opacity="0.35" stroke-width="0.8" stroke-linecap="round"/>'
     return solid(rects + palm, extra=seams + shine)
 
@@ -201,93 +249,234 @@ def four_way():
 
 def ibeam(rot=0):
     d = "M12,5 Q16,5 16,8.2 Q16,5 20,5 M16,8.2 V23.8 M12,27 Q16,27 16,23.8 Q16,27 20,27 M13.4,16 H18.6"
-    return (f'<g transform="rotate({rot} 16 16)"><path d="{d}" fill="none" stroke="{PLUM_B}" stroke-width="4.4" '
-            f'stroke-linecap="round" stroke-linejoin="round"/>'
-            f'<path d="{d}" fill="none" stroke="url(#edge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>')
+    return (
+        f'<g transform="rotate({rot} 16 16)"><path d="{d}" fill="none" stroke="{PLUM_B}" stroke-width="4.4" '
+        f'stroke-linecap="round" stroke-linejoin="round"/>'
+        f'<path d="{d}" fill="none" stroke="url(#edge)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g>'
+    )
 
 
 def crosshair():
     d = "M16,3 V12 M16,20 V29 M3,16 H12 M20,16 H29"
-    return (f'<path d="{d}" stroke="{PLUM_B}" stroke-width="4" stroke-linecap="round"/>'
-            f'<circle cx="16" cy="16" r="6" fill="none" stroke="{PLUM_B}" stroke-width="3.6"/>'
-            f'<path d="{d}" stroke="url(#edge)" stroke-width="1.8" stroke-linecap="round"/>'
-            f'<circle cx="16" cy="16" r="6" fill="none" stroke="url(#edge)" stroke-width="1.3"/>'
-            f'<circle cx="16" cy="16" r="1.2" fill="{PINK_HI}"/>')
+    return (
+        f'<path d="{d}" stroke="{PLUM_B}" stroke-width="4" stroke-linecap="round"/>'
+        f'<circle cx="16" cy="16" r="6" fill="none" stroke="{PLUM_B}" stroke-width="3.6"/>'
+        f'<path d="{d}" stroke="url(#edge)" stroke-width="1.8" stroke-linecap="round"/>'
+        f'<circle cx="16" cy="16" r="6" fill="none" stroke="url(#edge)" stroke-width="1.3"/>'
+        f'<circle cx="16" cy="16" r="1.2" fill="{PINK_HI}"/>'
+    )
 
 
 def cell():
     d = "M16,6 V26 M6,16 H26"
-    return (f'<path d="{d}" stroke="{PINK}" stroke-width="7.6" stroke-linecap="round"/>'
-            f'<path d="{d}" stroke="url(#body)" stroke-width="4.2" stroke-linecap="round"/>')
+    return (
+        f'<path d="{d}" stroke="{PINK}" stroke-width="7.6" stroke-linecap="round"/>'
+        f'<path d="{d}" stroke="url(#body)" stroke-width="4.2" stroke-linecap="round"/>'
+    )
 
 
 def forbidden(cx=16, cy=16, r=9.2, w=3.2):
     a = math.radians(45)
     dx, dy = r * math.cos(a), r * math.sin(a)
-    return (f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PLUM_B}" stroke-width="{w + 2.4}"/>'
-            f'<path d="M{cx - dx},{cy - dy} L{cx + dx},{cy + dy}" stroke="{PLUM_B}" stroke-width="{w + 2.4}"/>'
-            f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#ff4f86" stroke-width="{w}"/>'
-            f'<path d="M{cx - dx},{cy - dy} L{cx + dx},{cy + dy}" stroke="#ff4f86" stroke-width="{w}"/>')
+    return (
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="{PLUM_B}" stroke-width="{w + 2.4}"/>'
+        f'<path d="M{cx - dx},{cy - dy} L{cx + dx},{cy + dy}" stroke="{PLUM_B}" stroke-width="{w + 2.4}"/>'
+        f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#ff4f86" stroke-width="{w}"/>'
+        f'<path d="M{cx - dx},{cy - dy} L{cx + dx},{cy + dy}" stroke="#ff4f86" stroke-width="{w}"/>'
+    )
 
 
 def magnifier(sign):
-    inner = plus(12.5, 12.5, 3, 1.7) if sign == "+" else '<path d="M9.5,12.5 H15.5" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>'
-    return (f'<path d="M18,18 L27,27" stroke="{PLUM_B}" stroke-width="6" stroke-linecap="round"/>'
-            f'<path d="M18,18 L27,27" stroke="url(#edge)" stroke-width="3.4" stroke-linecap="round"/>'
-            f'<circle cx="12.5" cy="12.5" r="8" fill="{PLUM_B}"/><circle cx="12.5" cy="12.5" r="6.6" fill="url(#body)" '
-            f'stroke="url(#edge)" stroke-width="2"/>{inner}')
+    inner = (
+        plus(12.5, 12.5, 3, 1.7)
+        if sign == "+"
+        else '<path d="M9.5,12.5 H15.5" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>'
+    )
+    return (
+        f'<path d="M18,18 L27,27" stroke="{PLUM_B}" stroke-width="6" stroke-linecap="round"/>'
+        f'<path d="M18,18 L27,27" stroke="url(#edge)" stroke-width="3.4" stroke-linecap="round"/>'
+        f'<circle cx="12.5" cy="12.5" r="8" fill="{PLUM_B}"/><circle cx="12.5" cy="12.5" r="6.6" fill="url(#body)" '
+        f'stroke="url(#edge)" stroke-width="2"/>{inner}'
+    )
 
 
 def qmark(cx=23.5, cy=23.5):
-    return (f'<path d="M{cx - 2},{cy - 1.8} Q{cx - 2},{cy - 4} {cx},{cy - 4} Q{cx + 2.2},{cy - 4} {cx + 2.2},{cy - 2} '
-            f'Q{cx + 2.2},{cy - 0.6} {cx},{cy + 0.2} V{cy + 1}" fill="none" stroke="#fff" stroke-width="1.5" '
-            f'stroke-linecap="round" stroke-linejoin="round"/><circle cx="{cx}" cy="{cy + 3}" r="0.95" fill="#fff"/>')
+    return (
+        f'<path d="M{cx - 2},{cy - 1.8} Q{cx - 2},{cy - 4} {cx},{cy - 4} Q{cx + 2.2},{cy - 4} {cx + 2.2},{cy - 2} '
+        f'Q{cx + 2.2},{cy - 0.6} {cx},{cy + 0.2} V{cy + 1}" fill="none" stroke="#fff" stroke-width="1.5" '
+        f'stroke-linecap="round" stroke-linejoin="round"/><circle cx="{cx}" cy="{cy + 3}" r="0.95" fill="#fff"/>'
+    )
 
 
 def alias_mark(cx=23.5, cy=23.5):
-    return (f'<path d="M{cx - 2.6},{cy + 2.4} Q{cx - 2.6},{cy - 2} {cx + 1.6},{cy - 2}" fill="none" stroke="#fff" '
-            f'stroke-width="1.5" stroke-linecap="round"/><path d="M{cx + 0.4},{cy - 4} L{cx + 2.8},{cy - 2} '
-            f'L{cx + 0.4},{cy}" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>')
+    return (
+        f'<path d="M{cx - 2.6},{cy + 2.4} Q{cx - 2.6},{cy - 2} {cx + 1.6},{cy - 2}" fill="none" stroke="#fff" '
+        f'stroke-width="1.5" stroke-linecap="round"/><path d="M{cx + 0.4},{cy - 4} L{cx + 2.8},{cy - 2} '
+        f'L{cx + 0.4},{cy}" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    )
 
 
 def menu_mark(cx=23.5, cy=23.5):
-    return "".join(f'<path d="M{cx - 2.6},{cy + k} H{cx + 2.6}" stroke="#fff" stroke-width="1.3" '
-                   f'stroke-linecap="round"/>' for k in (-2.2, 0, 2.2))
+    return "".join(
+        f'<path d="M{cx - 2.6},{cy + k} H{cx + 2.6}" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/>'
+        for k in (-2.2, 0, 2.2)
+    )
 
 
 # ---------- danh sách hình: tên chính → (svg hoặc hàm khung, điểm nóng (x,y) trên lưới 32, các tên phụ) ----------
 def shapes():
     S = {}
+
     def add(name, body, hot, aliases=()):
         S[name] = (body, hot, list(aliases))
+
     tip = (5, 3.2)
-    add("default", svg(small_arrow() + face_badge()), tip, ["left_ptr", "arrow", "top_left_arrow", "left-arrow", "x-cursor", "X_cursor"])
-    add("pointer", svg(hand("point") + face_badge(24.6, 24.6, 6.4)), (12.7, 2.8), ["hand1", "hand2", "hand", "pointing_hand", "e29285e634086352946a0e7090d73106", "9d800788f1b08800ae810202380a0822"])
+    add(
+        "default",
+        svg(small_arrow() + face_badge()),
+        tip,
+        ["left_ptr", "arrow", "top_left_arrow", "left-arrow", "x-cursor", "X_cursor"],
+    )
+    add(
+        "pointer",
+        svg(hand("point") + face_badge(24.6, 24.6, 6.4)),
+        (12.7, 2.8),
+        [
+            "hand1",
+            "hand2",
+            "hand",
+            "pointing_hand",
+            "e29285e634086352946a0e7090d73106",
+            "9d800788f1b08800ae810202380a0822",
+        ],
+    )
     add("text", svg(ibeam()), (16, 16), ["xterm", "ibeam"])
     add("vertical-text", svg(ibeam(90)), (16, 16), [])
     add("crosshair", svg(crosshair()), (16, 16), ["cross", "tcross", "cross_reverse", "diamond_cross"])
     add("cell", svg(cell()), (16, 16), ["plus"])
-    add("not-allowed", svg(forbidden()), (16, 16), ["forbidden", "circle", "crossed_circle", "03b6e0fcb3499374a867c041f52298f0"])
+    add(
+        "not-allowed",
+        svg(forbidden()),
+        (16, 16),
+        ["forbidden", "circle", "crossed_circle", "03b6e0fcb3499374a867c041f52298f0"],
+    )
     add("no-drop", svg(arrow() + badge("", r=5) + forbidden(23.5, 23.5, 3.6, 1.6)), tip, ["dnd-no-drop"])
-    add("help", svg(arrow() + badge(qmark())), tip, ["question_arrow", "whats_this", "left_ptr_help", "d9ce0ab605698f320427677b458ad60b", "5c6cd98b3f3ebcb1f9c7f1c204630408"])
-    add("copy", svg(arrow() + badge(plus(23.5, 23.5))), tip, ["dnd-copy", "1081e37283d90000800003c07f3ef6bf", "6407b0e94181790501fd1e167b474872"])
-    add("alias", svg(arrow() + badge(alias_mark())), tip, ["link", "dnd-link", "3085a0e285430894940527032f8b26df", "640fb0e74195791501fd1ed57b41487f"])
+    add(
+        "help",
+        svg(arrow() + badge(qmark())),
+        tip,
+        [
+            "question_arrow",
+            "whats_this",
+            "left_ptr_help",
+            "d9ce0ab605698f320427677b458ad60b",
+            "5c6cd98b3f3ebcb1f9c7f1c204630408",
+        ],
+    )
+    add(
+        "copy",
+        svg(arrow() + badge(plus(23.5, 23.5))),
+        tip,
+        ["dnd-copy", "1081e37283d90000800003c07f3ef6bf", "6407b0e94181790501fd1e167b474872"],
+    )
+    add(
+        "alias",
+        svg(arrow() + badge(alias_mark())),
+        tip,
+        ["link", "dnd-link", "3085a0e285430894940527032f8b26df", "640fb0e74195791501fd1ed57b41487f"],
+    )
     add("context-menu", svg(arrow() + badge(menu_mark())), tip, [])
-    add("move", svg(four_way()), (16, 16), ["fleur", "size_all", "dnd-move", "4498f0e0c1937ffe01fd06f973665830", "9081237383d90e509aa00f00170e968f"])
+    add(
+        "move",
+        svg(four_way()),
+        (16, 16),
+        ["fleur", "size_all", "dnd-move", "4498f0e0c1937ffe01fd06f973665830", "9081237383d90e509aa00f00170e968f"],
+    )
     add("all-scroll", svg(four_way()), (16, 16), [])
     add("grab", svg(hand("open")), (16, 12), ["openhand", "fd_double_arrow_grab", "5aca4d189052212118709018842178c0"])
     add("grabbing", svg(hand("fist")), (16, 14), ["closedhand", "dnd-none", "208530c400c041818281048008011002"])
-    add("ew-resize", svg(double_arrow(0)), (16, 16), ["sb_h_double_arrow", "h_double_arrow", "size_hor", "e-resize", "w-resize", "right_side", "left_side", "028006030e0e7ebffc7f7070c0600140", "14fef782d02440884392942c11205230"])
-    add("ns-resize", svg(double_arrow(90)), (16, 16), ["sb_v_double_arrow", "v_double_arrow", "size_ver", "n-resize", "s-resize", "top_side", "bottom_side", "00008160000006810000408080010102", "2870a09082c103050810ffdffffe0204"])
-    add("nwse-resize", svg(double_arrow(45)), (16, 16), ["size_fdiag", "nw-resize", "se-resize", "top_left_corner", "bottom_right_corner", "bd_double_arrow", "c7088f0f3e6c8088236ef8e1e3e70000"])
-    add("nesw-resize", svg(double_arrow(-45)), (16, 16), ["size_bdiag", "ne-resize", "sw-resize", "top_right_corner", "bottom_left_corner", "fd_double_arrow", "fcf1c3c7cd4491d801f1e1c78f100000"])
-    add("col-resize", svg(double_arrow(0, bar=True)), (16, 16), ["split_h", "sb_h_double_arrow_bar", "14fef782d02440884392942c11205230"])
+    add(
+        "ew-resize",
+        svg(double_arrow(0)),
+        (16, 16),
+        [
+            "sb_h_double_arrow",
+            "h_double_arrow",
+            "size_hor",
+            "e-resize",
+            "w-resize",
+            "right_side",
+            "left_side",
+            "028006030e0e7ebffc7f7070c0600140",
+            "14fef782d02440884392942c11205230",
+        ],
+    )
+    add(
+        "ns-resize",
+        svg(double_arrow(90)),
+        (16, 16),
+        [
+            "sb_v_double_arrow",
+            "v_double_arrow",
+            "size_ver",
+            "n-resize",
+            "s-resize",
+            "top_side",
+            "bottom_side",
+            "00008160000006810000408080010102",
+            "2870a09082c103050810ffdffffe0204",
+        ],
+    )
+    add(
+        "nwse-resize",
+        svg(double_arrow(45)),
+        (16, 16),
+        [
+            "size_fdiag",
+            "nw-resize",
+            "se-resize",
+            "top_left_corner",
+            "bottom_right_corner",
+            "bd_double_arrow",
+            "c7088f0f3e6c8088236ef8e1e3e70000",
+        ],
+    )
+    add(
+        "nesw-resize",
+        svg(double_arrow(-45)),
+        (16, 16),
+        [
+            "size_bdiag",
+            "ne-resize",
+            "sw-resize",
+            "top_right_corner",
+            "bottom_left_corner",
+            "fd_double_arrow",
+            "fcf1c3c7cd4491d801f1e1c78f100000",
+        ],
+    )
+    add(
+        "col-resize",
+        svg(double_arrow(0, bar=True)),
+        (16, 16),
+        ["split_h", "sb_h_double_arrow_bar", "14fef782d02440884392942c11205230"],
+    )
     add("row-resize", svg(double_arrow(90, bar=True)), (16, 16), ["split_v", "2870a09082c103050810ffdffffe0204"])
     add("zoom-in", svg(magnifier("+")), (12.5, 12.5), [])
     add("zoom-out", svg(magnifier("-")), (12.5, 12.5), [])
     add("wait", [svg(spinner(f, r=11.2, w=3.0, web="face")) for f in range(WAIT_FRAMES)], (16, 16), ["watch", "clock"])
-    add("progress", [svg(small_arrow() + spinner(f, 22, 22, 8.2, 2.2, web="face")) for f in range(WAIT_FRAMES)], tip,
-        ["left_ptr_watch", "half-busy", "00000000000000020006000e7e9ffc3f", "08e8e1c95fe2fc01f976f1e063a24ccd", "3ecb610c1bf2410f44200f48c40d3599"])
+    add(
+        "progress",
+        [svg(small_arrow() + spinner(f, 22, 22, 8.2, 2.2, web="face")) for f in range(WAIT_FRAMES)],
+        tip,
+        [
+            "left_ptr_watch",
+            "half-busy",
+            "00000000000000020006000e7e9ffc3f",
+            "08e8e1c95fe2fc01f976f1e063a24ccd",
+            "3ecb610c1bf2410f44200f48c40d3599",
+        ],
+    )
     # bỏ tên phụ trùng với tên chính khác (col/row-resize có hash trùng ew/ns: giữ cho ew/ns)
     seen = set(S)
     for name, (_b, _h, al) in S.items():
@@ -301,22 +490,26 @@ def shapes():
 
 
 def render_png(svg_text, size, path):
-    p = subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), "-o", path],
-                       input=svg_text.encode(), capture_output=True)
+    p = subprocess.run(
+        ["rsvg-convert", "-w", str(size), "-h", str(size), "-o", path], input=svg_text.encode(), capture_output=True
+    )
     if p.returncode:
         raise RuntimeError(f"rsvg-convert lỗi: {p.stderr.decode()[:300]}")
 
 
 def build(out, keep_build=None, preview=None):
     import xcursor_write as xw
+
     work = keep_build or tempfile.mkdtemp(prefix="kafka-cursor-")
     os.makedirs(work, exist_ok=True)
     src = os.path.join(work, "src")
     shutil.rmtree(src, ignore_errors=True)
     os.makedirs(os.path.join(src, "hyprcursors"))
     with open(os.path.join(src, "manifest.hl"), "w") as f:
-        f.write(f"name = {THEME}\ndescription = Con trỏ Kafka (tím than + viền hồng, mạng nhện)\n"
-                "version = 1.0\ncursors_directory = hyprcursors\n")
+        f.write(
+            f"name = {THEME}\ndescription = Con trỏ Kafka (tím than + viền hồng, mạng nhện)\n"
+            "version = 1.0\ncursors_directory = hyprcursors\n"
+        )
     xc_dir = os.path.join(work, "cursors")
     shutil.rmtree(xc_dir, ignore_errors=True)
     os.makedirs(xc_dir)
@@ -329,8 +522,12 @@ def build(out, keep_build=None, preview=None):
         # --- hyprcursor: giữ SVG ---
         d = os.path.join(src, "hyprcursors", name)
         os.makedirs(d)
-        meta = [f"resize_algorithm = bilinear", f"hotspot_x = {hx / 32:.4f}", f"hotspot_y = {hy / 32:.4f}",
-                "nominal_size = 1.0"]
+        meta = [
+            "resize_algorithm = bilinear",
+            f"hotspot_x = {hx / 32:.4f}",
+            f"hotspot_y = {hy / 32:.4f}",
+            "nominal_size = 1.0",
+        ]
         for i, fr in enumerate(frames):
             fn = f"{name}-{i:02d}.svg" if len(frames) > 1 else f"{name}.svg"
             with open(os.path.join(d, fn), "w") as f:
@@ -346,8 +543,15 @@ def build(out, keep_build=None, preview=None):
             for i, fr in enumerate(frames):
                 pth = os.path.join(pngdir, f"{name}-{size}-{i:02d}.png")
                 render_png(fr, size, pth)
-                xf.append({"size": size, "png": pth, "xhot": round(hx / 32 * size), "yhot": round(hy / 32 * size),
-                           "delay": WAIT_DELAY if len(frames) > 1 else 0})
+                xf.append(
+                    {
+                        "size": size,
+                        "png": pth,
+                        "xhot": round(hx / 32 * size),
+                        "yhot": round(hy / 32 * size),
+                        "delay": WAIT_DELAY if len(frames) > 1 else 0,
+                    }
+                )
         xw.write_xcursor(os.path.join(xc_dir, name), xf)
         for a in aliases:
             os.symlink(name, os.path.join(xc_dir, a))
@@ -371,7 +575,9 @@ def build(out, keep_build=None, preview=None):
     shutil.copytree(built[0], out, symlinks=True)
     shutil.copytree(xc_dir, os.path.join(out, "cursors"), symlinks=True)
     with open(os.path.join(out, "index.theme"), "w") as f:
-        f.write(f"[Icon Theme]\nName={THEME}\nComment=Con trỏ Kafka (tím than, viền hồng, mạng nhện)\nInherits=Adwaita\n")
+        f.write(
+            f"[Icon Theme]\nName={THEME}\nComment=Con trỏ Kafka (tím than, viền hồng, mạng nhện)\nInherits=Adwaita\n"
+        )
     if preview:
         make_preview(S, pngdir, preview)
     if not keep_build:
@@ -383,8 +589,21 @@ def make_preview(S, pngdir, path):
     """Bảng xem trước: mọi hình ở cỡ 64 trên nền tối và nền sáng."""
     files = [os.path.join(pngdir, f"{n}-64-00.png") for n in S]
     for bg, suf in (("#241a2c", "dark"), ("#efe6f2", "light")):
-        subprocess.run(["magick", "montage", *files, "-tile", "9x", "-geometry", "64x64+10+10",
-                        "-background", bg, f"{path}.{suf}.png"], check=True)
+        subprocess.run(
+            [
+                "magick",
+                "montage",
+                *files,
+                "-tile",
+                "9x",
+                "-geometry",
+                "64x64+10+10",
+                "-background",
+                bg,
+                f"{path}.{suf}.png",
+            ],
+            check=True,
+        )
     subprocess.run(["magick", f"{path}.dark.png", f"{path}.light.png", "-append", path], check=True)
 
 

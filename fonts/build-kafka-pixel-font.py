@@ -25,11 +25,11 @@ if str(GREETER_DIR) not in sys.path:
 import pixelfont  # noqa: E402
 
 # Hằng số thiết kế font (mặc định cho KafkaPixel.ttf — KHÔNG ĐƯỢC THAY ĐỔI)
-UNITS_PER_EM = 700   # 7 ô = 1 em → cỡ 14px = mỗi điểm 2px, 21px = 3px, 28px = 4px (chữ sắc, không nhoè)
+UNITS_PER_EM = 700  # 7 ô = 1 em → cỡ 14px = mỗi điểm 2px, 21px = 3px, 28px = 4px (chữ sắc, không nhoè)
 CELL_SIZE = 100
 ADVANCE_WIDTH = 600  # (GW=5 + GAP=1) * 100
 ASCENDER = 800
-DESCENDER = -100   # dòng = 900/700 em: 14px → 18px, không làm thanh Waybar cao thêm
+DESCENDER = -100  # dòng = 900/700 em: 14px → 18px, không làm thanh Waybar cao thêm
 LINE_GAP = 0
 CAP_HEIGHT = 700
 X_HEIGHT = 700
@@ -40,25 +40,25 @@ CHECKSUM_MAGIC = 0xB1B0AFBA
 # Hằng số metrics cho biến thể tiếng Việt (KafkaPixelVN.ttf)
 VN_ASCENDER = 1100
 VN_DESCENDER = -300
-VN_GRID_COLS = 6       # 5 cột chữ gốc + 1 cột gap (x = 0..600)
-VN_ABOVE_ROWS = 3      # 3 hàng dấu phía trên cap height (y = 700..1000)
-VN_BASE_ROWS = 7       # 7 hàng thân chữ gốc (y = 0..700)
-VN_BELOW_ROWS = 2      # 2 hàng dưới baseline (y = -200..0; dấu nặng ở y = -200..-100)
+VN_GRID_COLS = 6  # 5 cột chữ gốc + 1 cột gap (x = 0..600)
+VN_ABOVE_ROWS = 3  # 3 hàng dấu phía trên cap height (y = 700..1000)
+VN_BASE_ROWS = 7  # 7 hàng thân chữ gốc (y = 0..700)
+VN_BELOW_ROWS = 2  # 2 hàng dưới baseline (y = -200..0; dấu nặng ở y = -200..-100)
 VN_TOTAL_ROWS = VN_ABOVE_ROWS + VN_BASE_ROWS + VN_BELOW_ROWS  # 12 hàng
-VN_Y_BOTTOM = -200     # Đáy của hàng cuối cùng trong lưới 12 hàng
+VN_Y_BOTTOM = -200  # Đáy của hàng cuối cùng trong lưới 12 hàng
 
 # Các dấu thanh và dấu mũ pixel nhỏ (rộng 5 cột, ghép trên lưới điểm)
 VN_TONE_MARKS: dict[str, tuple[str, ...]] = {
-    "acute": ("00010", "00100"),           # Dấu sắc
-    "grave": ("01000", "00100"),           # Dấu huyền
-    "hook": ("01100", "00010", "00100"),   # Dấu hỏi (3 hàng)
-    "tilde": ("01010", "10100"),           # Dấu ngã
-    "dot": ("00100",),                     # Dấu nặng (1 điểm căn giữa dưới baseline)
+    "acute": ("00010", "00100"),  # Dấu sắc
+    "grave": ("01000", "00100"),  # Dấu huyền
+    "hook": ("01100", "00010", "00100"),  # Dấu hỏi (3 hàng)
+    "tilde": ("01010", "10100"),  # Dấu ngã
+    "dot": ("00100",),  # Dấu nặng (1 điểm căn giữa dưới baseline)
 }
 
 VN_HAT_MARKS: dict[str, tuple[str, ...]] = {
-    "circumflex": ("00100", "01010"),      # Dấu mũ (Â, Ê, Ô)
-    "breve": ("10001", "01110"),           # Dấu trăng (Ă)
+    "circumflex": ("00100", "01010"),  # Dấu mũ (Â, Ê, Ô)
+    "breve": ("10001", "01110"),  # Dấu trăng (Ă)
 }
 
 # Bảng tổ hợp nguyên âm tiếng Việt: (chữ gốc 5x7, loại dấu phụ mũ/râu, chuỗi 6 thanh: ngang/huyền/sắc/hỏi/ngã/nặng)
@@ -94,9 +94,7 @@ def calc_checksum(data: bytes) -> int:
     return total
 
 
-def rows_to_contours(
-    rows: list[str], y_bottom: int = 0
-) -> list[list[tuple[int, int]]]:
+def rows_to_contours(rows: list[str], y_bottom: int = 0) -> list[list[tuple[int, int]]]:
     """Chuyển ma trận điểm ('0'/'1') thành danh sách các contour hình chữ nhật.
 
     Gộp các ô '1' liền nhau trên cùng một dòng thành một hình chữ nhật (như hàm _blit).
@@ -145,9 +143,7 @@ def _blit_grid(
                         grid[gr][gc] = "1"
 
 
-def compose_vn_vowel_rows(
-    base_ch: str, modifier: str | None, tone: str
-) -> list[str]:
+def compose_vn_vowel_rows(base_ch: str, modifier: str | None, tone: str) -> list[str]:
     """Ghép chữ cái nguyên âm tiếng Việt trên lưới điểm 12 hàng × 6 cột.
 
     - Hàng 0..2 (y = 700..1000): vùng dấu mũ / dấu thanh phía trên cap height.
@@ -210,9 +206,7 @@ def make_notdef_contours() -> list[list[tuple[int, int]]]:
     return [outer_cw, inner_ccw]
 
 
-def encode_simple_glyph(
-    contours: list[list[tuple[int, int]]]
-) -> tuple[bytes, tuple[int, int, int, int], int, int]:
+def encode_simple_glyph(contours: list[list[tuple[int, int]]]) -> tuple[bytes, tuple[int, int, int, int], int, int]:
     """Đóng gói dữ liệu một simple glyph vào bảng 'glyf'.
 
     Trả về:
@@ -333,7 +327,7 @@ def collect_glyphs_and_cmap(
 
 
 def build_glyf_and_loca(
-    glyph_contours: list[list[list[tuple[int, int]]]]
+    glyph_contours: list[list[list[tuple[int, int]]]],
 ) -> tuple[bytes, bytes, list[tuple[int, int, int, int]], list[bool], int, int]:
     """Dựng bảng 'glyf' và bảng 'loca' (dạng long / uint32, indexToLocFormat = 1)."""
     glyf_parts: list[bytes] = []
@@ -362,9 +356,7 @@ def build_glyf_and_loca(
     return glyf_data, loca_data, bboxes, is_empty, max_points, max_contours
 
 
-def build_hmtx(
-    bboxes: list[tuple[int, int, int, int]], is_empty: list[bool]
-) -> tuple[bytes, int, int, int]:
+def build_hmtx(bboxes: list[tuple[int, int, int, int]], is_empty: list[bool]) -> tuple[bytes, int, int, int]:
     """Dựng bảng 'hmtx' và tính minLSB, minRSB, xMaxExtent cho bảng 'hhea'."""
     records: list[bytes] = []
     min_lsb: int | None = None
@@ -404,23 +396,23 @@ def build_head(
 
     return struct.pack(
         ">IIIIHHQQhhhhHHhhh",
-        0x00010000,            # version 1.0 (Fixed)
-        0x00010000,            # fontRevision 1.0 (Fixed)
+        0x00010000,  # version 1.0 (Fixed)
+        0x00010000,  # fontRevision 1.0 (Fixed)
         check_sum_adjustment & 0xFFFFFFFF,
-        0x5F0F3CF5,            # magicNumber
-        0x000B,                # flags
-        UNITS_PER_EM,          # unitsPerEm (700)
-        timestamp_1904,        # created (64-bit)
-        timestamp_1904,        # modified (64-bit)
+        0x5F0F3CF5,  # magicNumber
+        0x000B,  # flags
+        UNITS_PER_EM,  # unitsPerEm (700)
+        timestamp_1904,  # created (64-bit)
+        timestamp_1904,  # modified (64-bit)
         x_min,
         y_min,
         x_max,
         y_max,
-        0,                     # macStyle
-        8,                     # lowestRecPPEM
-        2,                     # fontDirectionHint
-        1,                     # indexToLocFormat = 1 (long)
-        0,                     # glyphDataFormat = 0
+        0,  # macStyle
+        8,  # lowestRecPPEM
+        2,  # fontDirectionHint
+        1,  # indexToLocFormat = 1 (long)
+        0,  # glyphDataFormat = 0
     )
 
 
@@ -435,20 +427,23 @@ def build_hhea(
     """Dựng bảng 'hhea' (36 byte)."""
     return struct.pack(
         ">IhhhHhhhhhhhhhhhH",
-        0x00010000,     # version 1.0
-        ascender,       # ascender (800 mặc định, 1100 cho VN)
-        descender,      # descender (-100 mặc định, -300 cho VN)
-        LINE_GAP,       # lineGap = 0
+        0x00010000,  # version 1.0
+        ascender,  # ascender (800 mặc định, 1100 cho VN)
+        descender,  # descender (-100 mặc định, -300 cho VN)
+        LINE_GAP,  # lineGap = 0
         ADVANCE_WIDTH,  # advanceWidthMax = 600
-        min_lsb,        # minLeftSideBearing
-        min_rsb,        # minRightSideBearing
-        x_max_extent,   # xMaxExtent
-        1,              # caretSlopeRise = 1
-        0,              # caretSlopeRun = 0
-        0,              # caretOffset = 0
-        0, 0, 0, 0,     # reserved (4 × int16)
-        0,              # metricDataFormat = 0
-        num_glyphs,     # numberOfHMetrics
+        min_lsb,  # minLeftSideBearing
+        min_rsb,  # minRightSideBearing
+        x_max_extent,  # xMaxExtent
+        1,  # caretSlopeRise = 1
+        0,  # caretSlopeRun = 0
+        0,  # caretOffset = 0
+        0,
+        0,
+        0,
+        0,  # reserved (4 × int16)
+        0,  # metricDataFormat = 0
+        num_glyphs,  # numberOfHMetrics
     )
 
 
@@ -456,21 +451,21 @@ def build_maxp(num_glyphs: int, max_points: int, max_contours: int) -> bytes:
     """Dựng bảng 'maxp' version 1.0 (32 byte)."""
     return struct.pack(
         ">IH" + "H" * 13,
-        0x00010000,    # version 1.0
-        num_glyphs,    # numGlyphs
-        max_points,    # maxPoints
+        0x00010000,  # version 1.0
+        num_glyphs,  # numGlyphs
+        max_points,  # maxPoints
         max_contours,  # maxContours
-        0,             # maxCompositePoints
-        0,             # maxCompositeContours
-        2,             # maxZones = 2
-        0,             # maxTwilightPoints
-        0,             # maxStorage
-        0,             # maxFunctionDefs
-        0,             # maxInstructionDefs
-        0,             # maxStackElements
-        0,             # maxSizeOfInstructions
-        0,             # maxComponentElements
-        0,             # maxComponentDepth
+        0,  # maxCompositePoints
+        0,  # maxCompositeContours
+        2,  # maxZones = 2
+        0,  # maxTwilightPoints
+        0,  # maxStorage
+        0,  # maxFunctionDefs
+        0,  # maxInstructionDefs
+        0,  # maxStackElements
+        0,  # maxSizeOfInstructions
+        0,  # maxComponentElements
+        0,  # maxComponentDepth
     )
 
 
@@ -501,43 +496,43 @@ def build_os2(
 
     return struct.pack(
         ">HhHHHhhhhhhhhhhh10sIIII4sHHHhhhHHIIhhHHH",
-        4,                    # version = 4
-        ADVANCE_WIDTH,        # xAvgCharWidth = 600
-        400,                  # usWeightClass = 400 (Normal)
-        5,                    # usWidthClass = 5 (Medium)
-        0,                    # fsType = 0 (Installable Embedding)
-        600,                  # ySubscriptXSize
-        700,                  # ySubscriptYSize
-        0,                    # ySubscriptXOffset
-        140,                  # ySubscriptYOffset
-        600,                  # ySuperscriptXSize
-        700,                  # ySuperscriptYSize
-        0,                    # ySuperscriptXOffset
-        450,                  # ySuperscriptYOffset
-        100,                  # yStrikeoutSize
-        300,                  # yStrikeoutPosition
-        0,                    # sFamilyClass
-        panose,               # panose[10]
-        ul_unicode_range1,    # ulUnicodeRange1
-        ul_unicode_range2,    # ulUnicodeRange2
-        ul_unicode_range3,    # ulUnicodeRange3
-        ul_unicode_range4,    # ulUnicodeRange4
-        b"KAFK",              # achVendID
-        fs_selection,         # fsSelection
-        first_char,           # usFirstCharIndex
-        last_char,            # usLastCharIndex
-        ascender,             # sTypoAscender (800 mặc định, 1100 cho VN)
-        descender,            # sTypoDescender (-100 mặc định, -300 cho VN)
-        LINE_GAP,             # sTypoLineGap = 0
-        ascender,             # usWinAscent (800 mặc định, 1100 cho VN)
-        abs(descender),       # usWinDescent (100 mặc định, 300 cho VN)
+        4,  # version = 4
+        ADVANCE_WIDTH,  # xAvgCharWidth = 600
+        400,  # usWeightClass = 400 (Normal)
+        5,  # usWidthClass = 5 (Medium)
+        0,  # fsType = 0 (Installable Embedding)
+        600,  # ySubscriptXSize
+        700,  # ySubscriptYSize
+        0,  # ySubscriptXOffset
+        140,  # ySubscriptYOffset
+        600,  # ySuperscriptXSize
+        700,  # ySuperscriptYSize
+        0,  # ySuperscriptXOffset
+        450,  # ySuperscriptYOffset
+        100,  # yStrikeoutSize
+        300,  # yStrikeoutPosition
+        0,  # sFamilyClass
+        panose,  # panose[10]
+        ul_unicode_range1,  # ulUnicodeRange1
+        ul_unicode_range2,  # ulUnicodeRange2
+        ul_unicode_range3,  # ulUnicodeRange3
+        ul_unicode_range4,  # ulUnicodeRange4
+        b"KAFK",  # achVendID
+        fs_selection,  # fsSelection
+        first_char,  # usFirstCharIndex
+        last_char,  # usLastCharIndex
+        ascender,  # sTypoAscender (800 mặc định, 1100 cho VN)
+        descender,  # sTypoDescender (-100 mặc định, -300 cho VN)
+        LINE_GAP,  # sTypoLineGap = 0
+        ascender,  # usWinAscent (800 mặc định, 1100 cho VN)
+        abs(descender),  # usWinDescent (100 mặc định, 300 cho VN)
         ul_code_page_range1,  # ulCodePageRange1
         ul_code_page_range2,  # ulCodePageRange2
-        X_HEIGHT,             # sxHeight = 700
-        CAP_HEIGHT,           # sCapHeight = 700
-        0,                    # usDefaultChar = 0
-        32,                   # usBreakChar = 32 (' ')
-        1,                    # usMaxContext = 1
+        X_HEIGHT,  # sxHeight = 700
+        CAP_HEIGHT,  # sCapHeight = 700
+        0,  # usDefaultChar = 0
+        32,  # usBreakChar = 32 (' ')
+        1,  # usMaxContext = 1
     )
 
 
@@ -582,9 +577,7 @@ def build_cmap(cmap: dict[int, int]) -> bytes:
             continue
 
         # Kiểm tra xem gids có tăng đều đúng 1 đơn vị mỗi bước không
-        is_linear = all(
-            gids[k] - (start_c + k) == gids[0] - start_c for k in range(len(gids))
-        )
+        is_linear = all(gids[k] - (start_c + k) == gids[0] - start_c for k in range(len(gids)))
         if is_linear:
             delta = (gids[0] - start_c) & 0xFFFF
             id_deltas.append(delta)
@@ -602,9 +595,9 @@ def build_cmap(cmap: dict[int, int]) -> bytes:
     subtable = bytearray(
         struct.pack(
             ">HHHHHHH",
-            4,              # format = 4
-            subtable_len,   # length
-            0,              # language = 0
+            4,  # format = 4
+            subtable_len,  # length
+            0,  # language = 0
             seg_count_x2,
             search_range,
             entry_selector,
@@ -627,10 +620,14 @@ def build_cmap(cmap: dict[int, int]) -> bytes:
     subtable_offset = 4 + 2 * 8
     header = struct.pack(
         ">HH" + "HHI" * 2,
-        0,                # version
-        2,                # numTables
-        0, 3, subtable_offset,  # Platform 0 (Unicode), Encoding 3
-        3, 1, subtable_offset,  # Platform 3 (Windows), Encoding 1 (Unicode BMP)
+        0,  # version
+        2,  # numTables
+        0,
+        3,
+        subtable_offset,  # Platform 0 (Unicode), Encoding 3
+        3,
+        1,
+        subtable_offset,  # Platform 3 (Windows), Encoding 1 (Unicode BMP)
     )
     return header + bytes(subtable)
 
@@ -675,9 +672,7 @@ def build_name(vietnamese: bool = False) -> bytes:
     for plat_id, enc_id, lang_id, name_id, data in raw_records:
         offset = len(storage)
         length = len(data)
-        header.extend(
-            struct.pack(">HHHHHH", plat_id, enc_id, lang_id, name_id, length, offset)
-        )
+        header.extend(struct.pack(">HHHHHH", plat_id, enc_id, lang_id, name_id, length, offset))
         storage.extend(data)
 
     return bytes(header + storage)
@@ -688,14 +683,14 @@ def build_post() -> bytes:
     return struct.pack(
         ">IIhhIIIII",
         0x00030000,  # version 3.0 (không lưu tên glyph PostScript)
-        0,           # italicAngle = 0.0
-        -150,        # underlinePosition = -150
-        100,         # underlineThickness = 100
-        1,           # isFixedPitch = 1 (monospace)
-        0,           # minMemType42
-        0,           # maxMemType42
-        0,           # minMemType1
-        0,           # maxMemType1
+        0,  # italicAngle = 0.0
+        -150,  # underlinePosition = -150
+        100,  # underlineThickness = 100
+        1,  # isFixedPitch = 1 (monospace)
+        0,  # minMemType42
+        0,  # maxMemType42
+        0,  # minMemType1
+        0,  # maxMemType1
     )
 
 
@@ -709,9 +704,7 @@ def assemble_ttf(vietnamese: bool = False) -> tuple[bytes, int]:
     ascender = VN_ASCENDER if vietnamese else ASCENDER
     descender = VN_DESCENDER if vietnamese else DESCENDER
 
-    glyf_data, loca_data, bboxes, is_empty, max_pts, max_cnts = build_glyf_and_loca(
-        glyph_contours
-    )
+    glyf_data, loca_data, bboxes, is_empty, max_pts, max_cnts = build_glyf_and_loca(glyph_contours)
     hmtx_data, min_lsb, min_rsb, x_max_extent = build_hmtx(bboxes, is_empty)
 
     now_1904 = int(time.time()) + EPOCH_1904_OFFSET
@@ -774,9 +767,7 @@ def assemble_ttf(vietnamese: bool = False) -> tuple[bytes, int]:
     body = bytearray()
     for tag in sorted_tags:
         raw = tables[tag]
-        directory.extend(
-            struct.pack(">4sIII", tag, table_checksums[tag], table_offsets[tag], len(raw))
-        )
+        directory.extend(struct.pack(">4sIII", tag, table_checksums[tag], table_offsets[tag], len(raw)))
         body.extend(padded_tables[tag])
 
     preliminary_font = sfnt_header + bytes(directory) + bytes(body)
@@ -784,9 +775,7 @@ def assemble_ttf(vietnamese: bool = False) -> tuple[bytes, int]:
     check_sum_adjustment = (CHECKSUM_MAGIC - total_checksum) & 0xFFFFFFFF
 
     # Cập nhật head.checkSumAdjustment (chú ý: checksum trong Table Directory của 'head' được tính khi checkSumAdjustment = 0)
-    tables[b"head"] = build_head(
-        bboxes, is_empty, now_1904, check_sum_adjustment=check_sum_adjustment
-    )
+    tables[b"head"] = build_head(bboxes, is_empty, now_1904, check_sum_adjustment=check_sum_adjustment)
     padded_tables[b"head"] = pad4(tables[b"head"])
 
     # Dựng Table Directory và thân file lần cuối
@@ -794,9 +783,7 @@ def assemble_ttf(vietnamese: bool = False) -> tuple[bytes, int]:
     final_body = bytearray()
     for tag in sorted_tags:
         raw = tables[tag]
-        final_directory.extend(
-            struct.pack(">4sIII", tag, table_checksums[tag], table_offsets[tag], len(raw))
-        )
+        final_directory.extend(struct.pack(">4sIII", tag, table_checksums[tag], table_offsets[tag], len(raw)))
         final_body.extend(padded_tables[tag])
 
     return sfnt_header + bytes(final_directory) + bytes(final_body), num_glyphs
@@ -863,9 +850,7 @@ def run_selftest() -> int:
         data = ttf_path.read_bytes()
 
     # 1. Kiểm tra chữ ký sfnt 0x00010000
-    sfnt_ver, num_tables, search_range, entry_selector, range_shift = struct.unpack_from(
-        ">IHHHH", data, 0
-    )
+    sfnt_ver, num_tables, search_range, entry_selector, range_shift = struct.unpack_from(">IHHHH", data, 0)
     check("Chữ ký sfnt == 0x00010000", sfnt_ver == 0x00010000, f"0x{sfnt_ver:08X}")
 
     # 2. Đọc danh mục bảng và kiểm tra thứ tự tag + checksum từng bảng
@@ -940,9 +925,7 @@ def run_selftest() -> int:
     _, hmtx_off, hmtx_len = records[b"hmtx"]
 
     metrics_match = (
-        num_glyphs_maxp == built_num_glyphs
-        and num_hmetrics == num_glyphs_maxp
-        and hmtx_len == num_glyphs_maxp * 4
+        num_glyphs_maxp == built_num_glyphs and num_hmetrics == num_glyphs_maxp and hmtx_len == num_glyphs_maxp * 4
     )
     check(
         "numGlyphs khớp giữa maxp, hhea và hmtx",
@@ -983,9 +966,7 @@ def run_selftest() -> int:
     dx_min, dy_min, dx_max, dy_max = struct.unpack_from(">hhhh", data, head_off + 36)
     h_asc_def, h_desc_def = struct.unpack_from(">hh", data, hhea_off + 4)
     _, os2_off, _ = records[b"OS/2"]
-    o_tasc_def, o_tdesc_def, _, o_wasc_def, o_wdesc_def = struct.unpack_from(
-        ">hhhHH", data, os2_off + 68
-    )
+    o_tasc_def, o_tdesc_def, _, o_wasc_def, o_wdesc_def = struct.unpack_from(">hhhHH", data, os2_off + 68)
     default_unchanged = (
         ASCENDER == 800
         and DESCENDER == -100
@@ -1048,9 +1029,7 @@ def run_selftest() -> int:
     _, vn_hhea_off, _ = vn_records[b"hhea"]
     vh_asc, vh_desc = struct.unpack_from(">hh", vn_data, vn_hhea_off + 4)
     _, vn_os2_off, _ = vn_records[b"OS/2"]
-    vo_tasc, vo_tdesc, _, vo_wasc, vo_wdesc = struct.unpack_from(
-        ">hhhHH", vn_data, vn_os2_off + 68
-    )
+    vo_tasc, vo_tdesc, _, vo_wasc, vo_wdesc = struct.unpack_from(">hhhHH", vn_data, vn_os2_off + 68)
     vn_metrics_ok = (
         vn_upm == 700
         and (vh_asc, vh_desc) == (1100, -300)
@@ -1070,14 +1049,8 @@ def run_selftest() -> int:
     sample_letters = "ĂÂĐÊÔƠƯăâđêôơư"
     sample_sentence = "Khởi động lại Tắt máy Chọn hệ điều hành Tự khởi động sau giây"
 
-    missing_letters = [
-        ch for ch in sample_letters if lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0
-    ]
-    missing_sentence = [
-        ch
-        for ch in sample_sentence
-        if ch != " " and lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0
-    ]
+    missing_letters = [ch for ch in sample_letters if lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0]
+    missing_sentence = [ch for ch in sample_sentence if ch != " " and lookup_cmap_format4(vn_cmap_bytes, ord(ch)) == 0]
 
     all_vn_pairs_ok = True
     for _, _, chars_by_tone in VN_VOWEL_SPECS:
@@ -1101,26 +1074,18 @@ def run_selftest() -> int:
 
     # 13. Kiểm tra bbox của mọi glyph trong VN nằm trong [0..ADVANCE_WIDTH] và [VN_DESCENDER..VN_ASCENDER]
     _, vn_loca_off, vn_loca_len = vn_records[b"loca"]
-    vn_loca_offsets = list(
-        struct.unpack_from(f">{vn_loca_len // 4}I", vn_data, vn_loca_off)
-    )
+    vn_loca_offsets = list(struct.unpack_from(f">{vn_loca_len // 4}I", vn_data, vn_loca_off))
     _, vn_glyf_off, _ = vn_records[b"glyf"]
     bbox_out_of_bounds: list[str] = []
     for gid in range(vn_num_glyphs):
         g_start = vn_loca_offsets[gid]
         g_end = vn_loca_offsets[gid + 1]
         if g_end > g_start:
-            n_cnt, gx_min, gy_min, gx_max, gy_max = struct.unpack_from(
-                ">hhhhh", vn_data, vn_glyf_off + g_start
-            )
+            n_cnt, gx_min, gy_min, gx_max, gy_max = struct.unpack_from(">hhhhh", vn_data, vn_glyf_off + g_start)
             if not (
-                n_cnt > 0
-                and 0 <= gx_min <= gx_max <= ADVANCE_WIDTH
-                and VN_DESCENDER <= gy_min <= gy_max <= VN_ASCENDER
+                n_cnt > 0 and 0 <= gx_min <= gx_max <= ADVANCE_WIDTH and VN_DESCENDER <= gy_min <= gy_max <= VN_ASCENDER
             ):
-                bbox_out_of_bounds.append(
-                    f"gid={gid}:({gx_min},{gy_min},{gx_max},{gy_max})"
-                )
+                bbox_out_of_bounds.append(f"gid={gid}:({gx_min},{gy_min},{gx_max},{gy_max})")
     check(
         "VN: Mọi glyph bbox nằm gọn trong advance (0..600) và descender..ascender (-300..1100)",
         not bbox_out_of_bounds,

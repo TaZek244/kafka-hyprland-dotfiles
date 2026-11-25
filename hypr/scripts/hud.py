@@ -35,7 +35,7 @@ RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 OUT = os.path.join(RUN, "kafka-hud")
 STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "kafka", "ui-theme")
 FACE_SRC = os.path.join(REPO, "wallpapers", "Kafka_thumbail.jpg")
-FACE_CROP = (240, 100, 280, 280)         # x, y, w, h trên ảnh 736×736: sát mặt (ở 30px khung rộng hơn chỉ thấy tóc)
+FACE_CROP = (240, 100, 280, 280)  # x, y, w, h trên ảnh 736×736: sát mặt (ở 30px khung rộng hơn chỉ thấy tóc)
 SIGNAL = 18
 # Tên trên thẻ nhân vật (Kafka chỉ là chân dung/nền): đổi bằng biến môi trường KAFKA_HUD_NAME
 PLAYER_NAME = os.environ.get("KAFKA_HUD_NAME") or "TaZek"
@@ -165,6 +165,7 @@ def uptime_s():
 
 def disk_free_pct(path="/"):
     import shutil
+
     try:
         u = shutil.disk_usage(path)
         return 100.0 * u.free / u.total, u.free, u.total
@@ -177,10 +178,22 @@ def sample():
     disk, dfree, dtot = disk_free_pct()
     bat, charging = battery()
     free, tot, avail = mem_free_pct()
-    return {"uptime": up, "lv": int(up // 3600) + 1, "exp": (up % 3600) / 3600,
-            "bat": bat, "charging": charging, "mp": free, "mem_tot": tot, "mem_avail": avail,
-            "disk": disk, "disk_free": dfree, "disk_tot": dtot,
-            "cpu": cpu_pct(), "temp": temp_c(), "net": net_rate()}
+    return {
+        "uptime": up,
+        "lv": int(up // 3600) + 1,
+        "exp": (up % 3600) / 3600,
+        "bat": bat,
+        "charging": charging,
+        "mp": free,
+        "mem_tot": tot,
+        "mem_avail": avail,
+        "disk": disk,
+        "disk_free": dfree,
+        "disk_tot": dtot,
+        "cpu": cpu_pct(),
+        "temp": temp_c(),
+        "net": net_rate(),
+    }
 
 
 # ------------------------------------------------------------------ vẽ
@@ -206,10 +219,12 @@ def portrait(size):
     _portrait = False
     try:
         import gi
+
         gi.require_version("GdkPixbuf", "2.0")
         gi.require_version("Gdk", "3.0")
         from gi.repository import Gdk, GdkPixbuf
         import cairo
+
         pb = GdkPixbuf.Pixbuf.new_from_file(FACE_SRC)
         x, y, w, h = FACE_CROP
         sx = pb.get_width() / 736
@@ -227,10 +242,10 @@ def portrait(size):
 
 def portrait_frame(ctx, x, y, s):
     """Khung chân dung s×s trên lưới 2px: góc bậc thang, viền tối, mép hồng sáng/tối, ảnh bên trong."""
-    fill(ctx, PINK_EDGE, x + 2, y, s - 4, s)          # viền tối, cắt góc 2px
+    fill(ctx, PINK_EDGE, x + 2, y, s - 4, s)  # viền tối, cắt góc 2px
     fill(ctx, PINK_EDGE, x, y + 2, s, s - 4)
-    fill(ctx, PINK_HI, x + 2, y + 2, s - 4, s - 4)    # mép sáng trên-trái
-    fill(ctx, PINK_SH, x + 4, y + 4, s - 6, s - 6)    # mép tối dưới-phải
+    fill(ctx, PINK_HI, x + 2, y + 2, s - 4, s - 4)  # mép sáng trên-trái
+    fill(ctx, PINK_SH, x + 4, y + 4, s - 6, s - 6)  # mép tối dưới-phải
     inner = s - 8
     p = portrait(inner)
     if p is not None:
@@ -261,13 +276,13 @@ def seg_bar(ctx, x, y, frac, kind, n=10, sw=8, h=8, blink=False):
     return x + w
 
 
-PLAYER_W, PLAYER_H = 196, 34   # cao 34: nằm gọn trong thanh 40 (module image tự cộng 2px + lề 2+2)
-STATS_W, STATS_H = 190, 34     # 2 hàng 16px: CPU | RAM, TMP | NET — rộng CỐ ĐỊNH (số canh phải trong ô cố định)
+PLAYER_W, PLAYER_H = 196, 34  # cao 34: nằm gọn trong thanh 40 (module image tự cộng 2px + lề 2+2)
+STATS_W, STATS_H = 190, 34  # 2 hàng 16px: CPU | RAM, TMP | NET — rộng CỐ ĐỊNH (số canh phải trong ô cố định)
 
 # Chữ số/nhãn: FiraCode Nerd Font ĐẬM qua Pango (dễ đọc hơn font pixel 7px — người dùng 2026-11-22: "khó nhìn");
 # font pixel chỉ còn cho TÊN người chơi (cỡ 14px, 2px/điểm).
 FONT = "FiraCode Nerd Font"
-ICON_HP, ICON_MP = "\U000f02d1", "\U000f058c"          # tim, giọt (MP = ổ đĩa trống)
+ICON_HP, ICON_MP = "\U000f02d1", "\U000f058c"  # tim, giọt (MP = ổ đĩa trống)
 ICON_CPU, ICON_RAM, ICON_TMP = "\U000f035b", "\U000f061a", "\U000f050f"
 ICON_DOWN, ICON_UP = "\U000f0045", "\U000f005d"
 
@@ -275,10 +290,12 @@ ICON_DOWN, ICON_UP = "\U000f0045", "\U000f005d"
 def ftext(ctx, s, x, y, px, col, bold=True, align="left", width=None, shadow=True, vcenter=None):
     """Chữ FiraCode cỡ px (tuyệt đối), y = mép trên dòng; align left/right/center trong `width`. Trả về x cuối."""
     import gi
+
     gi.require_version("Pango", "1.0")
     gi.require_version("PangoCairo", "1.0")
     from gi.repository import Pango, PangoCairo
     import cairo
+
     lay = PangoCairo.create_layout(ctx)
     fo = cairo.FontOptions()
     fo.set_antialias(cairo.ANTIALIAS_GRAY)
@@ -292,7 +309,7 @@ def ftext(ctx, s, x, y, px, col, bold=True, align="left", width=None, shadow=Tru
     lay.set_text(s, -1)
     ink, log = lay.get_pixel_extents()
     w = log.width
-    if vcenter is not None:                         # canh giữa theo NÉT chữ thật trong khung cao vcenter
+    if vcenter is not None:  # canh giữa theo NÉT chữ thật trong khung cao vcenter
         y = y + (vcenter - ink.height) // 2 - ink.y
     if width is not None and align == "right":
         x = x + width - w
@@ -335,9 +352,10 @@ def badge(ctx, x, y, w, h, bg, edge, hi):
 
 def draw_player(d, tick=0):
     """[chân dung] TaZek            [LV 4]
-                  ━━━━━━━ EXP ━━━━━━━━━━━━━━
-                  ♥ ▰▰▰▰▰▱ 85   ● ▰▰▰▱▱▱ 57      (HP = pin, MP = ổ đĩa trống)"""
+    ━━━━━━━ EXP ━━━━━━━━━━━━━━
+    ♥ ▰▰▰▰▰▱ 85   ● ▰▰▰▱▱▱ 57      (HP = pin, MP = ổ đĩa trống)"""
     import cairo
+
     surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, PLAYER_W, PLAYER_H)
     ctx = cairo.Context(surf)
     ctx.set_antialias(cairo.ANTIALIAS_NONE)
@@ -349,7 +367,7 @@ def draw_player(d, tick=0):
     lv = f"LV {min(d['lv'], 999)}"
     bw = 10 + 7 * len(lv)
     bx = PLAYER_W - bw - 1
-    by, bh = 4, 12                                  # hạ xuống: giữa huy hiệu = giữa chữ tên (y 1..15), không sát mép thanh
+    by, bh = 4, 12  # hạ xuống: giữa huy hiệu = giữa chữ tên (y 1..15), không sát mép thanh
     badge(ctx, bx, by, bw, bh, GOLD, rgb("#5a3d10"), rgb("#fff3c4"))
     ftext(ctx, lv, bx, by, 10, rgb("#3a2408"), align="center", width=bw, shadow=False, vcenter=bh)
     # EXP: vạch vàng mảnh dưới tên
@@ -364,13 +382,21 @@ def draw_player(d, tick=0):
     low = bat is not None and bat <= 20 and not d["charging"]
     kind = "HP_LOW" if low else "HP"
     half = (PLAYER_W - x0) // 2
-    for i, (icon, k, frac, val, blink) in enumerate((
-            (ICON_HP, kind, (bat if bat is not None else 100) / 100,
-             "AC" if bat is None else f"{bat}{'+' if d['charging'] else ''}", low and tick % 2 == 1),
-            (ICON_MP, "MP", d.get("disk", d["mp"]) / 100, f"{int(round(d.get('disk', d['mp'])))}", False))):
+    for i, (icon, k, frac, val, blink) in enumerate(
+        (
+            (
+                ICON_HP,
+                kind,
+                (bat if bat is not None else 100) / 100,
+                "AC" if bat is None else f"{bat}{'+' if d['charging'] else ''}",
+                low and tick % 2 == 1,
+            ),
+            (ICON_MP, "MP", d.get("disk", d["mp"]) / 100, f"{int(round(d.get('disk', d['mp'])))}", False),
+        )
+    ):
         cx = x0 + i * half
         ftext(ctx, icon, cx, 21, 11, BARS[k][3], bold=False)
-        bw = half - 13 - 37                       # icon 13 · thanh · số 29 ("100+") · khoảng cách tới ô sau
+        bw = half - 13 - 37  # icon 13 · thanh · số 29 ("100+") · khoảng cách tới ô sau
         bar(ctx, cx + 13, 24, bw, 7, frac, k, blink)
         ftext(ctx, val, cx + 13 + bw + 2, 20, 11, TEXT if not low or i else BARS[k][3], align="right", width=29)
     return surf
@@ -385,13 +411,14 @@ def stat_cell(ctx, x, y, icon, kind, frac, value, value_col=TEXT):
 
 def draw_stats(d):
     """CPU ▰▰▱ 12%  │ RAM ▰▰▰ 43%
-       TMP ▰▰▱ 52°  │ ↓ 1.2M  ↑ 14K"""
+    TMP ▰▰▱ 52°  │ ↓ 1.2M  ↑ 14K"""
     import cairo
+
     surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, STATS_W, STATS_H)
     ctx = cairo.Context(surf)
     ctx.set_antialias(cairo.ANTIALIAS_NONE)
     col2 = 100
-    fill(ctx, rgb("#4a3c59", 0.7), col2 - 6, 3, 1, STATS_H - 6)     # vạch chia cột
+    fill(ctx, rgb("#4a3c59", 0.7), col2 - 6, 3, 1, STATS_H - 6)  # vạch chia cột
     fill(ctx, rgb("#0b0710", 0.6), col2 - 5, 3, 1, STATS_H - 6)
     cpu = d["cpu"]
     stat_cell(ctx, 0, 1, ICON_CPU, "CPU", cpu / 100, f"{int(round(cpu))}%")
@@ -400,8 +427,16 @@ def draw_stats(d):
     t = d["temp"]
     hot = t is not None and t >= 85
     kind = "TMP_HOT" if hot else "TMP"
-    stat_cell(ctx, 0, 18, ICON_TMP, kind, ((t or 30) - 30) / 70,
-              "--" if t is None else f"{int(round(t))}°", TEXT if not hot else BARS[kind][3])
+    stat_cell(
+        ctx,
+        0,
+        18,
+        ICON_TMP,
+        kind,
+        ((t or 30) - 30) / 70,
+        "--" if t is None else f"{int(round(t))}°",
+        TEXT if not hot else BARS[kind][3],
+    )
     down, up = d.get("net", (0.0, 0.0))
     ftext(ctx, ICON_DOWN, col2 + 1, 19, 11, NET_DOWN, bold=False)
     ftext(ctx, human_rate(down), col2 + 10, 18, 12, TEXT, align="right", width=32)
@@ -413,15 +448,18 @@ def draw_stats(d):
 def tooltips(d):
     h, m = int(d["uptime"] // 3600), int(d["uptime"] % 3600 // 60)
     bat = "không có pin" if d["bat"] is None else f"{d['bat']}%" + (" (đang sạc)" if d["charging"] else "")
-    gib = 1024 * 1024
     # Module image chỉ đọc MỘT dòng tooltip (dòng 2 của file) và không hiểu "\\n" → ngăn bằng " · "/" ┃ "
-    player = (f"{PLAYER_NAME} · LV {d['lv']}: máy đã chạy {h} giờ {m} phút (EXP đầy = lên cấp mỗi giờ) ┃ "
-              f"HP = pin {bat} ┃ MP = ổ đĩa trống {d.get('disk_free', 0) / 1e9:.0f}/{d.get('disk_tot', 0) / 1e9:.0f} GB ┃ "
-              f"Bấm: mở ứng dụng · Chuột phải: cuộn ⇄ Desktop")
+    player = (
+        f"{PLAYER_NAME} · LV {d['lv']}: máy đã chạy {h} giờ {m} phút (EXP đầy = lên cấp mỗi giờ) ┃ "
+        f"HP = pin {bat} ┃ MP = ổ đĩa trống {d.get('disk_free', 0) / 1e9:.0f}/{d.get('disk_tot', 0) / 1e9:.0f} GB ┃ "
+        f"Bấm: mở ứng dụng · Chuột phải: cuộn ⇄ Desktop"
+    )
     t = "?" if d["temp"] is None else f"{d['temp']:.0f} °C"
     down, up = d.get("net", (0.0, 0.0))
-    stats = (f"CPU {d['cpu']:.0f}% · RAM {100 - d['mp']:.0f}% · nhiệt độ {t} ┃ "
-             f"Mạng ↓ {human_rate(down)}/s ↑ {human_rate(up)}/s ┃ Bấm: btop · Chuột phải: bảng Wi-Fi")
+    stats = (
+        f"CPU {d['cpu']:.0f}% · RAM {100 - d['mp']:.0f}% · nhiệt độ {t} ┃ "
+        f"Mạng ↓ {human_rate(down)}/s ↑ {human_rate(up)}/s ┃ Bấm: btop · Chuột phải: bảng Wi-Fi"
+    )
     return player, stats
 
 
@@ -434,6 +472,7 @@ def write_atomic(path, data):
 
 def png_bytes(surf):
     import io
+
     b = io.BytesIO()
     surf.write_to_png(b)
     return b.getvalue()
@@ -484,16 +523,50 @@ def daemon():
 
 def preview(out):
     import cairo
+
     demo = [
-        {"uptime": 3 * 3600 + 1500, "lv": 4, "exp": 0.42, "bat": 85, "charging": False, "mp": 57,
-         "mem_tot": 16e6, "mem_avail": 9e6, "cpu": 12, "temp": 52, "net": (1.2e6, 14e3)},
-        {"uptime": 41 * 3600, "lv": 42, "exp": 0.9, "bat": 64, "charging": True, "mp": 23,
-         "mem_tot": 16e6, "mem_avail": 4e6, "cpu": 78, "temp": 91, "net": (25e6, 3.1e6)},
-        {"uptime": 60, "lv": 1, "exp": 0.02, "bat": 14, "charging": False, "mp": 88,
-         "mem_tot": 16e6, "mem_avail": 14e6, "cpu": 3, "temp": None, "net": (0, 512)},
+        {
+            "uptime": 3 * 3600 + 1500,
+            "lv": 4,
+            "exp": 0.42,
+            "bat": 85,
+            "charging": False,
+            "mp": 57,
+            "mem_tot": 16e6,
+            "mem_avail": 9e6,
+            "cpu": 12,
+            "temp": 52,
+            "net": (1.2e6, 14e3),
+        },
+        {
+            "uptime": 41 * 3600,
+            "lv": 42,
+            "exp": 0.9,
+            "bat": 64,
+            "charging": True,
+            "mp": 23,
+            "mem_tot": 16e6,
+            "mem_avail": 4e6,
+            "cpu": 78,
+            "temp": 91,
+            "net": (25e6, 3.1e6),
+        },
+        {
+            "uptime": 60,
+            "lv": 1,
+            "exp": 0.02,
+            "bat": 14,
+            "charging": False,
+            "mp": 88,
+            "mem_tot": 16e6,
+            "mem_avail": 14e6,
+            "cpu": 3,
+            "temp": None,
+            "net": (0, 512),
+        },
     ]
     k, pad = 4, 6
-    W = (PLAYER_W + STATS_W + 3 * pad)
+    W = PLAYER_W + STATS_W + 3 * pad
     H = len(demo) * (PLAYER_H + pad) + pad
     big = cairo.ImageSurface(cairo.FORMAT_ARGB32, W * k, H * k)
     c = cairo.Context(big)
@@ -512,14 +585,25 @@ def preview(out):
 
 def selftest():
     import cairo  # noqa: F401
-    d = {"uptime": 7300, "lv": 3, "exp": 0.03, "bat": None, "charging": False, "mp": 50,
-         "mem_tot": 8e6, "mem_avail": 4e6, "cpu": 0, "temp": None}
+
+    d = {
+        "uptime": 7300,
+        "lv": 3,
+        "exp": 0.03,
+        "bat": None,
+        "charging": False,
+        "mp": 50,
+        "mem_tot": 8e6,
+        "mem_avail": 4e6,
+        "cpu": 0,
+        "temp": None,
+    }
     assert draw_player(d).get_width() == PLAYER_W
     assert draw_stats(d).get_height() == STATS_H
     s = sample()
     assert s["lv"] >= 1 and 0 <= s["exp"] < 1 and 0 <= s["mp"] <= 100
     tp, ts = tooltips(d)
-    assert "\n" not in tp and "\\n" not in tp and "không có pin" in tp   # tooltip đúng 1 dòng
+    assert "\n" not in tp and "\\n" not in tp and "không có pin" in tp  # tooltip đúng 1 dòng
     assert [human_rate(x) for x in (0, 999, 12345, 1.25e6, 34e6)] == ["0B", "999B", "12K", "1.2M", "34M"]
     print("hud.py selftest OK")
     return 0

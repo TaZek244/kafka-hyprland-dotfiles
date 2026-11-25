@@ -31,10 +31,15 @@ SCRIPTS = os.path.expanduser("~/.config/hypr/scripts")
 PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "kafka-tools-popup.pid")
 
 # Vùng nhận chuột phủ lên nút công cụ (tính từ góc trên-phải màn hình)
-HOT_TOP, HOT_RIGHT, HOT_W, HOT_H = 65, 4, 40, 40   # dock 4 ngăn (2026-11-22): ITEMS = ô ĐẦU ngăn SYS, ngay dưới nhãn "SYS" (đo grim: y 65..104 ở cả hai theme)
+HOT_TOP, HOT_RIGHT, HOT_W, HOT_H = (
+    65,
+    4,
+    40,
+    40,
+)  # dock 4 ngăn (2026-11-22): ITEMS = ô ĐẦU ngăn SYS, ngay dưới nhãn "SYS" (đo grim: y 65..104 ở cả hai theme)
 # Popup: mép phải cách màn hình 98px (dock 62 + lề 12 + hở 24, giống hộp chức năng ở đáy dock),
 # mép trên ngang nút công cụ
-POP_TOP, POP_RIGHT = 44, 73   # = HOT_TOP - 21 như trước
+POP_TOP, POP_RIGHT = 44, 73  # = HOT_TOP - 21 như trước
 SHOW_DELAY_MS, HIDE_DELAY_MS = 90, 350
 
 CSS = b"""
@@ -72,23 +77,28 @@ window.popup { background-color: transparent; }
 
 def run(*cmd, shell=False):
     """Chạy lệnh tách rời (không chờ), không để tiến trình con giữ popup."""
-    subprocess.Popen(cmd[0] if shell else list(cmd), shell=shell,
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                     start_new_session=True)
+    subprocess.Popen(
+        cmd[0] if shell else list(cmd),
+        shell=shell,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
 
 
 def dnd_on():
     try:
-        return subprocess.run(["dunstctl", "is-paused"], capture_output=True, text=True,
-                              timeout=2).stdout.strip() == "true"
+        return (
+            subprocess.run(["dunstctl", "is-paused"], capture_output=True, text=True, timeout=2).stdout.strip()
+            == "true"
+        )
     except (OSError, subprocess.SubprocessError):
         return False
 
 
 def recording():
     try:
-        out = subprocess.run([f"{SCRIPTS}/capture.sh", "status"], capture_output=True,
-                             text=True, timeout=3).stdout
+        out = subprocess.run([f"{SCRIPTS}/capture.sh", "status"], capture_output=True, text=True, timeout=3).stdout
         return '"recording"' in out
     except (OSError, subprocess.SubprocessError):
         return False
@@ -100,7 +110,7 @@ def layer_window(css_class, namespace, top, right):
     screen = win.get_screen()
     visual = screen.get_rgba_visual()
     if visual is not None:
-        win.set_visual(visual)          # nền trong suốt thật
+        win.set_visual(visual)  # nền trong suốt thật
     win.set_app_paintable(True)
     GtkLayerShell.init_for_window(win)
     GtkLayerShell.set_namespace(win, namespace)
@@ -109,10 +119,9 @@ def layer_window(css_class, namespace, top, right):
     GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.RIGHT, True)
     GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, top)
     GtkLayerShell.set_margin(win, GtkLayerShell.Edge.RIGHT, right)
-    GtkLayerShell.set_exclusive_zone(win, -1)   # không chiếm chỗ, không đẩy cửa sổ khác
+    GtkLayerShell.set_exclusive_zone(win, -1)  # không chiếm chỗ, không đẩy cửa sổ khác
     GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
-    win.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
-                   | Gdk.EventMask.BUTTON_PRESS_MASK)
+    win.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK)
     return win
 
 
@@ -120,17 +129,22 @@ class ToolsPopup:
     def __init__(self):
         provider = Gtk.CssProvider()
         provider.load_from_data(CSS)
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), provider,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-        import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
-        self.pixel = kt.apply(kt.panel(".panel", "2px", titled=True) + f"""
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+        import kafka_theme as kt  # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+
+        self.pixel = kt.apply(
+            kt.panel(".panel", "2px", titled=True)
+            + f"""
 .item {{ {kt.CARD} }}
 .item:hover {{ {kt.CARD_HOVER} }}
 .item.on {{ {kt.CARD_ON} }}
 .item.rec {{ background-color: {kt.CRIT}; box-shadow: inset 0 0 0 1px #3d0f1a, inset 2px 2px 0 -1px #ff9aae; }}
 .item.back {{ background-color: transparent; box-shadow: none; }}
 .item.back:hover {{ {kt.CARD_HOVER} }}
-""")
+"""
+        )
 
         # Đang ở trong vùng nào (nút / popup); ẩn khi rời cả hai
         self.in_hot = False
@@ -147,8 +161,7 @@ class ToolsPopup:
         self.pop = layer_window("popup", "kafka-tools-popup", POP_TOP, POP_RIGHT)
         self.pop.connect("enter-notify-event", self.on_enter, "pop")
         self.pop.connect("leave-notify-event", self.on_leave, "pop")
-        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if self.pixel else Gtk.Orientation.HORIZONTAL,
-                        spacing=8)
+        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL if self.pixel else Gtk.Orientation.HORIZONTAL, spacing=8)
         panel.get_style_context().add_class("panel")
         self.pop.add(panel)
         if self.pixel:
@@ -174,18 +187,18 @@ class ToolsPopup:
             ("clip", "\U000f014c", "#f1eaf6", "Clipboard"),
             ("shot", "\U000f0100", "#f1eaf6", "Chụp / quay"),
             ("keys", "\U000f030c", "#f1eaf6", "Phím tắt"),
-            ("dnd",  "\U000f009a", "#f1eaf6", "Không làm phiền"),
+            ("dnd", "\U000f009a", "#f1eaf6", "Không làm phiền"),
         ):
             main.pack_start(self.make_item(key, icon, color, name), False, False, 0)
 
         # Trang chụp/quay: nút quay lại + 6 kiểu (giống menu `capture.sh menu`)
         for key, icon, color, name in (
-            ("back",       "\U000f004d", "#ab9fba", "Quay lại"),
-            ("cap:full",   "\U000f0e51", "#f1eaf6", "Toàn màn hình"),
+            ("back", "\U000f004d", "#ab9fba", "Quay lại"),
+            ("cap:full", "\U000f0e51", "#f1eaf6", "Toàn màn hình"),
             ("cap:window", "\U000f05b2", "#f1eaf6", "Cửa sổ"),
             ("cap:region", "\U000f019f", "#f1eaf6", "Vùng"),
-            ("cap:edit",   "\U000f0f49", "#f1eaf6", "Vùng + vẽ"),
-            ("rec:full",   "\U000f0ec2", "#ff5c7a", "Quay màn hình"),
+            ("cap:edit", "\U000f0f49", "#f1eaf6", "Vùng + vẽ"),
+            ("rec:full", "\U000f0ec2", "#ff5c7a", "Quay màn hình"),
             ("rec:region", "\U000f0567", "#ff5c7a", "Quay vùng"),
         ):
             btn = self.make_item(key, icon, color, name)
@@ -267,11 +280,13 @@ class ToolsPopup:
             if not self.pop.get_visible():
                 self.schedule(SHOW_DELAY_MS, self.show)
             elif self.timer:
-                GLib.source_remove(self.timer); self.timer = None
+                GLib.source_remove(self.timer)
+                self.timer = None
         else:
             self.in_pop = True
             if self.timer:
-                GLib.source_remove(self.timer); self.timer = None
+                GLib.source_remove(self.timer)
+                self.timer = None
         return False
 
     def on_leave(self, _w, event, where):
@@ -293,7 +308,7 @@ class ToolsPopup:
     # ---------- hành động ----------
     def on_click(self, _btn, key):
         if key == "shot" and not recording():
-            self.stack.set_visible_child_name("shot")   # giữ popup, đổi sang trang chụp/quay
+            self.stack.set_visible_child_name("shot")  # giữ popup, đổi sang trang chụp/quay
             if self.pixel:
                 self.px_title.set_text("> CAPTURE")
             return
@@ -310,15 +325,17 @@ class ToolsPopup:
             GLib.timeout_add(250, lambda: run(f"{SCRIPTS}/capture.sh", *args) and False)
             return
         if key == "clip":
-            run("pkill -x rofi || (cliphist list | rofi -dmenu -theme ~/.config/rofi/kafka.rasi"
-                " | cliphist decode | wl-copy)", shell=True)
+            run(
+                "pkill -x rofi || (cliphist list | rofi -dmenu -theme ~/.config/rofi/kafka.rasi"
+                " | cliphist decode | wl-copy)",
+                shell=True,
+            )
         elif key == "shot":
-            run(f"{SCRIPTS}/capture.sh", "stop")   # chỉ tới đây khi đang quay ("Dừng quay")
+            run(f"{SCRIPTS}/capture.sh", "stop")  # chỉ tới đây khi đang quay ("Dừng quay")
         elif key == "keys":
             run(f"{SCRIPTS}/toggle-app.sh", r"kafka\.keybinds", f"{SCRIPTS}/keybinds-editor.py")
         elif key == "dnd":
-            run("dunstctl set-paused toggle; pkill -RTMIN+10 waybar; pkill -RTMIN+12 waybar",
-                shell=True)
+            run("dunstctl set-paused toggle; pkill -RTMIN+10 waybar; pkill -RTMIN+12 waybar", shell=True)
 
 
 def already_running():
@@ -347,6 +364,7 @@ def main():
     try:  # PyGObject mới: GLibUnix.signal_add; bản cũ: GLib.unix_signal_add
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_signal = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_signal = GLib.unix_signal_add

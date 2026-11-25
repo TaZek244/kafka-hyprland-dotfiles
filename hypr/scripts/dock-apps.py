@@ -11,9 +11,9 @@ from collections import OrderedDict
 from pathlib import Path
 
 
-MAX_SLOTS = 4      # ngăn RUN: TỐI ĐA 4 ô (người dùng 2026-11-22); > 4 app → ô 4 = "+N" mở dock-more.py
+MAX_SLOTS = 4  # ngăn RUN: TỐI ĐA 4 ô (người dùng 2026-11-22); > 4 app → ô 4 = "+N" mở dock-more.py
 VISIBLE_MIN = 50
-OUT_PX = 40   # cỡ ảnh thật trên dock (dock rộng 48 = lề 4 + 40 + 4); vẽ ở 48 rồi thu   # px: cột chỉ thò mép vào màn hình vẫn tính là khuất
+OUT_PX = 40  # cỡ ảnh thật trên dock (dock rộng 48 = lề 4 + 40 + 4); vẽ ở 48 rồi thu   # px: cột chỉ thò mép vào màn hình vẫn tính là khuất
 IGNORE = {"kafka-cava"}
 RUNTIME_DIR = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "kafka-dock"
 
@@ -39,12 +39,7 @@ def workspace_an(n):
 def hop_le(n):
     """Kiểm tra một client có thuộc danh sách cần hiển thị không."""
     cls = str(n.get("class") or "").strip()
-    return (
-        not workspace_an(n)
-        and bool(cls)
-        and cls not in IGNORE
-        and n.get("mapped") is not False
-    )
+    return not workspace_an(n) and bool(cls) and cls not in IGNORE and n.get("mapped") is not False
 
 
 def loc_clients(clients):
@@ -62,10 +57,13 @@ def loc_clients(clients):
 def sap_xep_nhom(groups, old_order):
     """Sắp nhóm theo cột, dùng thứ tự cũ để phá hòa."""
     old_position = {cls: index for index, cls in enumerate(old_order)}
-    return [group for _index, group in sorted(
-        enumerate(groups),
-        key=lambda item: (khoa_cot(item[1]), old_position.get(item[1]["class"], len(old_order)), item[0]),
-    )]   # KHÔNG cắt ở đây: chon_nhom_hien cần đủ danh sách để tính ô "+N"
+    return [
+        group
+        for _index, group in sorted(
+            enumerate(groups),
+            key=lambda item: (khoa_cot(item[1]), old_position.get(item[1]["class"], len(old_order)), item[0]),
+        )
+    ]  # KHÔNG cắt ở đây: chon_nhom_hien cần đủ danh sách để tính ô "+N"
 
 
 def khoa_cot(group):
@@ -176,14 +174,14 @@ def doc_hyprctl(*args):
 
 
 def doc_clients_va_active():
-    return (doc_hyprctl("clients", "-j"), doc_hyprctl("activewindow", "-j"),
-            doc_hyprctl("monitors", "-j"))
+    return (doc_hyprctl("clients", "-j"), doc_hyprctl("activewindow", "-j"), doc_hyprctl("monitors", "-j"))
 
 
 def icon_from_gicon(theme, gicon, size=34):
     if gicon is None:
         return None
     from gi.repository import Gtk
+
     info = theme.lookup_by_gicon(gicon, size, Gtk.IconLookupFlags.FORCE_SIZE)
     return info.load_icon() if info is not None else None
 
@@ -195,8 +193,10 @@ def icon_candidate(cls, cache, theme):
         try:
             if cached.startswith("/"):
                 from gi.repository import Gio
+
                 return icon_from_gicon(theme, Gio.FileIcon.new(Gio.File.new_for_path(cached)))
             from gi.repository import Gtk
+
             pixbuf = theme.load_icon(cached, 34, Gtk.IconLookupFlags.FORCE_SIZE)
             if pixbuf:
                 return pixbuf
@@ -207,8 +207,10 @@ def icon_candidate(cls, cache, theme):
 
     try:  # GLib mới chuyển DesktopAppInfo sang GioUnix
         import gi
+
         gi.require_version("GioUnix", "2.0")
         from gi.repository import GioUnix
+
         DesktopAppInfo = GioUnix.DesktopAppInfo
     except (ValueError, ImportError):
         DesktopAppInfo = Gio.DesktopAppInfo
@@ -238,7 +240,11 @@ def icon_candidate(cls, cache, theme):
 
     for gicon, name in candidates:
         try:
-            pixbuf = icon_from_gicon(theme, gicon) if gicon is not None else theme.load_icon(name, 34, Gtk.IconLookupFlags.FORCE_SIZE)
+            pixbuf = (
+                icon_from_gicon(theme, gicon)
+                if gicon is not None
+                else theme.load_icon(name, 34, Gtk.IconLookupFlags.FORCE_SIZE)
+            )
             if pixbuf:
                 if name:
                     cache[cls] = name
@@ -258,6 +264,7 @@ def _pixel_font():
     if greeter not in sys.path:
         sys.path.insert(0, greeter)
     from pixelfont import draw_text
+
     return draw_text
 
 
@@ -276,6 +283,7 @@ def _pixel_icon(context, pixbuf):
     context.translate(7, 6)
     context.scale(26 / width, 26 / height)
     from gi.repository import Gdk
+
     Gdk.cairo_set_source_pixbuf(context, pixbuf, 0, 0)
     context.get_source().set_filter(__import__("cairo").FILTER_BEST)
     context.paint()
@@ -284,6 +292,7 @@ def _pixel_icon(context, pixbuf):
 
 def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
     import cairo
+
     context_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, OUT_PX, OUT_PX)
     context = cairo.Context(context_surface)
     context.set_antialias(cairo.ANTIALIAS_NONE)
@@ -297,9 +306,16 @@ def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
     inner = (44 / 255, 34 / 255, 56 / 255) if focused else (29 / 255, 22 / 255, 38 / 255)
     # Bốn góc không được tô: đó là các pixel trong suốt của slot stepped.
     context.set_source_rgb(*dark)
-    context.move_to(2, 0); context.line_to(38, 0); context.line_to(40, 2)
-    context.line_to(40, 38); context.line_to(38, 40); context.line_to(2, 40)
-    context.line_to(0, 38); context.line_to(0, 2); context.close_path(); context.fill()
+    context.move_to(2, 0)
+    context.line_to(38, 0)
+    context.line_to(40, 2)
+    context.line_to(40, 38)
+    context.line_to(38, 40)
+    context.line_to(2, 40)
+    context.line_to(0, 38)
+    context.line_to(0, 2)
+    context.close_path()
+    context.fill()
     rect(2, 2, 36, 36, inner)
     rect(2, 2, 36, 2, (15 / 255, 10 / 255, 20 / 255))
     rect(2, 2, 2, 36, (15 / 255, 10 / 255, 20 / 255))
@@ -322,17 +338,17 @@ def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
         # Dải shade nằm phía trong cánh ngang (trên: y 4..6; dưới: y 34..36),
         # chỉ phủ phần không bị cánh dọc che.
         bracket_rects = (
-            (2, 2, 8, 2, pink),     # trái-trên: cánh ngang
-            (2, 2, 2, 8, pink),     # trái-trên: cánh dọc
-            (4, 4, 6, 2, shade),    # trái-trên: shade
-            (30, 2, 8, 2, pink),    # phải-trên: cánh ngang
-            (36, 2, 2, 8, pink),    # phải-trên: cánh dọc
-            (30, 4, 6, 2, shade),   # phải-trên: shade
-            (2, 36, 8, 2, pink),    # trái-dưới: cánh ngang
-            (2, 30, 2, 8, pink),    # trái-dưới: cánh dọc
-            (4, 34, 6, 2, shade),   # trái-dưới: shade
-            (30, 36, 8, 2, pink),   # phải-dưới: cánh ngang
-            (36, 30, 2, 8, pink),   # phải-dưới: cánh dọc
+            (2, 2, 8, 2, pink),  # trái-trên: cánh ngang
+            (2, 2, 2, 8, pink),  # trái-trên: cánh dọc
+            (4, 4, 6, 2, shade),  # trái-trên: shade
+            (30, 2, 8, 2, pink),  # phải-trên: cánh ngang
+            (36, 2, 2, 8, pink),  # phải-trên: cánh dọc
+            (30, 4, 6, 2, shade),  # phải-trên: shade
+            (2, 36, 8, 2, pink),  # trái-dưới: cánh ngang
+            (2, 30, 2, 8, pink),  # trái-dưới: cánh dọc
+            (4, 34, 6, 2, shade),  # trái-dưới: shade
+            (30, 36, 8, 2, pink),  # phải-dưới: cánh ngang
+            (36, 30, 2, 8, pink),  # phải-dưới: cánh dọc
             (30, 34, 6, 2, shade),  # phải-dưới: shade
         )
         for x, y, w, h, color in bracket_rects:
@@ -349,8 +365,7 @@ def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
         try:
             draw_text = _pixel_font()
             width = (len(badge) * 6 - 1) * 2
-            draw_text(context, badge, 38 - width, 24, 2,
-                      (1.0, 224 / 255, 138 / 255), shadow=dark)
+            draw_text(context, badge, 38 - width, 24, 2, (1.0, 224 / 255, 138 / 255), shadow=dark)
         except (ImportError, OSError):
             # Không để thiếu pixelfont làm hỏng dock; badge fallback tối giản.
             rect(26, 30, 10, 6, (184 / 255, 50 / 255, 106 / 255))
@@ -359,6 +374,7 @@ def _pixel_surface(cls, count, focused, cache, offscreen, theme=None):
 
 def _write_surface(surface, path, scale=1, filter_mode=None):
     import cairo
+
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     os.close(fd)
@@ -366,8 +382,7 @@ def _write_surface(surface, path, scale=1, filter_mode=None):
         if scale == 1:
             surface.write_to_png(temp_name)
         else:
-            out = cairo.ImageSurface(cairo.FORMAT_ARGB32,
-                                      surface.get_width() * scale, surface.get_height() * scale)
+            out = cairo.ImageSurface(cairo.FORMAT_ARGB32, surface.get_width() * scale, surface.get_height() * scale)
             context = cairo.Context(out)
             context.scale(scale, scale)
             context.set_source_surface(surface, 0, 0)
@@ -385,8 +400,9 @@ def _write_surface(surface, path, scale=1, filter_mode=None):
 def ve_png(path, cls, count, focused, cache, offscreen):
     import cairo
     import gi
+
     gi.require_version("Gtk", "3.0")
-    gi.require_version("Gdk", "3.0")   # thiếu dòng này PyGObject tự nạp Gdk 4 -> xung đột với Gtk 3
+    gi.require_version("Gdk", "3.0")  # thiếu dòng này PyGObject tự nạp Gdk 4 -> xung đột với Gtk 3
     from gi.repository import Gdk, Gtk
 
     if pixel_theme_enabled():
@@ -424,9 +440,11 @@ def ve_png(path, cls, count, focused, cache, offscreen):
     if badge:
         # Huy hiệu góc dưới-phải: đo chữ trước, rồi vẽ viên thuốc ôm chữ
         import gi as _gi
+
         _gi.require_version("Pango", "1.0")
         _gi.require_version("PangoCairo", "1.0")
         from gi.repository import Pango, PangoCairo
+
         layout = PangoCairo.create_layout(context)
         layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 8"))
         layout.set_text(badge, -1)
@@ -484,7 +502,7 @@ def chon_nhom_hien(groups, active_address):
     App đang focus luôn được hiện (thay vào ô thứ 3 nếu nằm ngoài). Trả về (danh sách hiện, N)."""
     if len(groups) <= MAX_SLOTS:
         return list(groups), 0
-    shown = list(groups[:MAX_SLOTS - 1])
+    shown = list(groups[: MAX_SLOTS - 1])
     focused = next((g for g in groups if active_address in {dia_chi(c) for c in g["clients"]}), None)
     if focused is not None and focused not in shown:
         shown[-1] = focused
@@ -495,6 +513,7 @@ def render():
     # Hyprland gọi render ở nhiều sự kiện liền nhau (mở + focus...): khóa để chạy lần lượt,
     # mỗi lần đọc trạng thái mới nhất, không ghi đè file của nhau.
     import fcntl
+
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
     with open(RUNTIME_DIR / "render.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
@@ -504,12 +523,15 @@ def render():
 def preview_pixel(path):
     """Tạo sample sheet pixel mà không cần Hyprland hay state file."""
     import cairo
+
     theme = None
     cache = {}
     try:
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
+
         theme = Gtk.IconTheme.get_default()
     except Exception:
         pass
@@ -548,6 +570,7 @@ def _render():
     if not isinstance(draw_keys, dict):
         draw_keys = {}
     import dock_slots
+
     shown, extra = chon_nhom_hien(groups, active_address)
     for index in range(1, MAX_SLOTS + 1):
         png = RUNTIME_DIR / f"slot{index}.png"
@@ -572,15 +595,26 @@ def _render():
         group = shown[index - 1]
         members = group["clients"]
         focused = active_address in {dia_chi(c) for c in members}
-        offscreen = sorted({side for client in members
-                            if (side := khuat_man_hinh(client, monitors)) is not None})
-        key = {"class": group["class"], "count": len(members), "focused": focused, "offscreen": offscreen,
-               "pixel": pixel_theme_enabled()}   # đổi theme phải vẽ lại
+        offscreen = sorted({side for client in members if (side := khuat_man_hinh(client, monitors)) is not None})
+        key = {
+            "class": group["class"],
+            "count": len(members),
+            "focused": focused,
+            "offscreen": offscreen,
+            "pixel": pixel_theme_enabled(),
+        }  # đổi theme phải vẽ lại
         if draw_keys.get(str(index)) != key or not png.exists():
             ve_png(png, group["class"], len(members), focused, cache, offscreen)
         draw_keys[str(index)] = key
-        ghi_json_an_toan(meta, {"class": group["class"], "addresses": [dia_chi(c) for c in members],
-                                "titles": [str(c.get("title", "")) for c in members], "offscreen": offscreen})
+        ghi_json_an_toan(
+            meta,
+            {
+                "class": group["class"],
+                "addresses": [dia_chi(c) for c in members],
+                "titles": [str(c.get("title", "")) for c in members],
+                "offscreen": offscreen,
+            },
+        )
     ghi_json_an_toan(RUNTIME_DIR / "draw-keys.json", draw_keys)
     ghi_json_an_toan(RUNTIME_DIR / "icons.json", cache)
     subprocess.run(["pkill", "-RTMIN+13", "waybar"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -613,7 +647,9 @@ def no_warps_enabled():
     try:
         result = subprocess.run(
             ["hyprctl", "repl", 'return hl.get_config("cursor.no_warps")'],
-            check=False, capture_output=True, text=True,
+            check=False,
+            capture_output=True,
+            text=True,
         )
         return result.returncode == 0 and result.stdout.strip().startswith("true")
     except Exception:
@@ -624,8 +660,12 @@ def dispatch_for(index, close=False):
     try:
         meta = json_doc(RUNTIME_DIR / f"slot{index}.json", {})
         if meta.get("more"):
-            subprocess.Popen([str(Path(__file__).resolve().parent / "dock-more.py"), "--section", "run"],
-                             start_new_session=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(
+                [str(Path(__file__).resolve().parent / "dock-more.py"), "--section", "run"],
+                start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             return
         cls = meta.get("class")
         if not cls:
@@ -661,25 +701,49 @@ def selftest():
     assert [x["class"] for x in shown] == ["c0", "c1", "c5"] and extra == 3, (shown, extra)
     assert chon_nhom_hien(g, "0x1") == (g[:3], 3)
     fake = [
-        {"address": "0x2", "class": "kitty", "title": "A", "mapped": True, "at": [300, 0], "workspace": {"id": 1, "name": "1"}, "focusHistoryID": 2},
-        {"address": "0x1", "class": "kitty", "title": "B", "mapped": True, "at": [250, 0], "workspace": {"id": 1, "name": "1"}, "focusHistoryID": 0},
-        {"address": "0x3", "class": "firefox", "mapped": True, "at": [-100, 0], "workspace": {"id": 1, "name": "1"}, "focusHistoryID": 1},
+        {
+            "address": "0x2",
+            "class": "kitty",
+            "title": "A",
+            "mapped": True,
+            "at": [300, 0],
+            "workspace": {"id": 1, "name": "1"},
+            "focusHistoryID": 2,
+        },
+        {
+            "address": "0x1",
+            "class": "kitty",
+            "title": "B",
+            "mapped": True,
+            "at": [250, 0],
+            "workspace": {"id": 1, "name": "1"},
+            "focusHistoryID": 0,
+        },
+        {
+            "address": "0x3",
+            "class": "firefox",
+            "mapped": True,
+            "at": [-100, 0],
+            "workspace": {"id": 1, "name": "1"},
+            "focusHistoryID": 1,
+        },
         {"address": "0x4", "class": "bad", "mapped": False, "workspace": {"id": 2, "name": "2"}},
         {"address": "0x5", "class": "hide", "mapped": True, "workspace": {"id": -1, "name": "special:x"}},
     ]
     assert [g["class"] for g in loc_clients(fake)] == ["kitty", "firefox"]
     assert [g["class"] for g in sap_xep_nhom(loc_clients(fake), ["kitty", "firefox"])] == ["firefox", "kitty"]
-    assert [dia_chi_focus(loc_clients(fake)[0]["clients"], "0x1")["address"], dia_chi_focus(loc_clients(fake)[0]["clients"], "nope")["address"]] == ["0x2", "0x1"]
+    assert [
+        dia_chi_focus(loc_clients(fake)[0]["clients"], "0x1")["address"],
+        dia_chi_focus(loc_clients(fake)[0]["clients"], "nope")["address"],
+    ] == ["0x2", "0x1"]
     assert [huy_hieu(n) for n in (1, 2, 12)] == [None, "x2", "9+"]
     assert [pixel_count(n) for n in (1, 2, 9, 10, 12)] == [None, "2", "9", "9+", "9+"]
-    monitors = [{"id": 0, "x": 100, "width": 1600, "scale": 1.25,
-                 "activeWorkspace": {"id": 1}, "reserved": [10, 20, 30, 0]}]
-    left = {"monitor": 0, "at": [80, 30], "size": [20, 20], "floating": False,
-            "workspace": {"id": 1}}
-    right = {"monitor": 0, "at": [1350, 30], "size": [20, 20], "floating": False,
-             "workspace": {"id": 1}}
-    inside = {"monitor": 0, "at": [400, 30], "size": [400, 20], "floating": False,
-              "workspace": {"id": 1}}
+    monitors = [
+        {"id": 0, "x": 100, "width": 1600, "scale": 1.25, "activeWorkspace": {"id": 1}, "reserved": [10, 20, 30, 0]}
+    ]
+    left = {"monitor": 0, "at": [80, 30], "size": [20, 20], "floating": False, "workspace": {"id": 1}}
+    right = {"monitor": 0, "at": [1350, 30], "size": [20, 20], "floating": False, "workspace": {"id": 1}}
+    inside = {"monitor": 0, "at": [400, 30], "size": [400, 20], "floating": False, "workspace": {"id": 1}}
     floating = dict(left, floating=True)
     inactive = dict(left, workspace={"id": 2})
     assert khuat_man_hinh(left, monitors) == "left"
@@ -697,8 +761,10 @@ def main():
     if len(sys.argv) == 3 and sys.argv[1] == "--preview-pixel":
         preview_pixel(sys.argv[2])
         return 0
-    if not ((len(sys.argv) == 2 and sys.argv[1] == "render") or
-            (len(sys.argv) == 3 and sys.argv[1] in {"slot", "click", "close"})):
+    if not (
+        (len(sys.argv) == 2 and sys.argv[1] == "render")
+        or (len(sys.argv) == 3 and sys.argv[1] in {"slot", "click", "close"})
+    ):
         print("Sử dụng: dock-apps.py render|slot N|click N|close N|--selftest|--preview-pixel OUT.png", file=sys.stderr)
         return 2
     try:

@@ -34,7 +34,7 @@ RUNDIR = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
 PIDFILE = os.path.join(RUNDIR, "kafka-clock-popup.pid")
 
 # Mép trên khung lịch: ngay dưới thanh trên (thanh cao ~46px gồm lề) + khe 8px
-POP_TOP = 48   # thanh trên cao 40 (gắn sát mép) + khe 8px
+POP_TOP = 48  # thanh trên cao 40 (gắn sát mép) + khe 8px
 
 WEEKDAYS = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ Nhật"]
 HEAD = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
@@ -120,8 +120,7 @@ class ClockPopup(Gtk.Window):
         GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
         # Phủ cả màn hình (kể cả thanh trên) bằng lớp trong suốt, giống các popup rofi: bấm ra ngoài
         # khung (cả lên đồng hồ) = đóng. Không dựa vào focus-out: layer-shell nhận focus-out ngay khi hiện.
-        for e in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
-                  GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
+        for e in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM, GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
             GtkLayerShell.set_anchor(self, e, True)
         GtkLayerShell.set_exclusive_zone(self, -1)
         GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.EXCLUSIVE)
@@ -130,8 +129,13 @@ class ClockPopup(Gtk.Window):
         self.view = today.replace(day=1)
         self.picked = None
 
-        panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6,
-                        halign=Gtk.Align.CENTER, valign=Gtk.Align.START, margin_top=POP_TOP)
+        panel = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=6,
+            halign=Gtk.Align.CENTER,
+            valign=Gtk.Align.START,
+            margin_top=POP_TOP,
+        )
         # Đồng hồ không cố định giữa màn hình (có nhạc thì mpris đẩy nó sang trái) -> place()
         # canh khung theo vị trí con trỏ lúc bấm.
         panel.get_style_context().add_class("panel")
@@ -203,8 +207,7 @@ class ClockPopup(Gtk.Window):
     def place(self):
         """Đặt khung lịch thẳng dưới con trỏ (= dưới đồng hồ vừa bấm), không tràn mép màn hình."""
         try:
-            out = subprocess.run(["hyprctl", "cursorpos", "-j"], capture_output=True,
-                                 text=True, timeout=1).stdout
+            out = subprocess.run(["hyprctl", "cursorpos", "-j"], capture_output=True, text=True, timeout=1).stdout
             cx = json.loads(out)["x"]
             mon = Gdk.Display.get_default().get_monitor_at_point(int(cx), 0).get_geometry()
         except Exception:
@@ -249,8 +252,7 @@ class ClockPopup(Gtk.Window):
         b.set_relief(Gtk.ReliefStyle.NONE)
         ctx = b.get_style_context()
         ctx.add_class("day")
-        for flag, name in ((other, "other"), (is_today, "today"), (sunday, "sun"),
-                           (d == self.picked, "picked")):
+        for flag, name in ((other, "other"), (is_today, "today"), (sunday, "sun"), (d == self.picked, "picked")):
             if flag:
                 ctx.add_class(name)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0, valign=Gtk.Align.CENTER)
@@ -359,10 +361,12 @@ def main():
         f.write(str(os.getpid()))
     prov = Gtk.CssProvider()
     prov.load_from_data(CSS)
-    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
-                                             Gtk.STYLE_PROVIDER_PRIORITY_USER)
-    import kafka_theme as kt              # giao diện pixel KAFKA.SYS (đồng bộ Waybar) nếu đang bật
-    kt.apply(kt.panel(".panel", "6px 6px 2px 6px", titled=True) + f"""
+    Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    import kafka_theme as kt  # giao diện pixel KAFKA.SYS (đồng bộ Waybar) nếu đang bật
+
+    kt.apply(
+        kt.panel(".panel", "6px 6px 2px 6px", titled=True)
+        + f"""
 .time {{ font-family: "{kt.PIXEL_FONT}"; font-size: 42px; font-weight: normal;
          text-shadow: 6px 6px 0 rgba(11, 7, 16, 0.9); }}  /* chữ pixel như đồng hồ màn hình đăng nhập (6px/điểm) */
 .secs {{ font-family: "{kt.PIXEL_FONT}"; font-size: 14px; }}
@@ -378,7 +382,8 @@ def main():
 .day.picked {{ border-color: transparent; box-shadow: inset 0 0 0 1px {kt.PINK}, inset 0 0 0 2px {kt.EDGE}; }}
 .day.today {{ {kt.CARD_ON} border-color: transparent; }}
 .day.today .num, .day.today .lun {{ color: #ffffff; }}
-""")
+"""
+    )
     win = ClockPopup()
     title = kt.title_label("CALENDAR")
     if title:
@@ -387,6 +392,7 @@ def main():
     try:  # PyGObject mới: GLibUnix; bản cũ: GLib.unix_signal_add
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_sig = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_sig = GLib.unix_signal_add

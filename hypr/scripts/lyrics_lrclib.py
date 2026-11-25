@@ -28,10 +28,7 @@ import urllib.request
 # Hằng số và biểu thức chính quy
 # ---------------------------------------------------------------------------
 
-_USER_AGENT = (
-    "kafka-hyprland-dotfiles "
-    "(https://github.com/TaZek244/kafka-hyprland-dotfiles)"
-)
+_USER_AGENT = "kafka-hyprland-dotfiles (https://github.com/TaZek244/kafka-hyprland-dotfiles)"
 _API = "https://lrclib.net/api"
 _TTL_EMPTY = 24 * 60 * 60  # Kết quả "không tìm thấy" được cache trong 1 ngày.
 
@@ -41,23 +38,33 @@ _ERR = "loi-mang-hoac-json"
 
 _RE_STAMP = re.compile(r"\[(\d{1,3}):(\d{1,2})(?:\.(\d{1,3}))?\]")
 _RE_OFFSET = re.compile(r"\[offset:\s*([+-]?\d+)\s*\]", re.IGNORECASE)
-_RE_META_TAG = re.compile(
-    r"\[(?:ar|ti|al|length|by|offset|re|ve|lang|tool):[^\]]*\]", re.IGNORECASE
-)
+_RE_META_TAG = re.compile(r"\[(?:ar|ti|al|length|by|offset|re|ve|lang|tool):[^\]]*\]", re.IGNORECASE)
 _RE_FT = re.compile(r"\s*\b(?:ft|feat|featuring)\b\.?.*$", re.IGNORECASE)
 _RE_DASH = re.compile(r"^\s*(.+?)\s+[-–—]\s+(.+?)\s*$")
 _RE_BRACKET = re.compile(r"\s*[\[(]([^\])]*)[\])]\s*")
 _RE_TOPIC = re.compile(r"\s*(?:[-–—]\s*)?topic\s*$", re.IGNORECASE)
 
 _JUNK_WORDS = (
-    "official", "video", "mv", "lyric", "audio", "karaoke",
-    "teaser", "trailer", "visualizer", "hd", "hq", "4k", "vevo",
+    "official",
+    "video",
+    "mv",
+    "lyric",
+    "audio",
+    "karaoke",
+    "teaser",
+    "trailer",
+    "visualizer",
+    "hd",
+    "hq",
+    "4k",
+    "vevo",
 )
 
 
 # ---------------------------------------------------------------------------
 # Hàm thuần: phân tích LRC, tìm dòng, làm sạch tên
 # ---------------------------------------------------------------------------
+
 
 def parse_lrc(text):
     """Chuyển chuỗi LRC thành danh sách (giây: float, dòng: str) theo thời gian.
@@ -82,7 +89,7 @@ def parse_lrc(text):
             # Không có nhãn thời gian: đó là metadata hoặc dòng rỗng thường.
             continue
 
-        noidung = dong[nhan[-1].end():]
+        noidung = dong[nhan[-1].end() :]
         noidung = _RE_META_TAG.sub("", noidung).strip()
 
         for st in nhan:
@@ -117,6 +124,7 @@ def _is_junk(phan):
 
 def _strip_bracket_junk(text):
     """Bỏ các cụm trong ngoặc như (Official Video), [MV], (Lyrics)..."""
+
     def _thay(m):
         return " " if _is_junk(m.group(1)) else m.group(0)
 
@@ -187,6 +195,7 @@ def clean_artist(artist):
 # ---------------------------------------------------------------------------
 # Gọi mạng, lưu cache và chuẩn hoá kết quả
 # ---------------------------------------------------------------------------
+
 
 def _default_http_get(url, timeout):
     """Hàm gọi mạng mặc định dùng urllib, gắn User-Agent riêng."""
@@ -265,9 +274,7 @@ def _search_request(params, duration, timeout):
 
 def _cache_dir():
     """Thư mục cache, ưu tiên XDG_CACHE_HOME."""
-    co_so = os.environ.get("XDG_CACHE_HOME") or os.path.join(
-        os.path.expanduser("~"), ".cache"
-    )
+    co_so = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
     return os.path.join(co_so, "kafka", "lyrics")
 
 
@@ -436,6 +443,7 @@ def fetch_lyrics(title, artist, album="", duration=None, timeout=6):
 # Tự kiểm tra và giao diện dòng lệnh
 # ---------------------------------------------------------------------------
 
+
 def _selftest():
     """Chạy các ca kiểm tra có sẵn, in PASS/FAIL và trả mã thoát."""
     global _http_get
@@ -461,15 +469,11 @@ def _selftest():
     da_doc = parse_lrc(lrc)
     kiemtra(
         "parse_lrc: nhiều nhãn trên một dòng",
-        (0.5, "Hai nhãn cùng một dòng") in da_doc
-        and (90.0, "Hai nhãn cùng một dòng") in da_doc,
+        (0.5, "Hai nhãn cùng một dòng") in da_doc and (90.0, "Hai nhãn cùng một dòng") in da_doc,
     )
     kiemtra(
         "parse_lrc: offset dương làm lời hiện sớm hơn",
-        any(
-            abs(t - 1.623) < 1e-6 and s == "Ba chữ số mili giây"
-            for t, s in da_doc
-        ),
+        any(abs(t - 1.623) < 1e-6 and s == "Ba chữ số mili giây" for t, s in da_doc),
     )
     kiemtra(
         "parse_lrc: dạng [mm:ss] và dòng trống nhạc dạo",
@@ -477,8 +481,7 @@ def _selftest():
     )
     kiemtra(
         "parse_lrc: bỏ metadata và sắp theo thời gian",
-        len(da_doc) == 5
-        and [t for t, _ in da_doc] == sorted(t for t, _ in da_doc),
+        len(da_doc) == 5 and [t for t, _ in da_doc] == sorted(t for t, _ in da_doc),
     )
 
     # --- line_index_at ---
@@ -523,14 +526,19 @@ def _selftest():
         # (a) /api/get trả 200.
         def fake_get_200(url, timeout):
             if "/api/get?" in url:
-                return (200, json.dumps({
-                    "trackName": "Chúng Ta Của Tương Lai",
-                    "artistName": "Sơn Tùng M-TP",
-                    "duration": 185,
-                    "syncedLyrics": "[00:01.00]Lời đầu\n[00:02.00]Lời sau\n",
-                    "plainLyrics": "Lời đầu\nLời sau",
-                    "instrumental": 0,
-                }))
+                return (
+                    200,
+                    json.dumps(
+                        {
+                            "trackName": "Chúng Ta Của Tương Lai",
+                            "artistName": "Sơn Tùng M-TP",
+                            "duration": 185,
+                            "syncedLyrics": "[00:01.00]Lời đầu\n[00:02.00]Lời sau\n",
+                            "plainLyrics": "Lời đầu\nLời sau",
+                            "instrumental": 0,
+                        }
+                    ),
+                )
             return (500, "")
 
         _http_get = fake_get_200
@@ -557,32 +565,41 @@ def _selftest():
             if "/api/get?" in url:
                 return (404, "không tìm thấy")
             if "/api/search?" in url and "track_name=" in url:
-                return (200, json.dumps([
-                    {
-                        "trackName": "Bài hết mưa", "artistName": "Kafka",
-                        "duration": 100, "plainLyrics": "bài khác",
-                        "syncedLyrics": None,
-                    },
-                    {
-                        "trackName": "Bài hết mưa", "artistName": "Kafka",
-                        "duration": 184, "plainLyrics": "gần nhưng không sync",
-                        "syncedLyrics": None,
-                    },
-                    {
-                        "trackName": "Bài hết mưa", "artistName": "Kafka",
-                        "duration": 186, "plainLyrics": "đúng bài",
-                        "syncedLyrics": "[00:03.00]Lời đúng\n",
-                    },
-                ]))
+                return (
+                    200,
+                    json.dumps(
+                        [
+                            {
+                                "trackName": "Bài hết mưa",
+                                "artistName": "Kafka",
+                                "duration": 100,
+                                "plainLyrics": "bài khác",
+                                "syncedLyrics": None,
+                            },
+                            {
+                                "trackName": "Bài hết mưa",
+                                "artistName": "Kafka",
+                                "duration": 184,
+                                "plainLyrics": "gần nhưng không sync",
+                                "syncedLyrics": None,
+                            },
+                            {
+                                "trackName": "Bài hết mưa",
+                                "artistName": "Kafka",
+                                "duration": 186,
+                                "plainLyrics": "đúng bài",
+                                "syncedLyrics": "[00:03.00]Lời đúng\n",
+                            },
+                        ]
+                    ),
+                )
             return (200, "[]")
 
         _http_get = fake_404_tim
         ket_b = fetch_lyrics("Bài hết mưa", "Kafka", duration=185)
         kiemtra(
             "fetch_lyrics: 404 -> search chọn đúng bài",
-            ket_b["source"] == "lrclib"
-            and bool(ket_b["synced"])
-            and ket_b["synced"][0][1] == "Lời đúng",
+            ket_b["source"] == "lrclib" and bool(ket_b["synced"]) and ket_b["synced"][0][1] == "Lời đúng",
         )
 
         # (c) Lỗi mạng: trả 'none' và KHÔNG ghi cache.
@@ -618,8 +635,7 @@ def _selftest():
                 luu = json.load(fh)
             kiemtra(
                 "fetch_lyrics: cache rỗng có hạn 1 ngày",
-                luu.get("expires_at") is not None
-                and 0 < luu["expires_at"] - luu["saved_at"] <= _TTL_EMPTY + 1,
+                luu.get("expires_at") is not None and 0 < luu["expires_at"] - luu["saved_at"] <= _TTL_EMPTY + 1,
             )
         except (OSError, ValueError, KeyError, TypeError):
             kiemtra("fetch_lyrics: cache rỗng có hạn 1 ngày", False)
@@ -639,10 +655,7 @@ def _main(argv):
         return _selftest()
 
     if len(argv) < 3:
-        print(
-            'Dùng: lyrics_lrclib.py --selftest | '
-            'lyrics_lrclib.py "tên bài" "ca sĩ" [giây]'
-        )
+        print('Dùng: lyrics_lrclib.py --selftest | lyrics_lrclib.py "tên bài" "ca sĩ" [giây]')
         return 2
 
     tieu_de = argv[1]

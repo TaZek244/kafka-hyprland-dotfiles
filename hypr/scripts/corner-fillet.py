@@ -15,13 +15,12 @@ import sys
 # Hình học cố định của màn 1920x1080 (scale 1).
 R = 14
 CORNER_SIZE = R + 1
-TOP_MARGIN = 39   # hàng viền dưới thanh trên (thanh cao 40, gắn sát mép trên)
+TOP_MARGIN = 39  # hàng viền dưới thanh trên (thanh cao 40, gắn sát mép trên)
 DOCK_LEFT_FROM_RIGHT = 48  # 1920 - x cột viền trái dock (1872, dock 48px phẳng), dock gắn sát mép phải
 SCREEN_WIDTH = 1920
-BG = (44 / 255, 36 / 255, 52 / 255, 0.93)   # = @bg trong waybar/style.css
-BORDER = (1.0, 1.0, 1.0, 0.10)   # = @line (viền trung tính)
-PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"),
-                       "kafka-corner-fillet.pid")
+BG = (44 / 255, 36 / 255, 52 / 255, 0.93)  # = @bg trong waybar/style.css
+BORDER = (1.0, 1.0, 1.0, 0.10)  # = @line (viền trung tính)
+PIDFILE = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "kafka-corner-fillet.pid")
 
 
 def margin_right(screen_width):
@@ -63,8 +62,7 @@ def render_png(path):
     import cairo
 
     factor = 8
-    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32,
-                                  CORNER_SIZE * factor, CORNER_SIZE * factor)
+    surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, CORNER_SIZE * factor, CORNER_SIZE * factor)
     ctx = cairo.Context(surface)
     ctx.set_source_rgb(0, 0, 0)
     ctx.paint()
@@ -94,11 +92,16 @@ def co_fullscreen_that():
     """True nếu workspace đang xem có cửa sổ toàn màn hình thật (mode 2; mode 1 = phóng to chừa Waybar)."""
     import json
     import subprocess
+
     try:
-        ws = json.loads(subprocess.run(["hyprctl", "activeworkspace", "-j"], capture_output=True, text=True, timeout=2).stdout)
+        ws = json.loads(
+            subprocess.run(["hyprctl", "activeworkspace", "-j"], capture_output=True, text=True, timeout=2).stdout
+        )
         if not ws.get("hasfullscreen"):
             return False
-        clients = json.loads(subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, text=True, timeout=2).stdout)
+        clients = json.loads(
+            subprocess.run(["hyprctl", "clients", "-j"], capture_output=True, text=True, timeout=2).stdout
+        )
     except Exception:
         return False
     return any(c.get("workspace", {}).get("id") == ws.get("id") and c.get("fullscreen") == 2 for c in clients)
@@ -117,8 +120,12 @@ def theo_doi_fullscreen(win, GLib):
         return False
 
     def nghe():
-        path = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "hypr",
-                            os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", ""), ".socket2.sock")
+        path = os.path.join(
+            os.environ.get("XDG_RUNTIME_DIR", "/tmp"),
+            "hypr",
+            os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", ""),
+            ".socket2.sock",
+        )
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.connect(path)
@@ -131,7 +138,10 @@ def theo_doi_fullscreen(win, GLib):
                 return
             buf += data
             *lines, buf = buf.split(b"\n")
-            if any(l.split(b">>")[0] in (b"fullscreen", b"workspace", b"workspacev2", b"focusedmon", b"closewindow") for l in lines):
+            if any(
+                l.split(b">>")[0] in (b"fullscreen", b"workspace", b"workspacev2", b"focusedmon", b"closewindow")
+                for l in lines
+            ):
                 GLib.idle_add(cap_nhat)
 
     threading.Thread(target=nghe, daemon=True).start()
@@ -143,7 +153,7 @@ def run_window():
     import gi
 
     gi.require_version("Gtk", "3.0")
-    gi.require_version("Gdk", "3.0")   # thiếu dòng này PyGObject nạp nhầm Gdk 4
+    gi.require_version("Gdk", "3.0")  # thiếu dòng này PyGObject nạp nhầm Gdk 4
     gi.require_version("GtkLayerShell", "0.1")
     from gi.repository import GLib, Gtk, Gdk, GtkLayerShell
 
@@ -189,7 +199,7 @@ def run_window():
             self.get_window().input_shape_combine_region(region, 0, 0)
 
         def on_draw(self, _window, ctx):
-            ctx.set_operator(cairo.OPERATOR_CLEAR)   # xoá nền (cửa sổ RGBA mặc định có thể tô đen)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)  # xoá nền (cửa sổ RGBA mặc định có thể tô đen)
             ctx.paint()
             ctx.set_operator(cairo.OPERATOR_OVER)
             draw_corner(ctx)
@@ -199,13 +209,12 @@ def run_window():
     try:
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_signal = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_signal = GLib.unix_signal_add
-    add_signal(GLib.PRIORITY_DEFAULT, signal.SIGTERM,
-               lambda *_: Gtk.main_quit() or False)
-    add_signal(GLib.PRIORITY_DEFAULT, signal.SIGINT,
-               lambda *_: Gtk.main_quit() or False)
+    add_signal(GLib.PRIORITY_DEFAULT, signal.SIGTERM, lambda *_: Gtk.main_quit() or False)
+    add_signal(GLib.PRIORITY_DEFAULT, signal.SIGINT, lambda *_: Gtk.main_quit() or False)
     win.show()
     theo_doi_fullscreen(win, GLib)
     Gtk.main()

@@ -8,7 +8,6 @@ import os
 import re
 import signal
 import subprocess
-import sys
 import threading
 import time
 from collections import OrderedDict
@@ -19,7 +18,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 gi.require_version("GtkLayerShell", "0.1")
-from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell, GdkPixbuf, Pango  # noqa: E402
+from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell, GdkPixbuf  # noqa: E402
 
 
 HERE = Path(os.path.realpath(__file__)).parent
@@ -71,13 +70,16 @@ def menu_tree(layout):
         return None
     ident, props, children = layout[0], unwrap(layout[1]), layout[2]
     props = {str(k): unwrap(v) for k, v in (props or {}).items()}
-    node = {"id": int(ident), "label": no_mnemonic(props.get("label", "")),
-            "type": str(props.get("type", "standard")),
-            "visible": props.get("visible", True) is not False,
-            "enabled": props.get("enabled", True) is not False,
-            "toggle_type": str(props.get("toggle-type", "")),
-            "toggle_state": int(props.get("toggle-state", 0) or 0),
-            "children": []}
+    node = {
+        "id": int(ident),
+        "label": no_mnemonic(props.get("label", "")),
+        "type": str(props.get("type", "standard")),
+        "visible": props.get("visible", True) is not False,
+        "enabled": props.get("enabled", True) is not False,
+        "toggle_type": str(props.get("toggle-type", "")),
+        "toggle_state": int(props.get("toggle-state", 0) or 0),
+        "children": [],
+    }
     for child in unwrap(children) or []:
         item = menu_tree(child)
         if item is not None:
@@ -96,8 +98,10 @@ def group_clients(clients):
         if cls == "kafka-cava":
             continue
         groups.setdefault(cls, []).append(client)
-    return [{"class": cls, "clients": sorted(items, key=lambda c: int(c.get("focusHistoryID", 10**9)))}
-            for cls, items in groups.items()]
+    return [
+        {"class": cls, "clients": sorted(items, key=lambda c: int(c.get("focusHistoryID", 10**9)))}
+        for cls, items in groups.items()
+    ]
 
 
 def hidden_clients(clients):
@@ -134,12 +138,12 @@ def desktop_name(cls):
 
 
 def dispatch_focus(address):
-    expr = f'hl.dsp.focus({{ window = {json.dumps("address:" + str(address))} }})'
+    expr = f"hl.dsp.focus({{ window = {json.dumps('address:' + str(address))} }})"
     run(["hyprctl", "dispatch", expr])
 
 
 def dispatch_close(address):
-    expr = f'hl.dsp.window.close({{ window = {json.dumps("address:" + str(address))} }})'
+    expr = f"hl.dsp.window.close({{ window = {json.dumps('address:' + str(address))} }})"
     run(["hyprctl", "dispatch", expr])
 
 
@@ -151,25 +155,33 @@ def no_warps_enabled():
 def focus_group(cls):
     """Focus cửa sổ kế tiếp của class, cùng quy tắc với dispatch_for()."""
     clients = hypr_json("clients", "-j") or []
-    members = [c for c in clients if c.get("class") == cls and c.get("mapped") is not False
-               and not str((c.get("workspace") or {}).get("name", "")).startswith("special:")]
+    members = [
+        c
+        for c in clients
+        if c.get("class") == cls
+        and c.get("mapped") is not False
+        and not str((c.get("workspace") or {}).get("name", "")).startswith("special:")
+    ]
     if not members:
         return
     active = hypr_json("activewindow", "-j") or {}
     members.sort(key=lambda c: str(c.get("address", "")))
     addresses = [str(c.get("address", "")) for c in members]
     current = str(active.get("address", ""))
-    target = members[(addresses.index(current) + 1) % len(members)] if current in addresses else min(
-        members, key=lambda c: int(c.get("focusHistoryID", 10**9)))
+    target = (
+        members[(addresses.index(current) + 1) % len(members)]
+        if current in addresses
+        else min(members, key=lambda c: int(c.get("focusHistoryID", 10**9)))
+    )
     if no_warps_enabled():
         dispatch_focus(target.get("address"))
         return
-    run(["hyprctl", "eval", 'hl.config({ cursor = { no_warps = true } })'])
+    run(["hyprctl", "eval", "hl.config({ cursor = { no_warps = true } })"])
     try:
         dispatch_focus(target.get("address"))
     finally:
         time.sleep(0.15)
-        run(["hyprctl", "eval", 'hl.config({ cursor = { no_warps = false } })'])
+        run(["hyprctl", "eval", "hl.config({ cursor = { no_warps = false } })"])
 
 
 def close_group(cls):
@@ -185,8 +197,10 @@ def show_hidden(address):
     workspace = ws.get("name") or ws.get("id")
     if workspace is None:
         return
-    expr = (f'hl.dsp.window.move({{ workspace = {json.dumps(workspace)}, '
-            f'window = {json.dumps("address:" + str(address))}, follow = false }})')
+    expr = (
+        f"hl.dsp.window.move({{ workspace = {json.dumps(workspace)}, "
+        f"window = {json.dumps('address:' + str(address))}, follow = false }})"
+    )
     run(["hyprctl", "dispatch", expr])
 
 
@@ -211,13 +225,18 @@ class Popup(Gtk.Window):
         self.apps = None
         self.provider = Gtk.CssProvider()
         self.provider.load_from_data(self.css().encode())
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), self.provider,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), self.provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
         import kafka_theme as kt
-        self.pixel = kt.apply(kt.panel(".panel", "8px", titled=True) + f"""
+
+        self.pixel = kt.apply(
+            kt.panel(".panel", "8px", titled=True)
+            + f"""
             .panel {{ {kt.CARD_FLAT} }} .row {{ {kt.CARD} }} .row:hover {{ {kt.CARD_HOVER} }}
             .back {{ {kt.CARD_ON} }} .muted {{ color: {kt.FAINT}; }}
-        """)
+        """
+        )
         self.kt = kt
         self.set_decorated(False)
         self.set_app_paintable(True)
@@ -227,8 +246,12 @@ class Popup(Gtk.Window):
         GtkLayerShell.init_for_window(self)
         GtkLayerShell.set_namespace(self, "kafka-dock-more")
         GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
-        for edge in (GtkLayerShell.Edge.TOP, GtkLayerShell.Edge.BOTTOM,
-                     GtkLayerShell.Edge.LEFT, GtkLayerShell.Edge.RIGHT):
+        for edge in (
+            GtkLayerShell.Edge.TOP,
+            GtkLayerShell.Edge.BOTTOM,
+            GtkLayerShell.Edge.LEFT,
+            GtkLayerShell.Edge.RIGHT,
+        ):
             GtkLayerShell.set_anchor(self, edge, True)
         GtkLayerShell.set_exclusive_zone(self, -1)
         GtkLayerShell.set_keyboard_mode(self, GtkLayerShell.KeyboardMode.EXCLUSIVE)
@@ -296,7 +319,7 @@ class Popup(Gtk.Window):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_max_content_height(700)
-        scroll.set_propagate_natural_height(True)     # cao theo nội dung, tối đa 700 rồi cuộn
+        scroll.set_propagate_natural_height(True)  # cao theo nội dung, tối đa 700 rồi cuộn
         scroll.add(self.content)
         outer.pack_start(scroll, True, True, 0)
         if self.menu_key:
@@ -335,6 +358,7 @@ class Popup(Gtk.Window):
             elif e.button == 3 and right and right_text == "⋮":
                 right()
             return True
+
         ev.connect("button-press-event", on_press)
         ev.connect("enter-notify-event", lambda *_: line.set_state_flags(Gtk.StateFlags.PRELIGHT, False))
         ev.connect("leave-notify-event", lambda *_: line.unset_state_flags(Gtk.StateFlags.PRELIGHT))
@@ -364,8 +388,13 @@ class Popup(Gtk.Window):
                     pass
             ws = (c.get("workspace") or {}).get("id", "?")
             title = desktop_name(cls) + (f" ×{len(items)}" if len(items) > 1 else "")
-            self.row(pix, title, f"Khu {roman(ws)}", lambda name=cls: (focus_group(name), GLib.idle_add(Gtk.main_quit)),
-                     lambda name=cls: (close_group(name), GLib.idle_add(Gtk.main_quit)))
+            self.row(
+                pix,
+                title,
+                f"Khu {roman(ws)}",
+                lambda name=cls: (focus_group(name), GLib.idle_add(Gtk.main_quit)),
+                lambda name=cls: (close_group(name), GLib.idle_add(Gtk.main_quit)),
+            )
 
         self.section_title("Chạy ngầm")
         tray = tray_items()
@@ -380,16 +409,25 @@ class Popup(Gtk.Window):
                 pix = GdkPixbuf.Pixbuf.new_from_file_at_scale(item.get("icon_png", ""), 28, 28, True)
             except Exception:
                 pass
-            self.row(pix, item.get("title") or item.get("id") or key, "", 
-                     lambda k=key: (run([str(HERE / "sni-tray.py"), "activate", k]), GLib.idle_add(Gtk.main_quit)),
-                     lambda k=key: self.show_item_menu(k), "⋮")
+            self.row(
+                pix,
+                item.get("title") or item.get("id") or key,
+                "",
+                lambda k=key: (run([str(HERE / "sni-tray.py"), "activate", k]), GLib.idle_add(Gtk.main_quit)),
+                lambda k=key: self.show_item_menu(k),
+                "⋮",
+            )
 
         self.section_title("Đang ẩn")
         if not hidden:
             self.add_label(self.content, "Không có", "muted")
         for c in hidden:
-            self.row(None, c.get("title") or c.get("class") or "?", "Đang ẩn — bấm để hiện",
-                     lambda a=c.get("address"): (show_hidden(a), GLib.idle_add(Gtk.main_quit)))
+            self.row(
+                None,
+                c.get("title") or c.get("class") or "?",
+                "Đang ẩn — bấm để hiện",
+                lambda a=c.get("address"): (show_hidden(a), GLib.idle_add(Gtk.main_quit)),  # noqa: B008 (gắn giá trị theo vòng lặp, cố ý)
+            )
 
     def show_item_menu(self, key):
         self.menu_key = key
@@ -406,8 +444,15 @@ class Popup(Gtk.Window):
             if item.get("key") == key:
                 bus, path = item.get("bus"), item.get("path")
                 try:
-                    return Gio.DBusProxy.new_for_bus_sync(Gio.BusType.SESSION, Gio.DBusProxyFlags.NONE,
-                        None, bus, item.get("menu") or path, "com.canonical.dbusmenu", None)
+                    return Gio.DBusProxy.new_for_bus_sync(
+                        Gio.BusType.SESSION,
+                        Gio.DBusProxyFlags.NONE,
+                        None,
+                        bus,
+                        item.get("menu") or path,
+                        "com.canonical.dbusmenu",
+                        None,
+                    )
                 except Exception:
                     return None
         return None
@@ -415,9 +460,15 @@ class Popup(Gtk.Window):
     def build_menu(self, key_or_node):
         self.clear_content()
         back = Gtk.Button(label="‹ Quay lại")
-        back.connect("clicked", lambda *_: (self.menu_stack.pop() if self.menu_stack else None,
-                                              (self.clear_content(), self.build_sections(), self.show_all()) if not self.menu_stack
-                                              else self.build_menu(self.menu_stack[-1])))
+        back.connect(
+            "clicked",
+            lambda *_: (
+                self.menu_stack.pop() if self.menu_stack else None,
+                (self.clear_content(), self.build_sections(), self.show_all())
+                if not self.menu_stack
+                else self.build_menu(self.menu_stack[-1]),
+            ),
+        )
         self.content.pack_start(back, False, False, 0)
         key = self.menu_key
         node_id = 0 if not isinstance(key_or_node, dict) else key_or_node["id"]
@@ -431,8 +482,10 @@ class Popup(Gtk.Window):
                 proxy.call_sync("AboutToShow", GLib.Variant("(i)", (node_id,)), Gio.DBusCallFlags.NONE, 1000, None)
             except Exception:
                 pass
-            result = proxy.call_sync("GetLayout", GLib.Variant("(iias)", (node_id, -1, [])), Gio.DBusCallFlags.NONE, 3000, None)
-            root = menu_tree(result.unpack()[1])   # GetLayout trả (u revision, (ia{sv}av) layout)
+            result = proxy.call_sync(
+                "GetLayout", GLib.Variant("(iias)", (node_id, -1, [])), Gio.DBusCallFlags.NONE, 3000, None
+            )
+            root = menu_tree(result.unpack()[1])  # GetLayout trả (u revision, (ia{sv}av) layout)
         except Exception:
             root = None
         for item in (root or {}).get("children", []):
@@ -458,11 +511,17 @@ class Popup(Gtk.Window):
     def menu_click(self, proxy, ident):
         def click():
             try:
-                proxy.call_sync("Event", GLib.Variant("(isvu)", (ident, "clicked", GLib.Variant("i", 0), int(time.time()))),
-                                Gio.DBusCallFlags.NONE, 2000, None)
+                proxy.call_sync(
+                    "Event",
+                    GLib.Variant("(isvu)", (ident, "clicked", GLib.Variant("i", 0), int(time.time()))),
+                    Gio.DBusCallFlags.NONE,
+                    2000,
+                    None,
+                )
             except Exception:
                 pass
             GLib.idle_add(Gtk.main_quit)
+
         daemon_action(click)
 
 
@@ -493,6 +552,7 @@ def acquire_singleton():
                 PIDFILE.unlink()
         except OSError:
             pass
+
     atexit.register(_cleanup)
     return True
 
@@ -502,8 +562,12 @@ def selftest():
     assert roman(1) == "I" and roman(10) == "X"
     sample = GLib.Variant("(ia{sv}av)", (0, {"label": GLib.Variant("s", "_File")}, []))
     assert menu_tree(sample)["label"] == "File"
-    grouped = group_clients([{"class": "a", "workspace": {"id": 1}, "focusHistoryID": 2},
-                             {"class": "a", "workspace": {"id": 1}, "focusHistoryID": 1}])
+    grouped = group_clients(
+        [
+            {"class": "a", "workspace": {"id": 1}, "focusHistoryID": 2},
+            {"class": "a", "workspace": {"id": 1}, "focusHistoryID": 1},
+        ]
+    )
     assert len(grouped) == 1 and len(grouped[0]["clients"]) == 2
     assert hidden_clients([{"workspace": {"name": "special:hidden"}}])
     print("dock-more.py selftest OK")

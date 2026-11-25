@@ -49,20 +49,26 @@ IMG_EXT = (".jpg", ".jpeg", ".png", ".webp")
 RELOAD = {
     "waybar-css": ("Waybar nạp lại CSS", "killall -SIGUSR2 waybar"),
     "waybar": ("Khởi động lại Waybar", "killall waybar; sleep 0.6; hyprctl dispatch \"hl.dsp.exec_cmd('waybar')\""),
-    "walker": ("Khởi động lại walker",
-               "pkill -x walker; sleep 0.4; hyprctl dispatch \"hl.dsp.exec_cmd('walker --gapplication-service')\""),
+    "walker": (
+        "Khởi động lại walker",
+        "pkill -x walker; sleep 0.4; hyprctl dispatch \"hl.dsp.exec_cmd('walker --gapplication-service')\"",
+    ),
     "dunst": ("Nạp lại dunst", "dunstctl reload"),
     "hyprshell": ("Nạp lại hyprshell", "hyprshell socat '\"Reload\"'"),
     "kitty": ("Nạp lại kitty", "pkill -USR1 -x kitty"),
     "hyprland": ("Nạp lại Hyprland", "hyprctl reload"),
-    "popups": ("Khởi động lại popup chạy nền",
-               f"kill $(cat $XDG_RUNTIME_DIR/kafka-tools-popup.pid 2>/dev/null) 2>/dev/null; "
-               f"sleep 0.3; hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/tools-popup.py')\""),
+    "popups": (
+        "Khởi động lại popup chạy nền",
+        f"kill $(cat $XDG_RUNTIME_DIR/kafka-tools-popup.pid 2>/dev/null) 2>/dev/null; "
+        f"sleep 0.3; hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/tools-popup.py')\"",
+    ),
     "dock-pins": ("Vẽ lại app ghim trên dock", f"{SCRIPTS}/dock-pins.py render"),
     # daemon tự nạp khi alerts.json đổi; nút này để chắc chắn — chưa chạy thì bật lên
-    "alerts": ("Nạp lại cảnh báo",
-               f"{SCRIPTS}/alert-watch.py --reload 2>/dev/null || "
-               f"hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/alert-watch.py daemon')\""),
+    "alerts": (
+        "Nạp lại cảnh báo",
+        f"{SCRIPTS}/alert-watch.py --reload 2>/dev/null || "
+        f"hyprctl dispatch \"hl.dsp.exec_cmd('{SCRIPTS}/alert-watch.py daemon')\"",
+    ),
     None: ("Không cần nạp lại (mở lại là thấy)", ""),
 }
 
@@ -101,12 +107,13 @@ FILES = [
     ("Hyprland", "Phím tắt riêng (keybinds.lua)", "hypr/keybinds.lua", "lua", "hyprland", "lua"),
 ]
 
-COLOR_FILES = [("Bản phẳng — waybar/style.css", "waybar/style.css"),
-               ("Bản pixel — waybar/theme-pixel.css", "waybar/theme-pixel.css")]
+COLOR_FILES = [
+    ("Bản phẳng — waybar/style.css", "waybar/style.css"),
+    ("Bản pixel — waybar/theme-pixel.css", "waybar/theme-pixel.css"),
+]
 PINS_FILE = os.path.join(REPO, "waybar", "dock-pins.json")
-MAX_PINS = 6       # = số ô ngăn FAV trên dock (dock-pins.py MAX_SLOTS)
-DEFAULT_PINS = ["chromium.desktop", "kitty.desktop", "thunar.desktop", "code-oss.desktop",
-                "org.xfce.mousepad.desktop"]
+MAX_PINS = 6  # = số ô ngăn FAV trên dock (dock-pins.py MAX_SLOTS)
+DEFAULT_PINS = ["chromium.desktop", "kitty.desktop", "thunar.desktop", "code-oss.desktop", "org.xfce.mousepad.desktop"]
 
 
 def load_pins(path=PINS_FILE):
@@ -143,11 +150,11 @@ def save_pins(pins, path=PINS_FILE):
 
 # ------------------------------------------------------------------ ngưỡng cảnh báo (hypr/alerts.json)
 DEFAULT_ALERTS = {
-    "battery":     {"enabled": True, "levels": [80, 50, 30, 15], "critical": 15},
-    "devices":     {"enabled": True, "levels": [30, 15], "critical": 10},
+    "battery": {"enabled": True, "levels": [80, 50, 30, 15], "critical": 15},
+    "devices": {"enabled": True, "levels": [30, 15], "critical": 10},
     "wifi_signal": {"enabled": True, "levels": [40, 20]},
-    "internet":    {"enabled": True, "grace_seconds": 20},
-    "popup":       {"enabled": True, "sound": True, "volume": 80, "seconds": 10},
+    "internet": {"enabled": True, "grace_seconds": 20},
+    "popup": {"enabled": True, "sound": True, "volume": 80, "seconds": 10},
 }
 
 
@@ -207,11 +214,11 @@ def load_alerts(path=ALERTS_FILE):
                 cfg[field] = got
             else:
                 cfg[field] = fallback
-        for field, got in val.items():                  # giữ khóa lạ (vd critical của Wi-Fi)
+        for field, got in val.items():  # giữ khóa lạ (vd critical của Wi-Fi)
             if field not in cfg:
                 cfg[field] = got
         out[key] = cfg
-    for key, val in data.items():                       # giữ cả nhóm lạ để lần lưu sau không mất
+    for key, val in data.items():  # giữ cả nhóm lạ để lần lưu sau không mất
         if key not in out:
             out[key] = val
     return out
@@ -288,7 +295,7 @@ def strip_jsonc(text):
             continue
         elif text.startswith("/*", i):
             j = text.find("*/", i + 2)
-            out.append("\n" * text.count("\n", i, j if j >= 0 else n))   # giữ số dòng để báo lỗi đúng dòng
+            out.append("\n" * text.count("\n", i, j if j >= 0 else n))  # giữ số dòng để báo lỗi đúng dòng
             i = (j + 2) if j >= 0 else n
             continue
         else:
@@ -304,7 +311,7 @@ def check_text(kind, text, path):
             json.loads(strip_jsonc(text))
         except json.JSONDecodeError as e:
             return f"JSON lỗi ở dòng {e.lineno}, cột {e.colno}: {e.msg}"
-    elif kind == "alerts":                  # alert-watch.py đọc JSON CHUẨN: lỗi là nó lặng lẽ về mặc định
+    elif kind == "alerts":  # alert-watch.py đọc JSON CHUẨN: lỗi là nó lặng lẽ về mặc định
         try:
             data = json.loads(text)
         except json.JSONDecodeError as e:
@@ -337,27 +344,38 @@ def check_text(kind, text, path):
             return f"Python lỗi ở dòng {e.lineno}: {e.msg}"
     elif kind == "css":
         import gi
+
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk
+
         errs = []
         prov = Gtk.CssProvider()
-        prov.connect("parsing-error", lambda _p, sec, err: errs.append(
-            f"dòng {sec.get_start_line() + 1}: {err.message}"))
+        prov.connect(
+            "parsing-error", lambda _p, sec, err: errs.append(f"dòng {sec.get_start_line() + 1}: {err.message}")
+        )
         try:
             prov.load_from_data(text.encode())
         except Exception:
             pass
         # Waybar/GTK3 bỏ qua thuộc tính lạ nhưng lỗi cú pháp thì bỏ cả khối → chỉ chặn lỗi CÚ PHÁP, báo cảnh báo còn lại
         # @import/url() tương đối bị tìm theo thư mục hiện tại khi nạp từ bộ nhớ → bỏ qua lỗi mở file
-        hard = [e for e in errs if "No property named" not in e and "not a valid" not in e.lower()
-                and "Failed to import" not in e and "Error opening file" not in e]
+        hard = [
+            e
+            for e in errs
+            if "No property named" not in e
+            and "not a valid" not in e.lower()
+            and "Failed to import" not in e
+            and "Error opening file" not in e
+        ]
         if hard:
             return "CSS lỗi: " + "; ".join(hard[:4])
     elif kind == "lua":
         tmpdir = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "kafka-studio-check")
         os.makedirs(tmpdir, exist_ok=True)
         if path.endswith("hyprland.lua"):
-            tmp = os.path.join(os.path.dirname(path), ".studio-check-hyprland.lua")   # cùng thư mục: dofile/require tương đối vẫn đúng
+            tmp = os.path.join(
+                os.path.dirname(path), ".studio-check-hyprland.lua"
+            )  # cùng thư mục: dofile/require tương đối vẫn đúng
             with open(tmp, "w") as f:
                 f.write(text)
             rc, out = sh(f"Hyprland --verify-config -c '{tmp}'", 30)
@@ -415,25 +433,43 @@ def slug(name):
 # ------------------------------------------------------------------ giao diện
 def run_app():
     import gi
+
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     gi.require_version("GdkPixbuf", "2.0")
     gi.require_version("GtkSource", "4")
     from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, GtkSource, Pango
-    GLib.set_prgname("kafka.studio")        # app_id Wayland = prgname → luật cửa sổ nổi kafka\.studio trong hyprland.lua
+
+    GLib.set_prgname("kafka.studio")  # app_id Wayland = prgname → luật cửa sổ nổi kafka\.studio trong hyprland.lua
     GLib.set_application_name("Kafka Studio")
 
     pixel = ui_theme() == "pixel"
     if pixel:
-        BG, PANEL, SUNK, EDGE, HI, TEXT, DIM, FAINT = ("#221a2b", "#33293f", "#1a1422", "#140e1a", "#56466a",
-                                                      "#fbf7fd", "#d4cade", "#9a8bab")
+        BG, PANEL, SUNK, EDGE, HI, TEXT, DIM, FAINT = (
+            "#221a2b",
+            "#33293f",
+            "#1a1422",
+            "#140e1a",
+            "#56466a",
+            "#fbf7fd",
+            "#d4cade",
+            "#9a8bab",
+        )
         ACC, ACC_HI, GOLD, RAD = "#c94785", "#f08cbb", "#ffe08a", "0"
         BEVEL = f"box-shadow: inset 0 0 0 2px {EDGE}, inset 2px 2px 0 {HI}, inset -2px -2px 0 #1d1626;"
         SUNKEN = f"box-shadow: inset 0 0 0 2px {EDGE}, inset 2px 2px 0 #0f0a14;"
         TITLE_FONT = '"Kafka Pixel", "FiraCode Nerd Font"'
     else:
-        BG, PANEL, SUNK, EDGE, HI, TEXT, DIM, FAINT = ("#231c2b", "#2c2434", "#1b1522", "#3a3045", "#4a3c59",
-                                                      "#fbf7fd", "#d4cade", "#a091b1")
+        BG, PANEL, SUNK, EDGE, HI, TEXT, DIM, FAINT = (
+            "#231c2b",
+            "#2c2434",
+            "#1b1522",
+            "#3a3045",
+            "#4a3c59",
+            "#fbf7fd",
+            "#d4cade",
+            "#a091b1",
+        )
         ACC, ACC_HI, GOLD, RAD = "#c94785", "#e0559a", "#ffe08a", "10px"
         BEVEL = "box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);"
         SUNKEN = "box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);"
@@ -442,15 +478,15 @@ def run_app():
     CSS = f"""
 * {{ font-family: "FiraCode Nerd Font"; font-size: 10.5pt; color: {TEXT}; }}
 window {{ background-color: {BG}; }}
-.titlebar-box {{ background-color: {ACC}; padding: 6px 12px; {'box-shadow: inset 0 2px 0 #f08cbb, inset 0 -2px 0 #962f62;' if pixel else ''} }}
+.titlebar-box {{ background-color: {ACC}; padding: 6px 12px; {"box-shadow: inset 0 2px 0 #f08cbb, inset 0 -2px 0 #962f62;" if pixel else ""} }}
 .titlebar-box label {{ color: #ffffff; }}
-.app-title {{ font-family: {TITLE_FONT}; font-size: {'14px' if pixel else '13pt'}; font-weight: 800; }}
+.app-title {{ font-family: {TITLE_FONT}; font-size: {"14px" if pixel else "13pt"}; font-weight: 800; }}
 .sidebar {{ background-color: {SUNK}; padding: 8px; }}
 .side-btn {{ border-radius: {RAD}; padding: 10px 12px; background-image: none; background-color: transparent;
              border: none; box-shadow: none; }}
 .side-btn label {{ font-weight: 700; }}
 .side-btn:hover {{ background-color: {PANEL}; }}
-.side-btn.on {{ background-color: {PANEL}; box-shadow: inset 4px 0 0 {ACC_HI}{', inset 0 0 0 2px ' + EDGE if pixel else ''}; }}
+.side-btn.on {{ background-color: {PANEL}; box-shadow: inset 4px 0 0 {ACC_HI}{", inset 0 0 0 2px " + EDGE if pixel else ""}; }}
 .side-btn.on label {{ color: {ACC_HI}; }}
 .page {{ padding: 14px; }}
 .h1 {{ font-size: 13pt; font-weight: 800; }}
@@ -494,8 +530,9 @@ scrolledwindow {{ background-color: transparent; }}
             self.set_default_size(1180, 740)
             prov = Gtk.CssProvider()
             prov.load_from_data(CSS.encode())
-            Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
-                                                     Gtk.STYLE_PROVIDER_PRIORITY_USER + 2)
+            Gtk.StyleContext.add_provider_for_screen(
+                Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_USER + 2
+            )
             self.cur_file = None
             self.dirty = False
             self.loading = False
@@ -521,12 +558,14 @@ scrolledwindow {{ background-color: transparent; }}
             self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
             body.pack_start(self.stack, True, True, 0)
             self.side_btns = {}
-            for key, icon, name, build in (("wall", "󰸉", "Hình nền", self.page_wall),
-                                           ("edit", "󰈮", "Sửa file", self.page_edit),
-                                           ("dock", "󱂬", "Dock", self.page_dock),
-                                           ("alert", "󰀦", "Cảnh báo", self.page_alert),
-                                           ("color", "󰏘", "Màu sắc", self.page_color),
-                                           ("look", "󰔎", "Giao diện", self.page_look)):
+            for key, icon, name, build in (
+                ("wall", "󰸉", "Hình nền", self.page_wall),
+                ("edit", "󰈮", "Sửa file", self.page_edit),
+                ("dock", "󱂬", "Dock", self.page_dock),
+                ("alert", "󰀦", "Cảnh báo", self.page_alert),
+                ("color", "󰏘", "Màu sắc", self.page_color),
+                ("look", "󰔎", "Giao diện", self.page_look),
+            ):
                 b = Gtk.Button()
                 lab = Gtk.Label(label=f"{icon}   {name}", xalign=0)
                 b.add(lab)
@@ -535,7 +574,9 @@ scrolledwindow {{ background-color: transparent; }}
                 side.pack_start(b, False, False, 0)
                 self.side_btns[key] = b
                 self.stack.add_named(build(), key)
-            hint = Gtk.Label(label="Mọi lần lưu đều sao lưu\nbản cũ trước.\nCtrl+S lưu · Ctrl+F tìm\nEsc đóng", xalign=0)
+            hint = Gtk.Label(
+                label="Mọi lần lưu đều sao lưu\nbản cũ trước.\nCtrl+S lưu · Ctrl+F tìm\nEsc đóng", xalign=0
+            )
             hint.get_style_context().add_class("hint")
             side.pack_end(hint, False, False, 6)
             self.connect("key-press-event", self.on_key)
@@ -544,7 +585,7 @@ scrolledwindow {{ background-color: transparent; }}
             self.search_bar.hide()
             page = sys.argv[sys.argv.index("--page") + 1] if "--page" in sys.argv[:-1] else "wall"
             self.show(page if page in self.side_btns else "wall")
-            if "--open" in sys.argv[:-1]:                  # studio.py --open waybar/style.css
+            if "--open" in sys.argv[:-1]:  # studio.py --open waybar/style.css
                 rel = sys.argv[sys.argv.index("--open") + 1]
                 for r in self.file_list.get_children():
                     if getattr(r, "spec", (None, None, None))[2] == rel:
@@ -564,10 +605,11 @@ scrolledwindow {{ background-color: transparent; }}
             def work():
                 try:
                     res = fn()
-                except Exception as e:      # noqa: BLE001
+                except Exception as e:  # noqa: BLE001
                     res = e
                 if done:
                     GLib.idle_add(done, res)
+
             threading.Thread(target=work, daemon=True).start()
 
         def say(self, label, text, err=False):
@@ -576,8 +618,13 @@ scrolledwindow {{ background-color: transparent; }}
             (ctx.add_class if err else ctx.remove_class)("err")
 
         def confirm(self, text, secondary=""):
-            d = Gtk.MessageDialog(transient_for=self, modal=True, message_type=Gtk.MessageType.QUESTION,
-                                  buttons=Gtk.ButtonsType.OK_CANCEL, text=text)
+            d = Gtk.MessageDialog(
+                transient_for=self,
+                modal=True,
+                message_type=Gtk.MessageType.QUESTION,
+                buttons=Gtk.ButtonsType.OK_CANCEL,
+                text=text,
+            )
             if secondary:
                 d.format_secondary_text(secondary)
             ok = d.run() == Gtk.ResponseType.OK
@@ -622,8 +669,9 @@ scrolledwindow {{ background-color: transparent; }}
             h = Gtk.Label(label="Hình nền", xalign=0)
             h.get_style_context().add_class("h1")
             head.pack_start(h, False, False, 0)
-            self.wall_status = Gtk.Label(label="Bấm một ảnh để đặt ngay. Viền hồng = đang dùng, ★ = mặc định khi đăng nhập.",
-                                         xalign=0)
+            self.wall_status = Gtk.Label(
+                label="Bấm một ảnh để đặt ngay. Viền hồng = đang dùng, ★ = mặc định khi đăng nhập.", xalign=0
+            )
             self.wall_status.get_style_context().add_class("status")
             self.wall_status.set_line_wrap(True)
             self.wall_status.set_max_width_chars(40)
@@ -681,7 +729,7 @@ scrolledwindow {{ background-color: transparent; }}
             for p in wallpapers():
                 try:
                     pb = GdkPixbuf.Pixbuf.new_from_file(self.thumb(p))
-                except Exception:   # noqa: BLE001 — ảnh hỏng: bỏ qua
+                except Exception:  # noqa: BLE001 — ảnh hỏng: bỏ qua
                     continue
                 ch = Gtk.FlowBoxChild()
                 ch.path = p
@@ -703,11 +751,15 @@ scrolledwindow {{ background-color: transparent; }}
                 if rp == dft:
                     lab.get_style_context().add_class("tag")
                 v.pack_start(lab, False, False, 0)
-                ch.set_tooltip_text(f"{name} — {w}×{h}" + ("  (ảnh dọc: sẽ bị cắt, nên dùng Thêm ảnh để ghép thẻ)" if h >= w else ""))
+                ch.set_tooltip_text(
+                    f"{name} — {w}×{h}" + ("  (ảnh dọc: sẽ bị cắt, nên dùng Thêm ảnh để ghép thẻ)" if h >= w else "")
+                )
                 ch.add(v)
                 self.flow.add(ch)
             self.flow.show_all()
-            self.wall_sel_lbl.set_text(f"Đang dùng: {os.path.basename(cur) or '?'}  ·  Mặc định khi đăng nhập: {os.path.basename(dft)}")
+            self.wall_sel_lbl.set_text(
+                f"Đang dùng: {os.path.basename(cur) or '?'}  ·  Mặc định khi đăng nhập: {os.path.basename(dft)}"
+            )
             return False
 
         def apply_wall(self, path):
@@ -716,10 +768,14 @@ scrolledwindow {{ background-color: transparent; }}
             def done(res):
                 rc, out = res
                 if rc == 0:
-                    self.say(self.wall_status, f"Đã đặt {os.path.basename(path)}. Muốn giữ sau khi đăng nhập lại: bấm ★ Đặt làm mặc định.")
+                    self.say(
+                        self.wall_status,
+                        f"Đã đặt {os.path.basename(path)}. Muốn giữ sau khi đăng nhập lại: bấm ★ Đặt làm mặc định.",
+                    )
                 else:
                     self.say(self.wall_status, f"Lỗi: {out[-200:]}", True)
                 self.fill_walls()
+
             self.bg(lambda: sh(f"'{SCRIPTS}/wallpaper-cycle.sh' set '{path}'"), done)
 
         def set_wall_default(self):
@@ -742,8 +798,9 @@ scrolledwindow {{ background-color: transparent; }}
             self.fill_walls()
 
         def add_wall(self):
-            d = Gtk.FileChooserDialog(title="Chọn ảnh làm hình nền", transient_for=self,
-                                      action=Gtk.FileChooserAction.OPEN)
+            d = Gtk.FileChooserDialog(
+                title="Chọn ảnh làm hình nền", transient_for=self, action=Gtk.FileChooserAction.OPEN
+            )
             d.add_buttons("Huỷ", Gtk.ResponseType.CANCEL, "Thêm", Gtk.ResponseType.OK)
             f = Gtk.FileFilter()
             f.set_name("Ảnh")
@@ -751,14 +808,18 @@ scrolledwindow {{ background-color: transparent; }}
                 f.add_pattern("*" + ext)
                 f.add_pattern("*" + ext.upper())
             d.add_filter(f)
-            d.set_current_folder(os.path.expanduser("~/Pictures") if os.path.isdir(os.path.expanduser("~/Pictures")) else os.path.expanduser("~"))
+            d.set_current_folder(
+                os.path.expanduser("~/Pictures")
+                if os.path.isdir(os.path.expanduser("~/Pictures"))
+                else os.path.expanduser("~")
+            )
             src = d.get_filename() if d.run() == Gtk.ResponseType.OK else None
             d.destroy()
             if not src:
                 return
             try:
                 _fmt, w, h = GdkPixbuf.Pixbuf.get_file_info(src)
-            except Exception:   # noqa: BLE001
+            except Exception:  # noqa: BLE001
                 self.say(self.wall_status, "Không đọc được ảnh.", True)
                 return
             name = slug(src)
@@ -774,10 +835,12 @@ scrolledwindow {{ background-color: transparent; }}
             self.say(self.wall_status, "Ảnh dọc: đang ghép thành thẻ kính mờ 1920×1080 …")
             tmp = os.path.join(os.environ.get("XDG_RUNTIME_DIR", "/tmp"), "kafka-studio-wall")
             os.makedirs(tmp, exist_ok=True)
-            cmd = (f"magick '{src}' -resize 1920x1080^ -gravity center -extent 1920x1080 -gaussian-blur 0x28 "
-                   f"-fill '#140e1c' -colorize 45% '{tmp}/bg.jpg' && "
-                   f"magick '{src}' -resize x1000 -bordercolor '#b8326a' -border 3x3 '{tmp}/fg.jpg' && "
-                   f"magick '{tmp}/bg.jpg' '{tmp}/fg.jpg' -gravity center -composite '{dst}'; rc=$?; rm -f '{tmp}'/*.jpg; exit $rc")
+            cmd = (
+                f"magick '{src}' -resize 1920x1080^ -gravity center -extent 1920x1080 -gaussian-blur 0x28 "
+                f"-fill '#140e1c' -colorize 45% '{tmp}/bg.jpg' && "
+                f"magick '{src}' -resize x1000 -bordercolor '#b8326a' -border 3x3 '{tmp}/fg.jpg' && "
+                f"magick '{tmp}/bg.jpg' '{tmp}/fg.jpg' -gravity center -composite '{dst}'; rc=$?; rm -f '{tmp}'/*.jpg; exit $rc"
+            )
 
             def done(res):
                 rc, out = res
@@ -787,6 +850,7 @@ scrolledwindow {{ background-color: transparent; }}
                     self.apply_wall(dst)
                 else:
                     self.say(self.wall_status, f"Ghép ảnh lỗi: {out[-200:]}", True)
+
             self.bg(lambda: sh(cmd, 120), done)
 
         # ================= SỬA FILE =================
@@ -835,7 +899,9 @@ scrolledwindow {{ background-color: transparent; }}
             self.b_git = self.btn("󰊢  Bản gốc git", self.git_restore_file, "danger")
             self.b_color = self.btn("󰏘  Chèn màu", self.insert_color)
             self.b_reload = self.btn("󰑐  Nạp lại", self.reload_file)
-            self.b_ext = self.btn("󰏫  Mở Mousepad", lambda: self.cur_file and sh(f"setsid -f mousepad '{self.cur_file[0]}'"))
+            self.b_ext = self.btn(
+                "󰏫  Mở Mousepad", lambda: self.cur_file and sh(f"setsid -f mousepad '{self.cur_file[0]}'")
+            )
             for b in (self.b_save, self.b_undo, self.b_git, self.b_color, self.b_reload, self.b_ext):
                 tools.pack_start(b, False, False, 0)
                 b.set_sensitive(False)
@@ -913,8 +979,10 @@ scrolledwindow {{ background-color: transparent; }}
             self.b_undo.set_sensitive(bool(backups_of(path)))
             self.b_reload.set_sensitive(bool(RELOAD[spec[4]][1]))
             nb = len(backups_of(path))
-            self.say(self.edit_status, f"{spec[2]} · lưu xong: {RELOAD[spec[4]][0].lower()}"
-                                       + (f" · {nb} bản sao lưu" if nb else ""))
+            self.say(
+                self.edit_status,
+                f"{spec[2]} · lưu xong: {RELOAD[spec[4]][0].lower()}" + (f" · {nb} bản sao lưu" if nb else ""),
+            )
 
         def update_title(self):
             if self.cur_file:
@@ -967,6 +1035,7 @@ scrolledwindow {{ background-color: transparent; }}
                 else:
                     msg += f" · {RELOAD[spec[4]][0]}"
                 self.say(self.edit_status, msg, rc != 0)
+
             self.bg(work, done)
 
         def undo_file(self):
@@ -979,8 +1048,10 @@ scrolledwindow {{ background-color: transparent; }}
                 return
             last = bks[-1]
             stamp = os.path.basename(last)[:15]
-            if not self.confirm(f"Lấy lại bản lưu lúc {stamp[9:11]}:{stamp[11:13]}:{stamp[13:15]} ngày {stamp[6:8]}/{stamp[4:6]}?",
-                                "Bản hiện tại bị thay bằng bản sao lưu đó (rồi bản sao lưu được xoá khỏi danh sách)."):
+            if not self.confirm(
+                f"Lấy lại bản lưu lúc {stamp[9:11]}:{stamp[11:13]}:{stamp[13:15]} ngày {stamp[6:8]}/{stamp[4:6]}?",
+                "Bản hiện tại bị thay bằng bản sao lưu đó (rồi bản sao lưu được xoá khỏi danh sách).",
+            ):
                 return
             shutil.copy2(last, path)
             os.remove(last)
@@ -996,13 +1067,18 @@ scrolledwindow {{ background-color: transparent; }}
             path, spec = self.cur_file
             rc, out = sh(f"git -C '{REPO}' ls-files --error-unmatch '{spec[2]}'")
             if rc != 0:
-                self.say(self.edit_status, "File này chưa từng được commit (hoặc bị gitignore) — không có bản gốc git.", True)
+                self.say(
+                    self.edit_status, "File này chưa từng được commit (hoặc bị gitignore) — không có bản gốc git.", True
+                )
                 return
-            if not self.confirm("Lấy lại bản đã commit trong git?",
-                                "Bản hiện tại sẽ được sao lưu trước (Hoàn tác lần lưu để lấy lại)."):
+            if not self.confirm(
+                "Lấy lại bản đã commit trong git?", "Bản hiện tại sẽ được sao lưu trước (Hoàn tác lần lưu để lấy lại)."
+            ):
                 return
             backup(path)
-            rc, out = sh(f"git -C '{REPO}' show HEAD:'{spec[2]}' > '{path}.studio-tmp' && mv '{path}.studio-tmp' '{path}'")
+            rc, out = sh(
+                f"git -C '{REPO}' show HEAD:'{spec[2]}' > '{path}.studio-tmp' && mv '{path}.studio-tmp' '{path}'"
+            )
             if rc != 0:
                 self.say(self.edit_status, f"Lỗi git: {out}", True)
                 return
@@ -1016,7 +1092,12 @@ scrolledwindow {{ background-color: transparent; }}
             if not self.cur_file:
                 return
             name, cmd = RELOAD[self.cur_file[1][4]]
-            self.bg(lambda: sh(cmd), lambda res: self.say(self.edit_status, f"{name}: " + ("xong" if res[0] == 0 else res[1][-200:]), res[0] != 0))
+            self.bg(
+                lambda: sh(cmd),
+                lambda res: self.say(
+                    self.edit_status, f"{name}: " + ("xong" if res[0] == 0 else res[1][-200:]), res[0] != 0
+                ),
+            )
 
         def insert_color(self):
             d = Gtk.ColorChooserDialog(title="Chèn màu", transient_for=self)
@@ -1082,8 +1163,11 @@ scrolledwindow {{ background-color: transparent; }}
             self.color_src.connect("changed", lambda *_: self.load_colors())
             head.pack_end(self.color_src, False, False, 0)
             box.pack_start(head, False, False, 0)
-            note = Gtk.Label(label="Mỗi biến @define-color được dùng ở nhiều chỗ. Đổi màu = Waybar nạp lại ngay; "
-                                   "bản cũ được sao lưu (Sửa file → Hoàn tác để lấy lại).", xalign=0)
+            note = Gtk.Label(
+                label="Mỗi biến @define-color được dùng ở nhiều chỗ. Đổi màu = Waybar nạp lại ngay; "
+                "bản cũ được sao lưu (Sửa file → Hoàn tác để lấy lại).",
+                xalign=0,
+            )
             note.set_line_wrap(True)
             note.get_style_context().add_class("hint")
             box.pack_start(note, False, False, 0)
@@ -1123,7 +1207,7 @@ scrolledwindow {{ background-color: transparent; }}
                 if rgba.parse(value):
                     cb.set_rgba(rgba)
                 else:
-                    cb.set_sensitive(False)     # giá trị là biểu thức (shade(), mix()…) → sửa ở tab Sửa file
+                    cb.set_sensitive(False)  # giá trị là biểu thức (shade(), mix()…) → sửa ở tab Sửa file
                 cb.connect("color-set", lambda b, n=name, p=path: self.change_color(p, n, b.get_rgba()))
                 card.pack_start(cb, False, False, 0)
                 v = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -1161,9 +1245,12 @@ scrolledwindow {{ background-color: transparent; }}
             h = Gtk.Label(label="App ghim trên dock", xalign=0)
             h.get_style_context().add_class("h1")
             box.pack_start(h, False, False, 0)
-            note = Gtk.Label(label=f"Icon lấy từ bộ icon hệ thống (đúng icon của app). Bấm ＋ hoặc nhấp đôi một app bên phải "
-                                   f"để ghim (tối đa {MAX_PINS}); ↑ ↓ đổi thứ tự; ✕ bỏ ghim. Đổi là dock cập nhật ngay, "
-                                   "bản cũ được sao lưu.", xalign=0)
+            note = Gtk.Label(
+                label=f"Icon lấy từ bộ icon hệ thống (đúng icon của app). Bấm ＋ hoặc nhấp đôi một app bên phải "
+                f"để ghim (tối đa {MAX_PINS}); ↑ ↓ đổi thứ tự; ✕ bỏ ghim. Đổi là dock cập nhật ngay, "
+                "bản cũ được sao lưu.",
+                xalign=0,
+            )
             note.set_line_wrap(True)
             note.get_style_context().add_class("hint")
             box.pack_start(note, False, False, 0)
@@ -1209,7 +1296,9 @@ scrolledwindow {{ background-color: transparent; }}
 
             bottom = Gtk.Box(spacing=8)
             bottom.pack_start(self.btn("Về mặc định", self.pin_reset), False, False, 0)
-            bottom.pack_start(self.btn("Sửa JSON tay", lambda *_: self.open_rel("waybar/dock-pins.json")), False, False, 0)
+            bottom.pack_start(
+                self.btn("Sửa JSON tay", lambda *_: self.open_rel("waybar/dock-pins.json")), False, False, 0
+            )
             self.dock_status = Gtk.Label(label="", xalign=0)
             self.dock_status.get_style_context().add_class("status")
             bottom.pack_start(self.dock_status, True, True, 0)
@@ -1226,6 +1315,7 @@ scrolledwindow {{ background-color: transparent; }}
             try:
                 gi.require_version("GioUnix", "2.0")
                 from gi.repository import GioUnix
+
                 DAI = GioUnix.DesktopAppInfo
             except (ValueError, ImportError):
                 DAI = Gio.DesktopAppInfo
@@ -1233,9 +1323,13 @@ scrolledwindow {{ background-color: transparent; }}
             for a in sorted(Gio.AppInfo.get_all(), key=lambda x: (x.get_display_name() or "").casefold()):
                 if not a.should_show() or not a.get_id():
                     continue
-                apps[a.get_id()] = {"id": a.get_id(), "name": a.get_display_name() or a.get_id(),
-                                    "desc": (getattr(a, "get_generic_name", lambda: None)() or a.get_description() or ""),
-                                    "exec": a.get_executable() or "", "icon": a.get_icon()}
+                apps[a.get_id()] = {
+                    "id": a.get_id(),
+                    "name": a.get_display_name() or a.get_id(),
+                    "desc": (getattr(a, "get_generic_name", lambda: None)() or a.get_description() or ""),
+                    "exec": a.get_executable() or "",
+                    "icon": a.get_icon(),
+                }
             self._dai = DAI
             return apps
 
@@ -1244,15 +1338,23 @@ scrolledwindow {{ background-color: transparent; }}
             if info is None:
                 try:
                     a = self._dai.new(app_id)
-                except Exception:       # noqa: BLE001
+                except Exception:  # noqa: BLE001
                     a = None
-                info = {"id": app_id, "name": a.get_display_name() if a else app_id + " (không thấy)",
-                        "desc": "", "exec": "", "icon": a.get_icon() if a else None}
+                info = {
+                    "id": app_id,
+                    "name": a.get_display_name() if a else app_id + " (không thấy)",
+                    "desc": "",
+                    "exec": "",
+                    "icon": a.get_icon() if a else None,
+                }
             return info
 
         def _icon(self, gicon, px=32):
-            img = Gtk.Image.new_from_gicon(gicon, Gtk.IconSize.DIALOG) if gicon else \
-                Gtk.Image.new_from_icon_name("application-x-executable", Gtk.IconSize.DIALOG)
+            img = (
+                Gtk.Image.new_from_gicon(gicon, Gtk.IconSize.DIALOG)
+                if gicon
+                else Gtk.Image.new_from_icon_name("application-x-executable", Gtk.IconSize.DIALOG)
+            )
             img.set_pixel_size(px)
             return img
 
@@ -1278,7 +1380,9 @@ scrolledwindow {{ background-color: transparent; }}
                 up.set_sensitive(idx > 0)
                 down.set_sensitive(idx < len(self.pins) - 1)
                 for w in (up, down, rm):
-                    up.set_tooltip_text("Lên"); down.set_tooltip_text("Xuống"); rm.set_tooltip_text("Bỏ ghim")
+                    up.set_tooltip_text("Lên")
+                    down.set_tooltip_text("Xuống")
+                    rm.set_tooltip_text("Bỏ ghim")
                     hb.pack_start(w, False, False, 0)
             else:
                 add = self.btn("＋", lambda *_: self.pin_add(info["id"]), "accent")
@@ -1308,8 +1412,9 @@ scrolledwindow {{ background-color: transparent; }}
             backup(PINS_FILE)
             save_pins(self.pins)
             self.fill_pins()
-            self.bg(lambda: sh(RELOAD["dock-pins"][1]),
-                    lambda _r: self.say(self.dock_status, msg + " · dock đã cập nhật."))
+            self.bg(
+                lambda: sh(RELOAD["dock-pins"][1]), lambda _r: self.say(self.dock_status, msg + " · dock đã cập nhật.")
+            )
 
         def pin_add(self, app_id):
             if app_id in self.pins:
@@ -1349,9 +1454,12 @@ scrolledwindow {{ background-color: transparent; }}
             h = Gtk.Label(label="Ngưỡng cảnh báo", xalign=0)
             h.get_style_context().add_class("h1")
             box.pack_start(h, False, False, 0)
-            note = Gtk.Label(label="Cảnh báo khi giá trị tụt xuống dưới từng mốc. Mốc ghi dạng số cách nhau dấu phẩy, "
-                                    "ví dụ 80, 50, 30. Mốc ≤ mức khẩn cấp thì bảng không tự tắt (rung + kêu lại). "
-                                    "Mọi cảnh báo vẫn nằm trong lịch sử thông báo (nút chuông).", xalign=0)
+            note = Gtk.Label(
+                label="Cảnh báo khi giá trị tụt xuống dưới từng mốc. Mốc ghi dạng số cách nhau dấu phẩy, "
+                "ví dụ 80, 50, 30. Mốc ≤ mức khẩn cấp thì bảng không tự tắt (rung + kêu lại). "
+                "Mọi cảnh báo vẫn nằm trong lịch sử thông báo (nút chuông).",
+                xalign=0,
+            )
             note.set_line_wrap(True)
             note.get_style_context().add_class("hint")
             box.pack_start(note, False, False, 0)
@@ -1374,8 +1482,7 @@ scrolledwindow {{ background-color: transparent; }}
                 head.pack_start(t, False, False, 0)
                 card.pack_start(head, True, True, 0)
 
-                w = {"title": title, "on": Gtk.Switch(), "levels": None,
-                     "critical": None, "grace_seconds": None}
+                w = {"title": title, "on": Gtk.Switch(), "levels": None, "critical": None, "grace_seconds": None}
                 w["on"].set_valign(Gtk.Align.CENTER)
                 inp = Gtk.Box(spacing=6)
                 if has_levels:
@@ -1419,9 +1526,18 @@ scrolledwindow {{ background-color: transparent; }}
             t.get_style_context().add_class("h1")
             t.set_valign(Gtk.Align.CENTER)
             card.pack_start(t, True, True, 0)
-            pw = {"on": Gtk.Switch(), "sound": Gtk.Switch(),
-                  "volume": Gtk.SpinButton.new_with_range(0, 100, 5), "seconds": Gtk.SpinButton.new_with_range(3, 120, 1)}
-            for key, text in (("seconds", "Hiện (giây)"), ("sound", "Âm thanh"), ("volume", "Âm lượng %"), ("on", "Bật")):
+            pw = {
+                "on": Gtk.Switch(),
+                "sound": Gtk.Switch(),
+                "volume": Gtk.SpinButton.new_with_range(0, 100, 5),
+                "seconds": Gtk.SpinButton.new_with_range(3, 120, 1),
+            }
+            for key, text in (
+                ("seconds", "Hiện (giây)"),
+                ("sound", "Âm thanh"),
+                ("volume", "Âm lượng %"),
+                ("on", "Bật"),
+            ):
                 lab = Gtk.Label(label=text, xalign=1)
                 lab.get_style_context().add_class("hint")
                 pw[key].set_valign(Gtk.Align.CENTER)
@@ -1482,11 +1598,16 @@ scrolledwindow {{ background-color: transparent; }}
                 if w["grace_seconds"] is not None:
                     cfg["grace_seconds"] = int(w["grace_seconds"].get_value())
             pw = self.alert_popup_w
-            data["popup"] = dict(data.get("popup") or {}, enabled=pw["on"].get_active(), sound=pw["sound"].get_active(),
-                                 volume=int(pw["volume"].get_value()), seconds=int(pw["seconds"].get_value()))
+            data["popup"] = dict(
+                data.get("popup") or {},
+                enabled=pw["on"].get_active(),
+                sound=pw["sound"].get_active(),
+                volume=int(pw["volume"].get_value()),
+                seconds=int(pw["seconds"].get_value()),
+            )
             try:
                 if os.path.exists(ALERTS_FILE):
-                    backup(ALERTS_FILE)              # như mọi lần lưu khác của Studio: Sửa file › Hoàn tác lấy lại được
+                    backup(ALERTS_FILE)  # như mọi lần lưu khác của Studio: Sửa file › Hoàn tác lấy lại được
                 save_alerts(ALERTS_FILE, data)
             except OSError as e:
                 return self.say(self.alert_status, f"Không ghi được alerts.json: {e}", True)
@@ -1494,8 +1615,9 @@ scrolledwindow {{ background-color: transparent; }}
 
             def reload():
                 try:
-                    p = subprocess.Popen(["python3", ALERT_WATCH, "--reload"],
-                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    p = subprocess.Popen(
+                        ["python3", ALERT_WATCH, "--reload"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                    )
                     return p.wait(timeout=10)
                 except (OSError, subprocess.TimeoutExpired):
                     return 1
@@ -1503,12 +1625,14 @@ scrolledwindow {{ background-color: transparent; }}
             def done(rc):
                 if rc:
                     self.say(self.alert_status, "Đã lưu — daemon chưa chạy")
+
             self.bg(reload, done)
 
         def alert_test(self):
             try:
-                subprocess.Popen(["python3", ALERT_WATCH, "--test"],
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.Popen(
+                    ["python3", ALERT_WATCH, "--test"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
             except OSError as e:
                 self.say(self.alert_status, f"Không gửi được thông báo thử: {e}", True)
                 return
@@ -1542,18 +1666,47 @@ scrolledwindow {{ background-color: transparent; }}
                 box.pack_start(c, False, False, 0)
 
             th = Gtk.Box(spacing=6)
-            th.pack_start(self.btn("Phẳng", lambda: self.run_look(f"'{SCRIPTS}/ui-theme.sh' flat", "Đã chuyển sang bản phẳng — mở lại Studio để thấy kiểu mới."), *(["accent"] if not pixel else [])), False, False, 0)
-            th.pack_start(self.btn("Pixel", lambda: self.run_look(f"'{SCRIPTS}/ui-theme.sh' pixel", "Đã chuyển sang bản pixel — mở lại Studio để thấy kiểu mới."), *(["accent"] if pixel else [])), False, False, 0)
-            card("Kiểu giao diện", "Waybar, dock, popup, rofi, walker, dunst, kitty, viền cửa sổ, tổng quan (Super + Alt + U).", th)
+            th.pack_start(
+                self.btn(
+                    "Phẳng",
+                    lambda: self.run_look(
+                        f"'{SCRIPTS}/ui-theme.sh' flat", "Đã chuyển sang bản phẳng — mở lại Studio để thấy kiểu mới."
+                    ),
+                    *(["accent"] if not pixel else []),
+                ),
+                False,
+                False,
+                0,
+            )
+            th.pack_start(
+                self.btn(
+                    "Pixel",
+                    lambda: self.run_look(
+                        f"'{SCRIPTS}/ui-theme.sh' pixel", "Đã chuyển sang bản pixel — mở lại Studio để thấy kiểu mới."
+                    ),
+                    *(["accent"] if pixel else []),
+                ),
+                False,
+                False,
+                0,
+            )
+            card(
+                "Kiểu giao diện",
+                "Waybar, dock, popup, rofi, walker, dunst, kitty, viền cửa sổ, tổng quan (Super + Alt + U).",
+                th,
+            )
 
             bm = Gtk.ComboBoxText()
             for k, t in (("auto", "Tự động (tắt khi dùng pin)"), ("on", "Luôn bật"), ("off", "Luôn tắt")):
                 bm.append(k, t)
             rc, out = sh(f"'{SCRIPTS}/power-watch.sh' status")
-            m = re.search(r"ghi đè:\s*(auto|on|off)", out)          # power-watch.sh status in "ghi đè: auto|on|off"
+            m = re.search(r"ghi đè:\s*(auto|on|off)", out)  # power-watch.sh status in "ghi đè: auto|on|off"
             mode = m.group(1) if m else "auto"
             bm.set_active_id(mode)
-            bm.connect("changed", lambda b: self.run_look(f"'{SCRIPTS}/power-watch.sh' set {b.get_active_id()}", "Đã đổi viền xoay màu."))
+            bm.connect(
+                "changed",
+                lambda b: self.run_look(f"'{SCRIPTS}/power-watch.sh' set {b.get_active_id()}", "Đã đổi viền xoay màu."),
+            )
             card("Viền cửa sổ xoay màu", "Animation borderangle (tốn pin chút ít).", bm)
 
             cur = Gtk.ComboBoxText()
@@ -1562,9 +1715,13 @@ scrolledwindow {{ background-color: transparent; }}
                     cur.append(k, k)
             rc, out = sh("gsettings get org.gnome.desktop.interface cursor-theme")
             cur.set_active_id(out.strip("'\n "))
-            cur.connect("changed", lambda b: self.run_look(
-                f"hyprctl setcursor {b.get_active_id()} 32 && gsettings set org.gnome.desktop.interface cursor-theme {b.get_active_id()}",
-                f"Đã đổi con trỏ sang {b.get_active_id()} (lúc đăng nhập vẫn theo XCURSOR_THEME trong hyprland.lua)."))
+            cur.connect(
+                "changed",
+                lambda b: self.run_look(
+                    f"hyprctl setcursor {b.get_active_id()} 32 && gsettings set org.gnome.desktop.interface cursor-theme {b.get_active_id()}",
+                    f"Đã đổi con trỏ sang {b.get_active_id()} (lúc đăng nhập vẫn theo XCURSOR_THEME trong hyprland.lua).",
+                ),
+            )
             card("Bộ con trỏ", "Đổi ngay cho phiên đang chạy.", cur)
 
             grid = Gtk.FlowBox()
@@ -1577,17 +1734,31 @@ scrolledwindow {{ background-color: transparent; }}
             card("Nạp lại thành phần", "Khi một phần giao diện hiện sai sau khi sửa tay.", grid)
 
             folder = Gtk.Box(spacing=6)
-            folder.pack_start(self.btn("󰉋  Thư mục cấu hình", lambda: sh(f"setsid -f thunar '{REPO}'")), False, False, 0)
-            folder.pack_start(self.btn("󰁯  Bản sao lưu", lambda: (os.makedirs(BACKUP_DIR, exist_ok=True), sh(f"setsid -f thunar '{BACKUP_DIR}'"))), False, False, 0)
-            folder.pack_start(self.btn("󰈙  Ghi chú kỹ thuật", lambda: sh(f"setsid -f mousepad '{REPO}/CLAUDE.md'")), False, False, 0)
+            folder.pack_start(
+                self.btn("󰉋  Thư mục cấu hình", lambda: sh(f"setsid -f thunar '{REPO}'")), False, False, 0
+            )
+            folder.pack_start(
+                self.btn(
+                    "󰁯  Bản sao lưu",
+                    lambda: (os.makedirs(BACKUP_DIR, exist_ok=True), sh(f"setsid -f thunar '{BACKUP_DIR}'")),
+                ),
+                False,
+                False,
+                0,
+            )
+            folder.pack_start(
+                self.btn("󰈙  Ghi chú kỹ thuật", lambda: sh(f"setsid -f mousepad '{REPO}/CLAUDE.md'")), False, False, 0
+            )
             card("Thư mục", "Repo dotfiles, nơi giữ bản sao lưu của Studio, tài liệu quy ước.", folder)
             box.pack_start(self.look_status, False, False, 0)
             return box
 
         def run_look(self, cmd, msg):
             self.say(self.look_status, "Đang chạy …")
-            self.bg(lambda: sh(cmd, 40),
-                    lambda res: self.say(self.look_status, msg if res[0] == 0 else f"Lỗi: {res[1][-300:]}", res[0] != 0))
+            self.bg(
+                lambda: sh(cmd, 40),
+                lambda res: self.say(self.look_status, msg if res[0] == 0 else f"Lỗi: {res[1][-300:]}", res[0] != 0),
+            )
 
     Studio().connect("destroy", Gtk.main_quit)
     Gtk.main()
@@ -1599,13 +1770,15 @@ def selftest():
     assert [(n, v) for _i, n, v in cols] == [("bg", "rgba(44,36,52,0.93)"), ("accent", "#c94785")], cols
     new = set_color(css, "accent", "#ff0000")
     assert "@define-color accent   #ff0000; /* nhấn */" in new and new.count("\n") == css.count("\n")
-    assert strip_jsonc('{"a": "x // y", /* c */ "b": [1, 2,], // z\n}') .replace(" ", "") == '{"a":"x//y","b":[1,2]\n}'.replace(" ", "")
+    assert strip_jsonc('{"a": "x // y", /* c */ "b": [1, 2,], // z\n}').replace(
+        " ", ""
+    ) == '{"a":"x//y","b":[1,2]\n}'.replace(" ", "")
     assert check_text("jsonc", '{"a": 1, // ok\n "b": 2,}', "x") is None
     err = check_text("jsonc", '{"a": 1\n "b": 2}', "x")
     assert err and "dòng 2" in err, err
     assert check_text("python", "x = (", "x.py")
     assert check_text("css", "a { color: red; }", "x.css") is None
-    assert check_text("css", "a { color: red; ", "x.css") is None or True     # GTK tự đóng khối: không chặn
+    assert check_text("css", "a { color: red; ", "x.css") is None or True  # GTK tự đóng khối: không chặn
     for spec in FILES:
         assert spec[4] in RELOAD and len(spec) == 6, spec
     for rel in ("waybar/style.css", "waybar/topbar.jsonc", "hypr/hyprland.lua"):
@@ -1617,6 +1790,7 @@ def selftest():
                 assert check_text("jsonc", f.read(), spec[2]) is None, spec[2]
     assert slug("Ảnh Đẹp 01.JPG") == "nh_p_01"
     import tempfile
+
     with tempfile.TemporaryDirectory() as td:
         pf = os.path.join(td, "pins.json")
         with open(pf, "w") as f:
@@ -1636,10 +1810,10 @@ def selftest():
             else:
                 raise AssertionError(f"parse_levels({bad!r}) phải báo lỗi")
         af = os.path.join(td, "alerts.json")
-        assert load_alerts(af) == DEFAULT_ALERTS                       # file chưa có
+        assert load_alerts(af) == DEFAULT_ALERTS  # file chưa có
         with open(af, "w") as f:
             f.write("{ hỏng")
-        assert load_alerts(af) == DEFAULT_ALERTS                       # file hỏng
+        assert load_alerts(af) == DEFAULT_ALERTS  # file hỏng
         alerts = load_alerts(af)
         alerts["battery"]["levels"] = [50, 90]
         alerts["wifi_signal"]["notes"] = "khóa lạ vẫn sống"
@@ -1650,7 +1824,7 @@ def selftest():
         assert back["wifi_signal"]["notes"] == "khóa lạ vẫn sống" and back["custom"] == {"abc": 1}, back
         assert not os.path.exists(af + ".tmp")
         assert check_text("alerts", json.dumps(DEFAULT_ALERTS), af) is None
-        assert check_text("alerts", '{"battery": {"levels": [80,]}}', af)               # dấu phẩy thừa
+        assert check_text("alerts", '{"battery": {"levels": [80,]}}', af)  # dấu phẩy thừa
         assert check_text("alerts", '{"battery": {"levels": [0, 50]}}', af)
         assert check_text("alerts", '{"devices": {"critical": 100}}', af)
         with open(ALERTS_FILE) as f:

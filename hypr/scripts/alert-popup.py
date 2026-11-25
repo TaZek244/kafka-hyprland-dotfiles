@@ -34,8 +34,8 @@ def parse_args(argv):
     parser.add_argument("--sound", action="store_true")
     parser.add_argument("--volume", type=float, default=80)
     parser.add_argument("--test-tag", action="store_true")
-    parser.add_argument("--value", type=float, default=None)       # % pin / sóng -> đồng hồ đo
-    parser.add_argument("--device-kind", default="")              # mouse|keyboard|headset|... (device-battery.py)
+    parser.add_argument("--value", type=float, default=None)  # % pin / sóng -> đồng hồ đo
+    parser.add_argument("--device-kind", default="")  # mouse|keyboard|headset|... (device-battery.py)
     ns = parser.parse_args(argv)
     if ns.title is None and not (ns.selftest or ns.close):
         parser.error("cần có --title")
@@ -43,25 +43,42 @@ def parse_args(argv):
         raise ValueError("mức cảnh báo không hợp lệ")
     if ns.kind not in KINDS:
         raise ValueError("loại cảnh báo không hợp lệ")
-    return {"title": ns.title or "", "body": ns.body, "level": ns.level,
-            "kind": ns.kind, "seconds": max(3.0, min(120.0, ns.seconds)),
-            "sound": bool(ns.sound), "volume": max(0.0, min(100.0, ns.volume)),
-            "test_tag": bool(ns.test_tag), "selftest": ns.selftest, "close": ns.close,
-            "value": None if ns.value is None else max(0.0, min(100.0, ns.value)), "device_kind": ns.device_kind}
+    return {
+        "title": ns.title or "",
+        "body": ns.body,
+        "level": ns.level,
+        "kind": ns.kind,
+        "seconds": max(3.0, min(120.0, ns.seconds)),
+        "sound": bool(ns.sound),
+        "volume": max(0.0, min(100.0, ns.volume)),
+        "test_tag": bool(ns.test_tag),
+        "selftest": ns.selftest,
+        "close": ns.close,
+        "value": None if ns.value is None else max(0.0, min(100.0, ns.value)),
+        "device_kind": ns.device_kind,
+    }
 
 
 # Mỗi loại cảnh báo một "bộ mặt" riêng: màu, tiêu đề (bản phẳng / dải pixel chỉ chữ HOA ASCII), kiểu đồng hồ đo.
 STYLES = {
-    "battery":  {"colour": "#f2c46d", "header": "PIN YẾU",        "px": "LOW BATTERY",    "gauge": "cells"},
-    "device":   {"colour": "#b99cff", "header": "PIN THIẾT BỊ",   "px": "DEVICE BATTERY", "gauge": "cells"},
-    "wifi":     {"colour": "#6fd3ff", "header": "SÓNG WI-FI YẾU", "px": "WEAK SIGNAL",    "gauge": "bars"},
-    "internet": {"colour": "#ff9a5c", "header": "MẤT KẾT NỐI",    "px": "NO CONNECTION",  "gauge": None},
-    "test":     {"colour": "#f08cbb", "header": "THỬ",            "px": "TEST",           "gauge": None},
+    "battery": {"colour": "#f2c46d", "header": "PIN YẾU", "px": "LOW BATTERY", "gauge": "cells"},
+    "device": {"colour": "#b99cff", "header": "PIN THIẾT BỊ", "px": "DEVICE BATTERY", "gauge": "cells"},
+    "wifi": {"colour": "#6fd3ff", "header": "SÓNG WI-FI YẾU", "px": "WEAK SIGNAL", "gauge": "bars"},
+    "internet": {"colour": "#ff9a5c", "header": "MẤT KẾT NỐI", "px": "NO CONNECTION", "gauge": None},
+    "test": {"colour": "#f08cbb", "header": "THỬ", "px": "TEST", "gauge": None},
 }
 OK_STYLE = {"colour": "#7be0a0", "header": "ĐÃ KẾT NỐI", "px": "CONNECTED"}
 CRIT_COLOUR = "#ff5c7a"
-DEVICE_ICONS = {"mouse": "\U000f037d", "keyboard": "\U000f030c", "headset": "\U000f02ce", "headphones": "\U000f02cb",
-                "gaming": "\U000f02b4", "phone": "\U000f03f2", "speakers": "\U000f04c3", "tablet": "\U000f04f6"}
+DEVICE_ICONS = {
+    "mouse": "\U000f037d",
+    "keyboard": "\U000f030c",
+    "headset": "\U000f02ce",
+    "headphones": "\U000f02cb",
+    "gaming": "\U000f02b4",
+    "phone": "\U000f03f2",
+    "speakers": "\U000f04c3",
+    "tablet": "\U000f04f6",
+}
 
 
 def style_for(kind, level):
@@ -76,22 +93,22 @@ def style_for(kind, level):
 
 def icon_for(kind, level, value=None, device_kind=""):
     if level == "ok":
-        return "\U000f0789" if kind == "internet" else "\U000f05e0"     # web-check / check-circle
+        return "\U000f0789" if kind == "internet" else "\U000f05e0"  # web-check / check-circle
     if kind == "battery":
         if level == "critical" or (value is not None and value < 10):
-            return "\U000f0083"                                           # battery-alert
+            return "\U000f0083"  # battery-alert
         if value is None:
             return "\U000f007a"
-        return chr(0xF007A + min(8, int(value // 10) - 1)) if value < 95 else "\U000f0079"   # battery-10..90 / đầy
+        return chr(0xF007A + min(8, int(value // 10) - 1)) if value < 95 else "\U000f0079"  # battery-10..90 / đầy
     if kind == "device":
         return DEVICE_ICONS.get(device_kind, "\U000f02cb")
     if kind == "wifi":
         if value is None or value <= 25:
-            return "\U000f0920"                                           # wifi-strength-1-alert
+            return "\U000f0920"  # wifi-strength-1-alert
         return "\U000f0922" if value <= 50 else "\U000f0925" if value <= 75 else "\U000f0928"
     if kind == "internet":
-        return "\U000f0a8e"                                               # web-off
-    return "\U000f009e"                                                   # bell-ring
+        return "\U000f0a8e"  # web-off
+    return "\U000f009e"  # bell-ring
 
 
 def header_for(kind, level, pixel=False):
@@ -188,15 +205,26 @@ def run_selftest():
     assert icon_for("wifi", "warn", 20) == "\U000f0920" and icon_for("internet", "ok") == "\U000f0789"
     assert icon_for("battery", "warn", 50) == "\U000f007e" and icon_for("battery", "warn", 30) == "\U000f007c"
     assert icon_for("device", "warn", 30, "mouse") == "\U000f037d"
-    assert header_for("battery", "critical") == "KHẨN CẤP · PIN YẾU" and header_for("wifi", "warn", True) == "WEAK SIGNAL"
-    assert style_for("internet", "ok")["colour"] == "#7be0a0" and style_for("device", "critical")["colour"] == CRIT_COLOUR
+    assert (
+        header_for("battery", "critical") == "KHẨN CẤP · PIN YẾU" and header_for("wifi", "warn", True) == "WEAK SIGNAL"
+    )
+    assert (
+        style_for("internet", "ok")["colour"] == "#7be0a0" and style_for("device", "critical")["colour"] == CRIT_COLOUR
+    )
     assert [gauge_fill("cells", v) for v in (0, 3, 30, 31, 100)] == [0, 1, 3, 4, 10]
     assert [gauge_fill("bars", v) for v in (10, 40, 60, 90)] == [1, 2, 3, 4]
     assert sound_cmd("a.wav", 80, True) == ["pw-play", "--volume", "0.8", "a.wav"]
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "queue")
-        item = {"title": "Pin", "body": "Còn 30%", "level": "warn", "kind": "battery",
-                "seconds": 8, "sound": False, "volume": 80}
+        item = {
+            "title": "Pin",
+            "body": "Còn 30%",
+            "level": "warn",
+            "kind": "battery",
+            "seconds": 8,
+            "sound": False,
+            "volume": 80,
+        }
         queue_append(path, item)
         assert queue_read(path) == [item] and queue_read(path) == []
     current, pending = merge_queue(item, [{**item, "title": "Pin mới"}, {**item, "kind": "wifi"}])
@@ -208,35 +236,39 @@ LOCKFILE = os.path.join(RUNDIR, "kafka-alert-popup.lock")
 
 
 def css_for(colour):
-    return ("* { color: #fbf7fd; font-family: 'FiraCode Nerd Font'; } window { background: transparent; }"
-            ".panel { background-color: rgba(44,36,52,0.97); border: 2px solid %(c)s; border-radius: 16px; padding: 18px; }"
-            ".panel.pulse { border-color: #fbf7fd; }"
-            ".badge { background-color: alpha(%(c)s, 0.16); border-radius: 14px; padding: 6px 12px; min-width: 64px; }"
-            ".stripe { background-color: %(c)s; min-width: 4px; border-radius: 2px; }"
-            ".gauge-text { color: %(c)s; font-weight: 800; font-size: 13px; }"
-            ".header { color: %(c)s; font-size: 12px; font-weight: 800; letter-spacing: 2px; }"
-            ".title { font-size: 21px; font-weight: 800; } .body { color: #d4cade; font-size: 13px; }"
-            ".icon { font-family: 'FiraCode Nerd Font Propo'; font-size: 56px; color: %(c)s; }"
-            ".counter { color: #a99bbd; font-size: 11px; font-weight: 700; }"
-            "button { color: #fbf7fd; background: #382b47; background-image: none; border: 1px solid %(c)s;"
-            "  border-radius: 8px; padding: 5px 16px; font-weight: 700; }"
-            "button:hover { background: #4a3c59; }"
-            ) % {"c": colour}
+    return (
+        "* { color: #fbf7fd; font-family: 'FiraCode Nerd Font'; } window { background: transparent; }"
+        ".panel { background-color: rgba(44,36,52,0.97); border: 2px solid %(c)s; border-radius: 16px; padding: 18px; }"
+        ".panel.pulse { border-color: #fbf7fd; }"
+        ".badge { background-color: alpha(%(c)s, 0.16); border-radius: 14px; padding: 6px 12px; min-width: 64px; }"
+        ".stripe { background-color: %(c)s; min-width: 4px; border-radius: 2px; }"
+        ".gauge-text { color: %(c)s; font-weight: 800; font-size: 13px; }"
+        ".header { color: %(c)s; font-size: 12px; font-weight: 800; letter-spacing: 2px; }"
+        ".title { font-size: 21px; font-weight: 800; } .body { color: #d4cade; font-size: 13px; }"
+        ".icon { font-family: 'FiraCode Nerd Font Propo'; font-size: 56px; color: %(c)s; }"
+        ".counter { color: #a99bbd; font-size: 11px; font-weight: 700; }"
+        "button { color: #fbf7fd; background: #382b47; background-image: none; border: 1px solid %(c)s;"
+        "  border-radius: 8px; padding: 5px 16px; font-weight: 700; }"
+        "button:hover { background: #4a3c59; }"
+    ) % {"c": colour}
 
 
 class AlertPopup:
     """Một cửa sổ layer-shell; nội dung dựng lại cho từng cảnh báo trong hàng đợi."""
 
-    TICK_MS = 40            # đủ mượt cho rung/thanh đếm ngược, không tốn CPU
+    TICK_MS = 40  # đủ mượt cho rung/thanh đếm ngược, không tốn CPU
 
     def __init__(self, item):
         import gi
+
         gi.require_version("Gtk", "3.0")
         gi.require_version("Gdk", "3.0")
         gi.require_version("GtkLayerShell", "0.1")
         from gi.repository import GLib, Gtk, Gdk, GtkLayerShell as L
+
         sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
         import kafka_theme
+
         self.GLib, self.Gtk, self.Gdk, self.theme = GLib, Gtk, Gdk, kafka_theme
         self.item, self.pending, self.panel, self.provider = item, [], None, None
         self.pixel = kafka_theme.is_pixel()
@@ -255,13 +287,16 @@ class AlertPopup:
         w.set_size_request(540, -1)
         w.connect("key-press-event", self.key_press)
         w.connect("destroy", lambda *_: Gtk.main_quit())
-        w.add_events(Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK)
+        w.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
+        )
         w.connect("button-press-event", lambda *_: self.dismiss())
         w.connect("enter-notify-event", lambda *_: self.pause(True))
         w.connect("leave-notify-event", lambda *_: self.pause(False))
-        try:                            # PyGObject mới: GLibUnix.signal_add; cũ: GLib.unix_signal_add
+        try:  # PyGObject mới: GLibUnix.signal_add; cũ: GLib.unix_signal_add
             gi.require_version("GLibUnix", "2.0")
             from gi.repository import GLibUnix
+
             signal_add = GLibUnix.signal_add
         except (ValueError, ImportError):
             signal_add = GLib.unix_signal_add
@@ -269,7 +304,7 @@ class AlertPopup:
         signal_add(GLib.PRIORITY_DEFAULT, signal.SIGTERM, self.quit)
         signal_add(GLib.PRIORITY_DEFAULT, signal.SIGINT, self.quit)
         self.show_item()
-        self.read_queue()                   # gom cảnh báo gửi tới trong lúc đang khởi động
+        self.read_queue()  # gom cảnh báo gửi tới trong lúc đang khởi động
         GLib.timeout_add(self.TICK_MS, self.animate)
         Gtk.main()
 
@@ -284,8 +319,15 @@ class AlertPopup:
             Gtk.StyleContext.add_provider_for_screen(screen, self.provider, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
         self.provider.load_from_data(css_for(colour).encode())
         if self.pixel and not getattr(self, "pixel_applied", False):
-            self.theme.apply(self.theme.panel(".panel", padding="14px", titled=True)
-                             + " .ok { " + self.theme.CARD + " } .ok:hover { " + self.theme.CARD_HOVER + " }", screen)
+            self.theme.apply(
+                self.theme.panel(".panel", padding="14px", titled=True)
+                + " .ok { "
+                + self.theme.CARD
+                + " } .ok:hover { "
+                + self.theme.CARD_HOVER
+                + " }",
+                screen,
+            )
             self.pixel_applied = True
 
     def show_item(self):
@@ -297,7 +339,7 @@ class AlertPopup:
             self.panel.destroy()
         panel = self.panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         panel.get_style_context().add_class("panel")
-        if self.pixel:              # dải tiêu đề hồng của cửa sổ game: nhãn phải là con ĐẦU TIÊN
+        if self.pixel:  # dải tiêu đề hồng của cửa sổ game: nhãn phải là con ĐẦU TIÊN
             panel.pack_start(self.theme.title_label(st["px"]), False, False, 0)
         else:
             header = Gtk.Label(label=st["header"], xalign=0)
@@ -305,7 +347,7 @@ class AlertPopup:
             panel.pack_start(header, False, False, 0)
 
         self.inner = Gtk.Box(spacing=14)
-        stripe = Gtk.Box()                  # vạch màu của loại cảnh báo (nhận ra loại cả ở bản pixel khung hồng)
+        stripe = Gtk.Box()  # vạch màu của loại cảnh báo (nhận ra loại cả ở bản pixel khung hồng)
         stripe.get_style_context().add_class("stripe")
         self.inner.pack_start(stripe, False, False, 0)
         badge = Gtk.Box()
@@ -333,13 +375,13 @@ class AlertPopup:
         panel.pack_start(self.inner, False, False, 0)
 
         foot = Gtk.Box(spacing=10)
-        self.bar = self.make_countdown(st["colour"])     # tự vẽ: GtkProgressBar bị gtk.css chung tô hồng
+        self.bar = self.make_countdown(st["colour"])  # tự vẽ: GtkProgressBar bị gtk.css chung tô hồng
         self.counter = Gtk.Label()
         self.counter.get_style_context().add_class("counter")
         button = Gtk.Button(label="[ OK ]" if self.pixel else "OK")
         button.get_style_context().add_class("ok")
         button.connect("clicked", lambda *_: self.dismiss())
-        foot.pack_start(self.bar, True, True, 0)        # khẩn cấp: không đếm ngược -> không thêm thanh
+        foot.pack_start(self.bar, True, True, 0)  # khẩn cấp: không đếm ngược -> không thêm thanh
         foot.pack_end(button, False, False, 0)
         foot.pack_end(self.counter, False, False, 0)
         panel.pack_start(foot, False, False, 0)
@@ -349,7 +391,7 @@ class AlertPopup:
         self.update_counter()
 
         now = time.monotonic()
-        self.shake = now        # hiện ra: dùng hiệu ứng mở layer của Hyprland (set_opacity của GTK3 kẹt trên layer-shell)
+        self.shake = now  # hiện ra: dùng hiệu ứng mở layer của Hyprland (set_opacity của GTK3 kẹt trên layer-shell)
         self.deadline, self.paused, self.paused_at = now + item["seconds"], False, None
         self.sound_count, self.next_sound = 0, now + 30
         self.play_sound()
@@ -378,6 +420,7 @@ class AlertPopup:
             if abs(f - bar.frac) >= 0.002:
                 bar.frac = f
                 bar.queue_draw()
+
         bar.connect("draw", draw)
         bar.set_fraction = set_fraction
         return bar
@@ -401,6 +444,7 @@ class AlertPopup:
                 cr.rectangle(i * (cw + gap), h - bh, cw, bh)
                 cr.fill()
             return False
+
         area.connect("draw", draw)
         row = Gtk.Box(spacing=10)
         row.pack_start(area, False, False, 0)
@@ -444,7 +488,7 @@ class AlertPopup:
         return True
 
     def dismiss(self):
-        self.read_queue(redraw=False)       # gom cảnh báo vừa tới trước khi quyết định đóng
+        self.read_queue(redraw=False)  # gom cảnh báo vừa tới trước khi quyết định đóng
         if self.pending:
             self.item = self.pending.pop(0)
             self.show_item()
@@ -454,7 +498,7 @@ class AlertPopup:
     def read_queue(self, *_args, redraw=True):
         old = self.item
         self.item, self.pending = merge_queue(self.item, self.pending + queue_read(QUEUEFILE))
-        if redraw and self.item != old:     # cùng loại (vd pin tụt tiếp) -> thay nội dung đang hiện
+        if redraw and self.item != old:  # cùng loại (vd pin tụt tiếp) -> thay nội dung đang hiện
             self.show_item()
         else:
             self.update_counter()
@@ -468,8 +512,11 @@ class AlertPopup:
         if not os.path.isfile(path):
             return
         try:
-            subprocess.Popen(sound_cmd(path, item["volume"], shutil.which("pw-play") is not None),
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(
+                sound_cmd(path, item["volume"], shutil.which("pw-play") is not None),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
             self.sound_count += 1
         except OSError:
             pass
@@ -488,7 +535,9 @@ def main(argv):
             except OSError:
                 pass
         return 0
-    item = {k: args[k] for k in ("title", "body", "level", "kind", "seconds", "sound", "volume", "value", "device_kind")}
+    item = {
+        k: args[k] for k in ("title", "body", "level", "kind", "seconds", "sound", "volume", "value", "device_kind")
+    }
     # khoá 1 bản bằng flock (hai cảnh báo tới cùng lúc không mở 2 bảng); không giữ được khoá -> xếp hàng
     os.makedirs(RUNDIR, exist_ok=True)
     lock = open(LOCKFILE, "w")
@@ -496,7 +545,7 @@ def main(argv):
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
         queue_append(QUEUEFILE, item)
-        for _ in range(20):                 # bản đang chạy có thể chưa kịp ghi pid
+        for _ in range(20):  # bản đang chạy có thể chưa kịp ghi pid
             pid = live_pid()
             if pid:
                 os.kill(pid, signal.SIGUSR1)

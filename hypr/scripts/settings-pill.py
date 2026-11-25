@@ -23,12 +23,12 @@ import sys
 import threading
 import time
 
-VOL_ICONS = ["\U000f057f", "\U000f0580", "\U000f057e"]          # 󰕿 󰖀 󰕾
-VOL_MUTE = "\U000f075f"                                          # 󰝟
-WIFI_ICONS = ["\U000f092f", "\U000f091f", "\U000f0922", "\U000f0925", "\U000f0928"]   # 󰤯 󰤟 󰤢 󰤥 󰤨
-WIFI_OFF, ETH = "\U000f092e", "\U000f0200"                       # 󰤮 󰈀
-BAT_ICONS = ["\U000f007a", "\U000f007c", "\U000f007e", "\U000f0080", "\U000f0079"]    # 󰁺 󰁼 󰁾 󰂀 󰁹
-BAT_CHG, AC = "\U000f0084", "\U000f06a5"                         # 󰂄 󰚥
+VOL_ICONS = ["\U000f057f", "\U000f0580", "\U000f057e"]  # 󰕿 󰖀 󰕾
+VOL_MUTE = "\U000f075f"  # 󰝟
+WIFI_ICONS = ["\U000f092f", "\U000f091f", "\U000f0922", "\U000f0925", "\U000f0928"]  # 󰤯 󰤟 󰤢 󰤥 󰤨
+WIFI_OFF, ETH = "\U000f092e", "\U000f0200"  # 󰤮 󰈀
+BAT_ICONS = ["\U000f007a", "\U000f007c", "\U000f007e", "\U000f0080", "\U000f0079"]  # 󰁺 󰁼 󰁾 󰂀 󰁹
+BAT_CHG, AC = "\U000f0084", "\U000f06a5"  # 󰂄 󰚥
 SEP = "<span color='#5a4a6b'>│</span>"
 
 
@@ -38,7 +38,8 @@ def _die_with_parent():
     try:
         import ctypes
         import signal
-        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)   # 1 = PR_SET_PDEATHSIG
+
+        ctypes.CDLL("libc.so.6", use_errno=True).prctl(1, signal.SIGTERM)  # 1 = PR_SET_PDEATHSIG
     except Exception:
         pass
 
@@ -81,7 +82,7 @@ def network():
         t, _, rest = line.partition(":")
         st, _, conn = rest.partition(":")
         if st == "connected" and t in ("wifi", "ethernet"):
-            if kind != "ethernet":                 # có dây thì ưu tiên hiện dây
+            if kind != "ethernet":  # có dây thì ưu tiên hiện dây
                 kind, name = t, conn.replace("\\:", ":")
     sig = parse_wireless(read("/proc/net/wireless")) if kind == "wifi" else None
     return kind, name, sig
@@ -117,7 +118,9 @@ def build(vol, muted, kind, name, sig, bat, charging):
     """JSON cho Waybar (tách riêng để selftest)."""
     cls = []
     if kind == "wifi":
-        net_icon = WIFI_ICONS[min(4, (sig or 0) * 5 // 101)] + (f" {sig}%" if sig is not None else "")   # có số → 3 ô cân nhau
+        net_icon = WIFI_ICONS[min(4, (sig or 0) * 5 // 101)] + (
+            f" {sig}%" if sig is not None else ""
+        )  # có số → 3 ô cân nhau
         net_tip = f"Wi-Fi: {name}" + (f" ({sig}%)" if sig is not None else "")
     elif kind == "ethernet":
         net_icon, net_tip = ETH, f"Dây mạng: {name}"
@@ -143,8 +146,9 @@ def build(vol, muted, kind, name, sig, bat, charging):
         num = f"<span color='{col}'>{bat}%</span>" if col else f"{bat}%"
         bat_txt, bat_tip = f"{icon} {num}", f"Pin {bat}%" + (" (đang sạc)" if charging else "")
     text = f"{net_icon}  {SEP}  {vol_txt}  {SEP}  {bat_txt}"
-    tip = (f"{net_tip} · {vol_tip} · {bat_tip}\n"
-           "Bấm: cài đặt nhanh · Phải: bảng Wi-Fi · Giữa: tắt/mở tiếng · Lăn: âm lượng")
+    tip = (
+        f"{net_tip} · {vol_tip} · {bat_tip}\nBấm: cài đặt nhanh · Phải: bảng Wi-Fi · Giữa: tắt/mở tiếng · Lăn: âm lượng"
+    )
     return json.dumps({"text": text, "tooltip": tip, "class": cls or ["normal"]}, ensure_ascii=False)
 
 
@@ -170,32 +174,39 @@ class Pill:
                     sys.stdout.write(line + "\n")
                     sys.stdout.flush()
                 except BrokenPipeError:
-                    os._exit(0)                     # Waybar đã tắt
+                    os._exit(0)  # Waybar đã tắt
 
     def watch(self, cmd, keep):
         """Chạy lệnh theo dõi; dòng nào khớp `keep` thì đánh thức vòng in (gộp sự kiện dồn dập)."""
         while True:
             try:
-                p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
-                                     preexec_fn=_die_with_parent)
+                p = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, preexec_fn=_die_with_parent
+                )
                 for line in p.stdout:
                     if keep(line):
                         self.wake.set()
             except OSError:
                 pass
-            time.sleep(5)                            # lệnh chết (vd pipewire khởi động lại) → chạy lại
+            time.sleep(5)  # lệnh chết (vd pipewire khởi động lại) → chạy lại
 
     def loop(self):
-        threading.Thread(target=self.watch, daemon=True,
-                         args=(["pactl", "subscribe"], lambda l: " on sink" in l or " on server" in l)).start()
+        threading.Thread(
+            target=self.watch,
+            daemon=True,
+            args=(["pactl", "subscribe"], lambda l: " on sink" in l or " on server" in l),
+        ).start()
         threading.Thread(target=self.watch, daemon=True, args=(["nmcli", "monitor"], lambda l: True)).start()
-        threading.Thread(target=self.watch, daemon=True,
-                         args=(["upower", "--monitor"], lambda l: "device changed" in l or "added" in l or "removed" in l)).start()
+        threading.Thread(
+            target=self.watch,
+            daemon=True,
+            args=(["upower", "--monitor"], lambda l: "device changed" in l or "added" in l or "removed" in l),
+        ).start()
         self.emit()
         while True:
             fired = self.wake.wait(15)
             if fired:
-                time.sleep(0.12)                     # gộp loạt sự kiện khi lăn chuột
+                time.sleep(0.12)  # gộp loạt sự kiện khi lăn chuột
                 self.wake.clear()
             self.emit()
 
@@ -204,9 +215,11 @@ def selftest():
     assert parse_volume("Volume: 0.45\n") == (45, False)
     assert parse_volume("Volume: 0.30 [MUTED]\n") == (30, True)
     assert parse_volume("") == (None, False)
-    w = ("Inter-| sta-|   Quality        |   Discarded packets\n"
-         " face | tus | link level noise |  nwid  crypt\n"
-         " wlan0: 0000   56.  -54.  -256        0      0\n")
+    w = (
+        "Inter-| sta-|   Quality        |   Discarded packets\n"
+        " face | tus | link level noise |  nwid  crypt\n"
+        " wlan0: 0000   56.  -54.  -256        0      0\n"
+    )
     assert parse_wireless(w) == 80
     j = json.loads(build(45, False, "wifi", "Nha", 80, 93, False))
     assert "93%" in j["text"] and "45%" in j["text"] and j["class"] == ["normal"] and "Nha" in j["tooltip"]

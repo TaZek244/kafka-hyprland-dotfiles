@@ -28,22 +28,22 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 try:
     sys.path.insert(0, os.path.normpath(os.path.join(HERE, "..", "..", "greetd", "kafka-greeter")))
     import pixelfont as bgm_font
-except Exception:                      # không có greeter → draw_pixel dùng lại 4 vạch nhún cũ
+except Exception:  # không có greeter → draw_pixel dùng lại 4 vạch nhún cũ
     bgm_font = None
 RUN = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
 PIDFILE = os.path.join(RUN, "kafka-media-pill.pid")
 SLOT_FILE = os.path.join(RUN, "kafka-media-slot")
 SLOT_SIGNAL = 17
 
-PILL_W, PILL_H = 229, 26          # cỡ mặc định trước khi dò được; ô trống (min-width 240px) ra ~229x27 tại y = 6..32
-TOP = 6                           # mép trên ô trống (bản phẳng)
-PIXEL_TOP = 1                     # bản pixel: cụm cao từ y=1 (lề 1px) → viên thuốc cao bằng các cụm khác
-SLOT_X_1920 = 998                 # vị trí đoán ban đầu; vị trí thật dò bằng vạch đánh dấu (xem dưới)
+PILL_W, PILL_H = 229, 26  # cỡ mặc định trước khi dò được; ô trống (min-width 240px) ra ~229x27 tại y = 6..32
+TOP = 6  # mép trên ô trống (bản phẳng)
+PIXEL_TOP = 1  # bản pixel: cụm cao từ y=1 (lề 1px) → viên thuốc cao bằng các cụm khác
+SLOT_X_1920 = 998  # vị trí đoán ban đầu; vị trí thật dò bằng vạch đánh dấu (xem dưới)
 # Vị trí ô trống KHÔNG cố định: cụm trái (workspace, bản đồ cột, tốc độ mạng) dài ra thì GTK đẩy cụm giữa
 # sang phải. Nên Waybar kẻ ở đáy ô trống một vạch 1px màu riêng MARKER (CSS #custom-media-slot border-bottom,
 # hàng y = MARKER_Y, nằm ngay dưới viên thuốc nên không bị che) và script chụp đúng hàng đó mỗi 1.5s để tìm.
-MARKER = (0x2d, 0x25, 0x35)
-MARKER_Y = TOP + PILL_H           # = 32
+MARKER = (0x2D, 0x25, 0x35)
+MARKER_Y = TOP + PILL_H  # = 32
 CALIBRATE_MS = 1500
 
 
@@ -52,7 +52,7 @@ def find_marker(row_rgb, color=MARKER, min_run=40):
     best, start = None, None
     n = len(row_rgb) // 3
     for x in range(n + 1):
-        hit = x < n and tuple(row_rgb[3 * x:3 * x + 3]) == color
+        hit = x < n and tuple(row_rgb[3 * x : 3 * x + 3]) == color
         if hit and start is None:
             start = x
         elif not hit and start is not None:
@@ -60,17 +60,21 @@ def find_marker(row_rgb, color=MARKER, min_run=40):
                 best = (start, x - start)
             start = None
     return best
-HOVER_DELAY_MS = 180              # rê vào bao lâu mới bật sóng (lướt qua thì thôi)
+
+
+HOVER_DELAY_MS = 180  # rê vào bao lâu mới bật sóng (lướt qua thì thôi)
 LEAVE_DELAY_MS = 450
 
-TEXT = (0xfb / 255, 0xf7 / 255, 0xfd / 255)
-DIM = (0xd4 / 255, 0xca / 255, 0xde / 255)
-ACCENT = (0xe0 / 255, 0x55 / 255, 0x9a / 255)
-UI_THEME_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "kafka", "ui-theme")
+TEXT = (0xFB / 255, 0xF7 / 255, 0xFD / 255)
+DIM = (0xD4 / 255, 0xCA / 255, 0xDE / 255)
+ACCENT = (0xE0 / 255, 0x55 / 255, 0x9A / 255)
+UI_THEME_FILE = os.path.join(
+    os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "kafka", "ui-theme"
+)
 
 
 def ui_theme():
-    """"pixel" nếu đang dùng theme pixel (hypr/scripts/ui-theme.sh), còn lại "flat"."""
+    """ "pixel" nếu đang dùng theme pixel (hypr/scripts/ui-theme.sh), còn lại "flat"."""
     try:
         return "pixel" if open(UI_THEME_FILE).read().strip() == "pixel" else "flat"
     except OSError:
@@ -100,8 +104,7 @@ def write_slot(on):
             f.write("on\n" if on else "off\n")
     except OSError:
         pass
-    subprocess.Popen(["pkill", f"-RTMIN+{SLOT_SIGNAL}", "waybar"],
-                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.Popen(["pkill", f"-RTMIN+{SLOT_SIGNAL}", "waybar"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def selftest():
@@ -111,6 +114,7 @@ def selftest():
         nonlocal ok
         print(("PASS: " if cond else "FAIL: ") + name)
         ok = ok and cond
+
     i = parse_status_line("Playing\tSài Gòn Hôm Nay Mưa\tJSOL, Hoàng Duyên\n")
     check("parse playing", i == {"status": "Playing", "title": "Sài Gòn Hôm Nay Mưa", "artist": "JSOL, Hoàng Duyên"})
     check("label có ca sĩ", label_for(i) == "Sài Gòn Hôm Nay Mưa — JSOL, Hoàng Duyên")
@@ -164,6 +168,7 @@ def run():
     import math
     import threading
     import gi
+
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     gi.require_version("GtkLayerShell", "0.1")
@@ -173,9 +178,10 @@ def run():
 
     sys.path.insert(0, HERE)
     import importlib.util
+
     spec = importlib.util.spec_from_file_location("corner_fillet", os.path.join(HERE, "corner-fillet.py"))
     cf = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(cf)            # dùng lại co_fullscreen_that / theo_doi_fullscreen
+    spec.loader.exec_module(cf)  # dùng lại co_fullscreen_that / theo_doi_fullscreen
 
     class Pill(Gtk.Window):
         def __init__(self):
@@ -188,7 +194,7 @@ def run():
             self._hover_src = None
             self._leave_src = None
             self.fullscreen = False
-            self.slot = None              # (x, rộng) của ô trống Waybar, dò bằng vạch đánh dấu
+            self.slot = None  # (x, rộng) của ô trống Waybar, dò bằng vạch đánh dấu
             self.pixel = ui_theme() == "pixel"
             self.pw = PILL_W
             self.ph = PILL_H
@@ -209,15 +215,19 @@ def run():
             self.top = PIXEL_TOP if self.pixel else TOP
             GtkLayerShell.set_margin(self, GtkLayerShell.Edge.TOP, self.top)
             GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, self.slot_x())
-            self.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK
-                            | Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.SCROLL_MASK
-                            | Gdk.EventMask.SMOOTH_SCROLL_MASK)
+            self.add_events(
+                Gdk.EventMask.ENTER_NOTIFY_MASK
+                | Gdk.EventMask.LEAVE_NOTIFY_MASK
+                | Gdk.EventMask.BUTTON_PRESS_MASK
+                | Gdk.EventMask.SCROLL_MASK
+                | Gdk.EventMask.SMOOTH_SCROLL_MASK
+            )
             self.connect("draw", self.on_draw)
             self.connect("enter-notify-event", self.on_enter)
             self.connect("leave-notify-event", self.on_leave)
             self.connect("button-press-event", self.on_button)
             self.connect("scroll-event", self.on_scroll)
-            self._anim = GLib.timeout_add(50, self.tick)   # chạy chữ + vạch nhún (20 khung/giây)
+            self._anim = GLib.timeout_add(50, self.tick)  # chạy chữ + vạch nhún (20 khung/giây)
             GLib.timeout_add(CALIBRATE_MS, self.calibrate)
 
         def slot_x(self):
@@ -240,16 +250,17 @@ def run():
             try:
                 mon = Gdk.Display.get_default().get_monitor(0)
                 sw = mon.get_geometry().width if mon else 1920
-                y0 = MARKER_Y - 4            # vạch ở y=32 (bản phẳng) hoặc 31 (bản pixel: thanh có viền đáy 2px)
-                rows = 12                    # tới y=39: bản pixel đặt vạch ở y=37 (ô trống cao bằng cụm)
-                out = subprocess.run(["grim", "-g", f"0,{y0} {sw}x{rows}", "-t", "ppm", "-"],
-                                     capture_output=True, timeout=3).stdout
+                y0 = MARKER_Y - 4  # vạch ở y=32 (bản phẳng) hoặc 31 (bản pixel: thanh có viền đáy 2px)
+                rows = 12  # tới y=39: bản pixel đặt vạch ở y=37 (ô trống cao bằng cụm)
+                out = subprocess.run(
+                    ["grim", "-g", f"0,{y0} {sw}x{rows}", "-t", "ppm", "-"], capture_output=True, timeout=3
+                ).stdout
                 # PPM: "P6\n<w> <h>\n255\n" + RGB, hàng nối tiếp
                 parts = out.split(b"\n", 3)
                 if len(parts) == 4 and parts[0] == b"P6":
                     data = parts[3]
-                    for r in range(rows - 1, -1, -1):          # lấy hàng thấp nhất có vạch
-                        m = find_marker(data[r * sw * 3:(r + 1) * sw * 3])
+                    for r in range(rows - 1, -1, -1):  # lấy hàng thấp nhất có vạch
+                        m = find_marker(data[r * sw * 3 : (r + 1) * sw * 3])
                         if m:
                             res = (m[0], m[1], y0 + r)
                             break
@@ -264,7 +275,7 @@ def run():
                 if res:
                     GtkLayerShell.set_margin(self, GtkLayerShell.Edge.LEFT, res[0])
                     self.pw = res[1]
-                    self.ph = max(16, res[2] - self.top)     # viên thuốc phủ từ mép trên tới ngay trên vạch
+                    self.ph = max(16, res[2] - self.top)  # viên thuốc phủ từ mép trên tới ngay trên vạch
                     self.set_size_request(self.pw, self.ph)
                     self.resize(self.pw, self.ph)
                 self.update_visible()
@@ -300,7 +311,7 @@ def run():
             if self.get_visible():
                 self.scroll_x += 1.2
                 target = 1.0 if self.hover else 0.0
-                self.hover_k += (target - self.hover_k) * 0.35   # ~200ms chuyển mượt
+                self.hover_k += (target - self.hover_k) * 0.35  # ~200ms chuyển mượt
                 self.queue_draw()
             return True
 
@@ -313,7 +324,7 @@ def run():
                 return self.draw_pixel(ctx)
             ctx.set_operator(cairo.OPERATOR_OVER)
             w, h = self.pw, self.ph
-            r = h / 2.0                                   # bo tròn hẳn hai đầu (viên thuốc mềm)
+            r = h / 2.0  # bo tròn hẳn hai đầu (viên thuốc mềm)
 
             def pill_path(inset=0.0):
                 rr = r - inset
@@ -322,7 +333,7 @@ def run():
                 ctx.arc(r, r, rr, math.pi / 2, 3 * math.pi / 2)
                 ctx.close_path()
 
-            hv = self.hover_k                              # 0..1, đổi mượt khi rê chuột
+            hv = self.hover_k  # 0..1, đổi mượt khi rê chuột
             # nền kính: gradient chéo trắng mờ + ánh hồng→tím tăng dần khi rê chuột
             pill_path()
             g = cairo.LinearGradient(0, 0, w, h)
@@ -334,7 +345,7 @@ def run():
                 pill_path()
                 g2 = cairo.LinearGradient(0, 0, w, 0)
                 g2.add_color_stop_rgba(0.0, *ACCENT, 0.30 * hv)
-                g2.add_color_stop_rgba(1.0, 0xa9 / 255, 0x5e / 255, 0xe8 / 255, 0.16 * hv)
+                g2.add_color_stop_rgba(1.0, 0xA9 / 255, 0x5E / 255, 0xE8 / 255, 0.16 * hv)
                 ctx.set_source(g2)
                 ctx.fill()
             # vệt sáng mép trên (như mặt kính) + viền mảnh
@@ -355,8 +366,8 @@ def run():
                 x = 14 + i * 4.6
                 y0 = h / 2 + 8 - bh
                 gb = cairo.LinearGradient(0, y0, 0, y0 + bh)
-                gb.add_color_stop_rgb(0.0, 0xf0 / 255, 0x6a / 255, 0xab / 255)
-                gb.add_color_stop_rgb(1.0, 0xa9 / 255, 0x5e / 255, 0xe8 / 255)
+                gb.add_color_stop_rgb(0.0, 0xF0 / 255, 0x6A / 255, 0xAB / 255)
+                gb.add_color_stop_rgb(1.0, 0xA9 / 255, 0x5E / 255, 0xE8 / 255)
                 ctx.set_source(gb)
                 ctx.set_line_width(2.8)
                 ctx.set_line_cap(cairo.LINE_CAP_ROUND)
@@ -367,8 +378,9 @@ def run():
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("Sans 10.5"))
             text = label_for(self.info)
-            layout.set_markup(f"<i>{GLib.markup_escape_text(text)}</i>" if not playing
-                              else GLib.markup_escape_text(text), -1)
+            layout.set_markup(
+                f"<i>{GLib.markup_escape_text(text)}</i>" if not playing else GLib.markup_escape_text(text), -1
+            )
             tw, th = layout.get_pixel_size()
             x0, avail = 40, w - 40 - 14
             ctx.save()
@@ -393,7 +405,7 @@ def run():
             không khử răng cưa. Không import được pixelfont thì vẽ lại 4 vạch cũ."""
             w, h, P = self.pw, self.ph, 2
             ctx.set_antialias(cairo.ANTIALIAS_NONE)
-            dark, white = (0x14 / 255, 0x0e / 255, 0x1a / 255), (1, 1, 1)
+            dark, white = (0x14 / 255, 0x0E / 255, 0x1A / 255), (1, 1, 1)
             self._nine(ctx, "px-hover.png" if self.hover_k > 0.5 else "px.png", w, h)
 
             def rect(x, y, rw, rh, col):
@@ -403,45 +415,50 @@ def run():
 
             playing = self.info["status"] == "Playing"
             t = time.monotonic()
-            x0, drew_tag = 40, False                            # 40 = chỗ chữ bắt đầu ở bản vạch cũ
+            x0, drew_tag = 40, False  # 40 = chỗ chữ bắt đầu ở bản vạch cũ
             if bgm_font is not None:
                 cell, pad = 2, 2
                 tw = bgm_font.text_width("BGM", cell)
-                tag_x = 10                                      # ngay chỗ 4 vạch cũ bắt đầu
-                tag_w = 8 + 2 * pad + tw + cell                  # viền 2 + mép 2 + chữ(+bóng) + mép 2 + viền 2
-                tag_h = 4 + 7 * cell + cell + 2                  # 22px: bóng chữ đè 2px vào mép dưới cho vừa khung
-                if h < tag_h + 12:                              # viên thuốc thấp (vạch dò lệch 1-2px): bỏ đệm trong
-                    tag_h = 4 + 7 * cell + cell                 # 20px
-                if h >= tag_h + 8:                              # chiều cao dò được dao động 35..37 → đừng đòi đủ 36
+                tag_x = 10  # ngay chỗ 4 vạch cũ bắt đầu
+                tag_w = 8 + 2 * pad + tw + cell  # viền 2 + mép 2 + chữ(+bóng) + mép 2 + viền 2
+                tag_h = 4 + 7 * cell + cell + 2  # 22px: bóng chữ đè 2px vào mép dưới cho vừa khung
+                if h < tag_h + 12:  # viên thuốc thấp (vạch dò lệch 1-2px): bỏ đệm trong
+                    tag_h = 4 + 7 * cell + cell  # 20px
+                if h >= tag_h + 8:  # chiều cao dò được dao động 35..37 → đừng đòi đủ 36
                     tag_y = max(4, (h - tag_h) // 2 - 1)
-                    edge = (0x3d / 255, 0x10 / 255, 0x28 / 255)
-                    hi = (0xf0 / 255, 0x8c / 255, 0xbb / 255)
-                    lo = (0x96 / 255, 0x2f / 255, 0x62 / 255)
-                    fill = ((0xc9 / 255, 0x47 / 255, 0x85 / 255) if playing
-                            else (0x5a / 255, 0x4a / 255, 0x6b / 255))
-                    rect(tag_x, tag_y, tag_w, tag_h, edge)                    # viền ngoài 2px
-                    rect(tag_x + 2, tag_y + 2, tag_w - 4, tag_h - 4, fill)    # nền hồng (mờ khi pause)
-                    rect(tag_x + 2, tag_y + 2, tag_w - 4, 2, hi)              # mép sáng trên
-                    rect(tag_x + 2, tag_y + 2, 2, tag_h - 4, hi)              # mép sáng trái
-                    rect(tag_x + tag_w - 4, tag_y + 2, 2, tag_h - 4, lo)      # mép tối phải
-                    rect(tag_x + 2, tag_y + tag_h - 4, tag_w - 4, 2, lo)      # mép tối dưới
-                    bgm_font.draw_text(ctx, "BGM",
-                                       tag_x + 4 + (tag_w - 8 - tw - cell) // 2,
-                                       tag_y + 4, cell, white, shadow=edge)
-                    for i in range(3):                                         # 3 cột 2px, cùng nhịp vạch cũ
+                    edge = (0x3D / 255, 0x10 / 255, 0x28 / 255)
+                    hi = (0xF0 / 255, 0x8C / 255, 0xBB / 255)
+                    lo = (0x96 / 255, 0x2F / 255, 0x62 / 255)
+                    fill = (0xC9 / 255, 0x47 / 255, 0x85 / 255) if playing else (0x5A / 255, 0x4A / 255, 0x6B / 255)
+                    rect(tag_x, tag_y, tag_w, tag_h, edge)  # viền ngoài 2px
+                    rect(tag_x + 2, tag_y + 2, tag_w - 4, tag_h - 4, fill)  # nền hồng (mờ khi pause)
+                    rect(tag_x + 2, tag_y + 2, tag_w - 4, 2, hi)  # mép sáng trên
+                    rect(tag_x + 2, tag_y + 2, 2, tag_h - 4, hi)  # mép sáng trái
+                    rect(tag_x + tag_w - 4, tag_y + 2, 2, tag_h - 4, lo)  # mép tối phải
+                    rect(tag_x + 2, tag_y + tag_h - 4, tag_w - 4, 2, lo)  # mép tối dưới
+                    bgm_font.draw_text(
+                        ctx, "BGM", tag_x + 4 + (tag_w - 8 - tw - cell) // 2, tag_y + 4, cell, white, shadow=edge
+                    )
+                    for i in range(3):  # 3 cột 2px, cùng nhịp vạch cũ
                         amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
                         bh = max(P, (1 + int(amp * 3)) * P)
                         rect(tag_x + tag_w + i * 3, (h - bh) // 2, P, bh, hi)
-                    x0 = tag_x + tag_w + 8                                     # chữ cách thẻ 8px
+                    x0 = tag_x + tag_w + 8  # chữ cách thẻ 8px
                     drew_tag = True
             if not drew_tag:
                 # fallback: 4 vạch nhún: 4 cột khối 2px, nấc 2px (như cũ)
                 for i in range(4):
                     amp = (0.35 + 0.65 * abs(math.sin(t * (3.1 + i * 0.9) + i * 1.3))) if playing else 0.25
-                    bh = min(h - 15, int(1 + amp * 8) * P)      # nằm trong khung (trên 6, dưới 8+1)
+                    bh = min(h - 15, int(1 + amp * 8) * P)  # nằm trong khung (trên 6, dưới 8+1)
                     x = 10 + i * 6
-                    rect(x + 2, h - 9 - bh + 2, 4, bh, dark)    # bóng cứng 1 điểm (2px)
-                    rect(x, h - 9 - bh, 4, bh, (0xff / 255, 0x8c / 255, 0xc0 / 255) if i % 2 == 0 else (0xc9 / 255, 0x47 / 255, 0x85 / 255))
+                    rect(x + 2, h - 9 - bh + 2, 4, bh, dark)  # bóng cứng 1 điểm (2px)
+                    rect(
+                        x,
+                        h - 9 - bh,
+                        4,
+                        bh,
+                        (0xFF / 255, 0x8C / 255, 0xC0 / 255) if i % 2 == 0 else (0xC9 / 255, 0x47 / 255, 0x85 / 255),
+                    )
             # chữ
             layout = PangoCairo.create_layout(ctx)
             layout.set_font_description(Pango.FontDescription("FiraCode Nerd Font Bold 11"))
@@ -450,15 +467,17 @@ def run():
             tw, th = layout.get_pixel_size()
             avail = max(0, w - x0 - 4 * P)
             ctx.save()
-            ctx.rectangle(x0, 2, avail, h - 5)                  # rộng theo chiều dọc: đừng xén dấu tiếng Việt
+            ctx.rectangle(x0, 2, avail, h - 5)  # rộng theo chiều dọc: đừng xén dấu tiếng Việt
             ctx.clip()
-            ty = (h - 2 - th) // 2                               # khung dưới dày hơn trên 2px (bóng)
-            offs = [0] if tw <= avail else [-(int(self.scroll_x) % (tw + 48)), -(int(self.scroll_x) % (tw + 48)) + tw + 48]
+            ty = (h - 2 - th) // 2  # khung dưới dày hơn trên 2px (bóng)
+            offs = (
+                [0] if tw <= avail else [-(int(self.scroll_x) % (tw + 48)), -(int(self.scroll_x) % (tw + 48)) + tw + 48]
+            )
             for off in offs:
                 ctx.set_source_rgb(*dark)
                 ctx.move_to(x0 + off + 2, ty + 2)
                 PangoCairo.show_layout(ctx, layout)
-                ctx.set_source_rgb(*(white if (playing or self.hover) else (0xe6 / 255, 0xdc / 255, 0xf2 / 255)))
+                ctx.set_source_rgb(*(white if (playing or self.hover) else (0xE6 / 255, 0xDC / 255, 0xF2 / 255)))
                 ctx.move_to(x0 + off, ty)
                 PangoCairo.show_layout(ctx, layout)
             ctx.restore()
@@ -528,13 +547,16 @@ def run():
         def start_hover_fx(self):
             self._hover_src = None
             # đã tự bật sóng (Super + Shift + A) thì để yên
-            r = subprocess.run([os.path.join(HERE, "cava-wallpaper.py"), "--status"],
-                               capture_output=True, text=True)
+            r = subprocess.run([os.path.join(HERE, "cava-wallpaper.py"), "--status"], capture_output=True, text=True)
             if r.stdout.strip() == "on" or self.info["status"] != "Playing":
                 return False
-            self.hover_proc = subprocess.Popen([sys.executable, os.path.join(HERE, "cava-wallpaper.py"), "--overlay"],
-                                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                               stderr=subprocess.DEVNULL, start_new_session=True)
+            self.hover_proc = subprocess.Popen(
+                [sys.executable, os.path.join(HERE, "cava-wallpaper.py"), "--overlay"],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
             return False
 
         def stop_hover_fx(self):
@@ -548,9 +570,13 @@ def run():
             if ev.button == 1:
                 self.stop_hover_fx()
                 cx = self.slot_x() + self.pw // 2
-                subprocess.Popen([sys.executable, os.path.join(HERE, "media-popup.py"), "--x", str(cx)],
-                                 start_new_session=True, stdin=subprocess.DEVNULL,
-                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.Popen(
+                    [sys.executable, os.path.join(HERE, "media-popup.py"), "--x", str(cx)],
+                    start_new_session=True,
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             elif ev.button == 3:
                 subprocess.Popen(["playerctl", "play-pause"])
             elif ev.button == 2:
@@ -571,14 +597,18 @@ def run():
     # Theo dõi trạng thái bằng playerctl --follow (đẩy sự kiện, không phải hỏi liên tục)
     def follow():
         while True:
-            p = subprocess.Popen(["playerctl", "--follow", "metadata", "--format",
-                                  "{{status}}\t{{title}}\t{{artist}}"],
-                                 stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            p = subprocess.Popen(
+                ["playerctl", "--follow", "metadata", "--format", "{{status}}\t{{title}}\t{{artist}}"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
             for line in p.stdout:
                 GLib.idle_add(win.set_info, parse_status_line(line))
             p.wait()
             GLib.idle_add(win.set_info, parse_status_line(""))
             time.sleep(2)
+
     threading.Thread(target=follow, daemon=True).start()
 
     # Toàn màn hình thật → ẩn (dùng lại logic của corner-fillet, thay show/hide bằng cờ)
@@ -590,12 +620,14 @@ def run():
         def show(self_):
             win.fullscreen = False
             win.update_visible()
+
     cf.theo_doi_fullscreen(Proxy(), GLib)
 
     def quit_(*_a):
         win.stop_hover_fx()
         Gtk.main_quit()
         return False
+
     for sig in (signal.SIGTERM, signal.SIGINT):
         GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, quit_)
     win.update_visible()

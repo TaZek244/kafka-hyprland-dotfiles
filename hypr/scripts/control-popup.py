@@ -25,7 +25,7 @@ import threading
 import gi
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("Gdk", "3.0")   # thiếu dòng này PyGObject có thể nạp nhầm Gdk 4
+gi.require_version("Gdk", "3.0")  # thiếu dòng này PyGObject có thể nạp nhầm Gdk 4
 gi.require_version("GtkLayerShell", "0.1")
 from gi.repository import GLib, Gtk, Gdk, GtkLayerShell  # noqa: E402
 
@@ -38,22 +38,46 @@ PAGES = ("main", "wifi", "bluetooth", "audio")
 
 # Góc khung: thanh trên cao 40 (gắn sát mép) + khe 8; dock rộng 48 + khe 8. Đổi Waybar thì đo lại.
 POP_TOP, POP_RIGHT = 48, 56
-PANEL_W = 470   # cố định cho mọi trang (chữ 11.5pt đậm cần ~470 cho chữ trong ô), đổi trang không nhảy bề rộng
-PILL_W = 72     # ô ON/OFF/giá trị ở cột phải (bản pixel): rộng cố định để thẳng cột
+PANEL_W = 470  # cố định cho mọi trang (chữ 11.5pt đậm cần ~470 cho chữ trong ô), đổi trang không nhảy bề rộng
+PILL_W = 72  # ô ON/OFF/giá trị ở cột phải (bản pixel): rộng cố định để thẳng cột
 REFRESH_MS = {"main": 2000, "wifi": 5000, "bluetooth": 2500, "audio": 2000}
 
 # Glyph Nerd Font (ghi bằng mã, không dán ký tự)
 G = {
-    "wifi": "\U000f0928", "wifi_off": "\U000f092e", "wifi_lv": ("\U000f091f", "\U000f0922", "\U000f0925", "\U000f0928"),
-    "bt": "\U000f00af", "bt_off": "\U000f00b2", "bt_on": "\U000f00b1",
-    "headphones": "\U000f02cb", "headset": "\U000f02ce", "mouse": "\U000f037d", "keyboard": "\U000f030c",
-    "phone": "\U000f03f2", "speaker": "\U000f04c3", "mic": "\U000f036c",
-    "dnd": "\U000f009b", "idle": "\U000f0176", "saver": "\U000f0f86", "balanced": "\U000f0f85", "perf": "\U000f04c5",
-    "vol": "\U000f057e", "mute": "\U000f075f", "bright": "\U000f00e0", "bat": "\U000f0079", "bat_chg": "\U000f0084",
-    "lock": "\U000f033e", "refresh": "\U000f0450", "next": "\U000f0142", "back": "\U000f0141", "check": "\U000f012c",
+    "wifi": "\U000f0928",
+    "wifi_off": "\U000f092e",
+    "wifi_lv": ("\U000f091f", "\U000f0922", "\U000f0925", "\U000f0928"),
+    "bt": "\U000f00af",
+    "bt_off": "\U000f00b2",
+    "bt_on": "\U000f00b1",
+    "headphones": "\U000f02cb",
+    "headset": "\U000f02ce",
+    "mouse": "\U000f037d",
+    "keyboard": "\U000f030c",
+    "phone": "\U000f03f2",
+    "speaker": "\U000f04c3",
+    "mic": "\U000f036c",
+    "dnd": "\U000f009b",
+    "idle": "\U000f0176",
+    "saver": "\U000f0f86",
+    "balanced": "\U000f0f85",
+    "perf": "\U000f04c5",
+    "vol": "\U000f057e",
+    "mute": "\U000f075f",
+    "bright": "\U000f00e0",
+    "bat": "\U000f0079",
+    "bat_chg": "\U000f0084",
+    "lock": "\U000f033e",
+    "refresh": "\U000f0450",
+    "next": "\U000f0142",
+    "back": "\U000f0141",
+    "check": "\U000f012c",
 }
-POWER_NAME = {"power-saver": ("Tiết kiệm", G["saver"]), "balanced": ("Cân bằng", G["balanced"]),
-              "performance": ("Hiệu năng", G["perf"])}
+POWER_NAME = {
+    "power-saver": ("Tiết kiệm", G["saver"]),
+    "balanced": ("Cân bằng", G["balanced"]),
+    "performance": ("Hiệu năng", G["perf"]),
+}
 
 CSS = """
 /* ĐỒNG BỘ với waybar/style.css: màu nhấn = màu khối Kafka @accent #c94785 (chữ trắng 4.5:1), chữ màu Kafka trên nền
@@ -114,6 +138,7 @@ def lbl(text="", cls=None, xalign=0.0, ellipsize=False):
     w = Gtk.Label(label=text, xalign=xalign)
     if ellipsize:
         from gi.repository import Pango
+
         w.set_ellipsize(Pango.EllipsizeMode.END)
         w.set_max_width_chars(24)
     for c in (cls or "").split():
@@ -171,13 +196,13 @@ class ControlPopup(Gtk.Window):
     def __init__(self, be, page):
         super().__init__(title="kafka-control")
         self.be = be
-        self.dragging = 0            # số thanh trượt đang bị kéo
-        self.updating = False        # đang cập nhật công tắc từ dữ liệu -> bỏ qua tín hiệu
-        self.loading = set()         # trang đang tải (tránh chồng lệnh)
-        self.sig = {}                # chữ ký dữ liệu danh sách đã vẽ
-        self.wifi_open = None        # SSID đang mở ô mật khẩu
-        self.bt_menu = None          # path thiết bị đang hiện nút "Gỡ"
-        self.wifi_menu = None        # SSID đang hiện nút "Quên"
+        self.dragging = 0  # số thanh trượt đang bị kéo
+        self.updating = False  # đang cập nhật công tắc từ dữ liệu -> bỏ qua tín hiệu
+        self.loading = set()  # trang đang tải (tránh chồng lệnh)
+        self.sig = {}  # chữ ký dữ liệu danh sách đã vẽ
+        self.wifi_open = None  # SSID đang mở ô mật khẩu
+        self.bt_menu = None  # path thiết bị đang hiện nút "Gỡ"
+        self.wifi_menu = None  # SSID đang hiện nút "Quên"
         self.power_cur = None
         self.state = {}
         self._build_window()
@@ -191,10 +216,14 @@ class ControlPopup(Gtk.Window):
     def _build_window(self):
         prov = Gtk.CssProvider()
         prov.load_from_data(CSS.encode())
-        Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), prov,
-                                                 Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)   # trên ~/.config/gtk-3.0/gtk.css (màu nhấn hồng chung) để thanh trượt ra màu tím
-        import kafka_theme as kt          # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
-        self.pixel = kt.apply(kt.panel(".panel", "2px", titled=True) + f"""
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), prov, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1
+        )  # trên ~/.config/gtk-3.0/gtk.css (màu nhấn hồng chung) để thanh trượt ra màu tím
+        import kafka_theme as kt  # giao diện pixel mềm (đồng bộ Waybar) nếu đang bật
+
+        self.pixel = kt.apply(
+            kt.panel(".panel", "2px", titled=True)
+            + f"""
 .section {{ color: {kt.PINK_FG}; }}
 .tile {{ {kt.CARD} }}
 .tile.on {{ {kt.CARD_ON} }}
@@ -265,7 +294,8 @@ button.px-toggle.opt-off label {{ color: #9a8bab; }}
 button.px-toggle.opt-on {{ background-color: #c94785; box-shadow: inset 0 0 0 2px #3d1028, inset 0 2px 0 #f08cbb; }}
 button.px-toggle.opt-on label {{ color: #ffffff; }}
 button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
-""")
+"""
+        )
         self.set_app_paintable(True)
         vis = self.get_screen().get_rgba_visual()
         if vis:
@@ -332,6 +362,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
                 res = (False, str(exc))
             if done:
                 GLib.idle_add(lambda: (done(res), False)[1])
+
         threading.Thread(target=work, daemon=True).start()
 
     def act(self, fn, *args, then=None, status=None):
@@ -347,6 +378,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             if then:
                 then(res)
             self.refresh(force=True)
+
         self.bg(fn, *args, done=done)
 
     # ---------- trang ----------
@@ -362,8 +394,9 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             self.wifi_open = self.wifi_menu = self.bt_menu = None
         self.stack.set_visible_child_name(self.page)
         if self.px_title:
-            self.px_title.set_text({"main": "> STATUS", "wifi": "> WI-FI",
-                                    "bluetooth": "> BLUETOOTH", "audio": "> AUDIO"}[self.page])
+            self.px_title.set_text(
+                {"main": "> STATUS", "wifi": "> WI-FI", "bluetooth": "> BLUETOOTH", "audio": "> AUDIO"}[self.page]
+            )
         self.refresh(force=True)
         if self.page == "wifi":
             self.wifi_rescan()
@@ -377,6 +410,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             if self.wifi_status.get_text().startswith("Đang quét"):
                 self.wifi_status.set_text("")
             self.refresh(force=True)
+
         self.bg(self.be.wifi_list, True, done=done)
 
     def _tick(self):
@@ -398,14 +432,23 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             return
         page = self.page
         self.loading.add(page)
-        loader = {"main": self._load_main, "wifi": lambda: self._load_wifi(rescan),
-                  "bluetooth": self._load_bt, "audio": self._load_audio}[page]
+        loader = {
+            "main": self._load_main,
+            "wifi": lambda: self._load_wifi(rescan),
+            "bluetooth": self._load_bt,
+            "audio": self._load_audio,
+        }[page]
 
         def done(data):
             self.loading.discard(page)
             if self.page == page and not self.dragging:
-                {"main": self._show_main, "wifi": self._show_wifi,
-                 "bluetooth": self._show_bt, "audio": self._show_audio}[page](data)
+                {
+                    "main": self._show_main,
+                    "wifi": self._show_wifi,
+                    "bluetooth": self._show_bt,
+                    "audio": self._show_audio,
+                }[page](data)
+
         self.bg(loader, done=done)
 
     def header(self, box, title, back=True):
@@ -436,7 +479,9 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
                 scale._timer = None
                 self.bg(on_change, int(scale.get_value()))
                 return False
+
             scale._timer = GLib.timeout_add(80, fire)
+
         s.connect("value-changed", changed)
         s.connect("button-press-event", lambda *_: setattr(self, "dragging", self.dragging + 1) or False)
         s.connect("button-release-event", lambda *_: setattr(self, "dragging", max(0, self.dragging - 1)) or False)
@@ -445,7 +490,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 
     @staticmethod
     def set_slider(s, value):
-        if s._timer:     # đang gửi giá trị người dùng vừa kéo
+        if s._timer:  # đang gửi giá trị người dùng vừa kéo
             return
         s._quiet = True
         s.set_value(value)
@@ -464,6 +509,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             btn.set_label("[ON]" if on else "[OFF]")
             set_cls(btn, "opt-on", on)
             set_cls(btn, "opt-off", not on)
+
         b.connect("notify::active", paint)
         return b
 
@@ -483,9 +529,14 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 
         grid = Gtk.Grid(column_spacing=8, row_spacing=8, column_homogeneous=True)
         self.tiles = {}
-        specs = [("wifi", G["wifi"], "Wi-Fi", True), ("bluetooth", G["bt"], "Bluetooth", True),
-                 ("dnd", G["dnd"], "Không làm phiền", False), ("idle", G["idle"], "Giữ màn hình sáng", False),
-                 ("power", G["balanced"], "Chế độ nguồn", False), ("ime", G["keyboard"], "Bộ gõ", False)]
+        specs = [
+            ("wifi", G["wifi"], "Wi-Fi", True),
+            ("bluetooth", G["bt"], "Bluetooth", True),
+            ("dnd", G["dnd"], "Không làm phiền", False),
+            ("idle", G["idle"], "Giữ màn hình sáng", False),
+            ("power", G["balanced"], "Chế độ nguồn", False),
+            ("ime", G["keyboard"], "Bộ gõ", False),
+        ]
         for i, (key, glyph, name, split) in enumerate(specs):
             tile = self._tile(key, glyph, name, split)
             grid.attach(tile, i % 2, i // 2, 1, 1)
@@ -532,10 +583,15 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 
         self.opt_rows = {}
         menu = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=3)
-        specs = [("wifi", G["wifi"], "Wi-Fi"), ("bluetooth", G["bt"], "Bluetooth"),
-                 ("vpn", G["lock"], "VPN"), ("dnd", G["dnd"], "Không làm phiền"),
-                 ("idle", G["idle"], "Giữ màn hình sáng"), ("power", G["balanced"], "Chế độ nguồn"),
-                 ("ime", G["keyboard"], "Bộ gõ")]
+        specs = [
+            ("wifi", G["wifi"], "Wi-Fi"),
+            ("bluetooth", G["bt"], "Bluetooth"),
+            ("vpn", G["lock"], "VPN"),
+            ("dnd", G["dnd"], "Không làm phiền"),
+            ("idle", G["idle"], "Giữ màn hình sáng"),
+            ("power", G["balanced"], "Chế độ nguồn"),
+            ("ime", G["keyboard"], "Bộ gõ"),
+        ]
         for key, glyph, name in specs:
             row = self._pixel_option_row(key, glyph, name)
             menu.pack_start(row, False, False, 0)
@@ -555,8 +611,8 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         cursor = lbl(">", "opt-cursor")
         icon = lbl(glyph, "opt-icon")
         title = lbl(name, "opt-name", ellipsize=True)
-        value = Gtk.Box(spacing=6)           # [chữ mờ co giãn][ô cố định 64px: pill hoặc giá trị vàng]
-        value.set_halign(Gtk.Align.END)      # KHÔNG hexpand: GTK3 coi hexpand = giãn → chia chỗ trống với tên, cột lệch
+        value = Gtk.Box(spacing=6)  # [chữ mờ co giãn][ô cố định 64px: pill hoặc giá trị vàng]
+        value.set_halign(Gtk.Align.END)  # KHÔNG hexpand: GTK3 coi hexpand = giãn → chia chỗ trống với tên, cột lệch
         row.add(h)
         h.pack_start(cursor, False, False, 0)
         h.pack_start(icon, False, False, 0)
@@ -614,8 +670,11 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         more.set_size_request(36, -1)
         row.pack_end(more, False, False, 0)
         row.pack_end(value, False, False, 0)
-        scale = self.make_slider(0 if key == "vol" else 1, 100,
-                                 (lambda v: self.be.audio_set_volume("output", v)) if key == "vol" else self.be.brightness_set)
+        scale = self.make_slider(
+            0 if key == "vol" else 1,
+            100,
+            (lambda v: self.be.audio_set_volume("output", v)) if key == "vol" else self.be.brightness_set,
+        )
         add_cls(scale, "pixel-gauge")
         box.pack_start(row, False, False, 0)
         box.pack_start(scale, False, False, 0)
@@ -685,9 +744,18 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 
     def _load_main(self):
         be = self.be
-        data = {"wifi": be.wifi_state(), "bt": be.bt_state(), "dnd": be.dnd_get(), "idle": be.idle_inhibit_get(),
-                "power": be.power_profile_get(), "profiles": be.power_profiles(), "ime": be.ime_get(),
-                "bat": be.battery(), "vol": be.audio_volume("output"), "bri": be.brightness_get()}
+        data = {
+            "wifi": be.wifi_state(),
+            "bt": be.bt_state(),
+            "dnd": be.dnd_get(),
+            "idle": be.idle_inhibit_get(),
+            "power": be.power_profile_get(),
+            "profiles": be.power_profiles(),
+            "ime": be.ime_get(),
+            "bat": be.battery(),
+            "vol": be.audio_volume("output"),
+            "bri": be.brightness_get(),
+        }
         if self.pixel:
             data["vpn"] = self._vpn_status()
         return data
@@ -701,10 +769,20 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         conn = next((x for x in bt.get("devices", []) if x.get("connected")), None)
         power_name, power_glyph = POWER_NAME.get(d["power"], (d["power"] or "?", G["balanced"]))
         values = {
-            "wifi": (wifi.get("enabled"), (wifi.get("ssid") or "Chưa kết nối") if wifi.get("enabled") else ("Khoá phần cứng" if wifi.get("hw_blocked") else "Đã tắt"),
-                     wifi_glyph(wifi.get("strength")) if wifi.get("ssid") else (G["wifi"] if wifi.get("enabled") else G["wifi_off"])),
-            "bluetooth": (bt.get("powered"), conn["name"] if conn else ("Bật" if bt.get("powered") else "Đã tắt"),
-                          G["bt_on"] if conn else (G["bt"] if bt.get("powered") else G["bt_off"])),
+            "wifi": (
+                wifi.get("enabled"),
+                (wifi.get("ssid") or "Chưa kết nối")
+                if wifi.get("enabled")
+                else ("Khoá phần cứng" if wifi.get("hw_blocked") else "Đã tắt"),
+                wifi_glyph(wifi.get("strength"))
+                if wifi.get("ssid")
+                else (G["wifi"] if wifi.get("enabled") else G["wifi_off"]),
+            ),
+            "bluetooth": (
+                bt.get("powered"),
+                conn["name"] if conn else ("Bật" if bt.get("powered") else "Đã tắt"),
+                G["bt_on"] if conn else (G["bt"] if bt.get("powered") else G["bt_off"]),
+            ),
             "dnd": (d["dnd"], "Đang bật" if d["dnd"] else "Tắt", G["dnd"]),
             "idle": (d["idle"], "Không tự khoá" if d["idle"] else "Tắt", G["idle"]),
             "power": (d["power"] == "performance", power_name, power_glyph),
@@ -736,24 +814,32 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         self.sig["main-pixel"] = sig
         wifi, bt = d["wifi"], d["bt"]
         conn = next((x for x in bt.get("devices", []) if x.get("connected")), None)
-        power = {"power-saver": "TIẾT KIỆM", "balanced": "CÂN BẰNG", "performance": "HIỆU NĂNG"}.get(d.get("power"), "?")
+        power = {"power-saver": "TIẾT KIỆM", "balanced": "CÂN BẰNG", "performance": "HIỆU NĂNG"}.get(
+            d.get("power"), "?"
+        )
         ime = "VI" if d.get("ime") == "vi" else "EN"
         vpn = d.get("vpn") or {}
         tooltip = vpn.get("tooltip") or ""
         vpn_name = tooltip.split(" — ", 1)[0].strip() if tooltip else "Không kết nối"
         values = {
-            "wifi": (wifi.get("enabled"), wifi.get("ssid") or "Chưa kết nối", wifi_glyph(wifi.get("strength")) if wifi.get("ssid") else G["wifi"]),
+            "wifi": (
+                wifi.get("enabled"),
+                wifi.get("ssid") or "Chưa kết nối",
+                wifi_glyph(wifi.get("strength")) if wifi.get("ssid") else G["wifi"],
+            ),
             "bluetooth": (bt.get("powered"), conn["name"] if conn else "Chưa kết nối", G["bt_on"] if conn else G["bt"]),
             "vpn": (vpn.get("class") == "on", vpn_name, G["lock"]),
-            "dnd": (d.get("dnd"), "", G["dnd"]), "idle": (d.get("idle"), "", G["idle"]),
-            "power": (False, power, G["balanced"]), "ime": (d.get("ime") == "vi", ime, G["keyboard"]),
+            "dnd": (d.get("dnd"), "", G["dnd"]),
+            "idle": (d.get("idle"), "", G["idle"]),
+            "power": (False, power, G["balanced"]),
+            "ime": (d.get("ime") == "vi", ime, G["keyboard"]),
         }
         for key, (on, value, glyph) in values.items():
             item = self.opt_rows[key]
             item["icon"].set_text(glyph)
             set_cls(item["row"], "active", bool(on))
             clear(item["value"])
-            slot = Gtk.Box()                    # ô phải CỐ ĐỊNH: mọi pill/giá trị thẳng một cột
+            slot = Gtk.Box()  # ô phải CỐ ĐỊNH: mọi pill/giá trị thẳng một cột
             slot.set_size_request(PILL_W, -1)
             if key in ("wifi", "bluetooth", "vpn") and value:
                 dim = lbl(value, "opt-dim", 1.0, ellipsize=True)
@@ -836,7 +922,11 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         h.pack_start(lbl(wifi_glyph(net.get("strength")), "icon"), False, False, 0)
         texts = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         texts.pack_start(lbl(ssid, ellipsize=True), False, False, 0)
-        sub = "Đã kết nối · bấm để ngắt" if net.get("active") else ("Đã lưu" if net.get("known") else ("Bảo mật" if net.get("secure") else "Mở"))
+        sub = (
+            "Đã kết nối · bấm để ngắt"
+            if net.get("active")
+            else ("Đã lưu" if net.get("known") else ("Bảo mật" if net.get("secure") else "Mở"))
+        )
         texts.pack_start(lbl(sub, "sub"), False, False, 0)
         h.pack_start(texts, True, True, 0)
         if net.get("secure"):
@@ -849,8 +939,13 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         outer.pack_start(btn, False, False, 0)
         if self.wifi_menu == ssid and net.get("known"):
             forget = add_cls(Gtk.Button(label="Quên mạng này"), "row")
-            forget.connect("clicked", lambda *_: (setattr(self, "wifi_menu", None),
-                                                 self.act(self.be.wifi_forget, ssid, status=self.wifi_status)))
+            forget.connect(
+                "clicked",
+                lambda *_: (
+                    setattr(self, "wifi_menu", None),
+                    self.act(self.be.wifi_forget, ssid, status=self.wifi_status),
+                ),
+            )
             outer.pack_start(forget, False, False, 0)
         if self.wifi_open == ssid:
             pw = Gtk.Box(spacing=6)
@@ -858,7 +953,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             entry.set_visibility(False)
             entry.set_placeholder_text("Mật khẩu")
             entry.set_hexpand(True)
-            eye = add_cls(Gtk.Button(label="\U000f0208"), "flat-icon")   # 󰈈 hiện/ẩn
+            eye = add_cls(Gtk.Button(label="\U000f0208"), "flat-icon")  # 󰈈 hiện/ẩn
             eye.connect("clicked", lambda *_: entry.set_visibility(not entry.get_visibility()))
             go = add_cls(Gtk.Button(label="Kết nối"), "row")
 
@@ -867,6 +962,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
                 self.wifi_open = None
                 self.wifi_status.set_text(f"Đang kết nối {ssid} …")
                 self.act(self.be.wifi_connect, ssid, password, status=self.wifi_status)
+
             go.connect("clicked", connect)
             entry.connect("activate", connect)
             for w, e in ((entry, True), (eye, False), (go, False)):
@@ -932,6 +1028,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             self.bt_scan.set_sensitive(True)
             self.bt_status.set_text("")
             return False
+
         GLib.timeout_add_seconds(20, stop)
 
     def _load_bt(self):
@@ -991,6 +1088,7 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
         def click(*_):
             self.bt_status.set_text(msg)
             self.act(fn, path, status=self.bt_status)
+
         btn.connect("clicked", click)
 
         def right(_b, ev):
@@ -1000,12 +1098,15 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
                 self.refresh(force=True)
                 return True
             return False
+
         btn.connect("button-press-event", right)
         outer.pack_start(btn, False, False, 0)
         if self.bt_menu == path:
             rm = add_cls(Gtk.Button(label="Gỡ thiết bị này"), "row")
-            rm.connect("clicked", lambda *_: (setattr(self, "bt_menu", None),
-                                             self.act(self.be.bt_remove, path, status=self.bt_status)))
+            rm.connect(
+                "clicked",
+                lambda *_: (setattr(self, "bt_menu", None), self.act(self.be.bt_remove, path, status=self.bt_status)),
+            )
             outer.pack_start(rm, False, False, 0)
         return outer
 
@@ -1031,9 +1132,13 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
 
     def _show_audio(self, d):
         # Cấu trúc (danh sách thiết bị/app, cái nào mặc định) đổi -> vẽ lại; chỉ âm lượng đổi -> cập nhật thanh trượt.
-        shape = json.dumps([[(x["name"], x["default"], x["muted"]) for x in d["out"]],
-                            [(x["name"], x["default"], x["muted"]) for x in d["in"]],
-                            [(x["index"], x["app"], x["muted"]) for x in d["apps"]]])
+        shape = json.dumps(
+            [
+                [(x["name"], x["default"], x["muted"]) for x in d["out"]],
+                [(x["name"], x["default"], x["muted"]) for x in d["in"]],
+                [(x["index"], x["app"], x["muted"]) for x in d["apps"]],
+            ]
+        )
         if shape != self.sig.get("audio"):
             self.sig["audio"] = shape
             self._build_audio(d)
@@ -1049,8 +1154,10 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
     def _build_audio(self, d):
         clear(self.audio_list)
         self.audio_sliders = {}
-        for title, kind, items, glyph in (("Loa / tai nghe", "output", d["out"], G["speaker"]),
-                                          ("Micro", "input", d["in"], G["mic"])):
+        for title, kind, items, glyph in (
+            ("Loa / tai nghe", "output", d["out"], G["speaker"]),
+            ("Micro", "input", d["in"], G["mic"]),
+        ):
             self.audio_list.pack_start(lbl(title, "section"), False, False, 0)
             if not items:
                 self.audio_list.pack_start(lbl("Không có thiết bị", "sub"), False, False, 0)
@@ -1061,7 +1168,9 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             self.audio_list.pack_start(lbl("Không có ứng dụng nào phát âm thanh", "sub"), False, False, 0)
         for app in d["apps"]:
             row = add_cls(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2), "row")
-            row.pack_start(lbl(app["app"] + (" (tắt tiếng)" if app.get("muted") else ""), "sub", ellipsize=True), False, False, 0)
+            row.pack_start(
+                lbl(app["app"] + (" (tắt tiếng)" if app.get("muted") else ""), "sub", ellipsize=True), False, False, 0
+            )
             s = self.make_slider(0, 150, lambda v, i=app["index"]: self.be.audio_set_stream_volume(i, v))
             s.set_value(app["volume"])
             row.pack_start(s, False, False, 0)
@@ -1080,9 +1189,11 @@ button.px-toggle:hover {{ box-shadow: inset 0 0 0 2px #f08cbb; }}
             h.pack_end(lbl("tắt tiếng", "sub"), False, False, 0)
         btn.add(h)
         btn.set_tooltip_text("Đang dùng" if dev.get("default") else "Bấm để dùng thiết bị này")
-        btn.connect("clicked", lambda *_: self.act(self.be.audio_set_default, kind, dev["name"], status=self.audio_status))
+        btn.connect(
+            "clicked", lambda *_: self.act(self.be.audio_set_default, kind, dev["name"], status=self.audio_status)
+        )
         outer.pack_start(btn, False, False, 0)
-        if dev.get("default"):   # chỉ thiết bị đang dùng mới có thanh âm lượng cho gọn
+        if dev.get("default"):  # chỉ thiết bị đang dùng mới có thanh âm lượng cho gọn
             s = self.make_slider(0, 150, lambda v, n=dev["name"]: self.be.audio_set_volume(kind, v, n))
             s.set_value(dev["volume"])
             outer.pack_start(s, False, False, 0)
@@ -1116,6 +1227,7 @@ def selftest():
         print("selftest bỏ qua: không có display")
         return 0
     import fake_backends as be
+
     Gtk.init([])
     w = ControlPopup.__new__(ControlPopup)
     Gtk.Window.__init__(w, title="kafka-control-test")
@@ -1141,7 +1253,7 @@ def selftest():
     w._show_wifi(w._load_wifi())
     w._show_bt(w._load_bt())
     w._show_audio(w._load_audio())
-    w._show_audio(w._load_audio())   # lần 2: chỉ cập nhật thanh trượt
+    w._show_audio(w._load_audio())  # lần 2: chỉ cập nhật thanh trượt
     print("selftest ok")
     return 0
 
@@ -1154,11 +1266,11 @@ def main():
     pid = other_instance()
     if pid:
         if page is None or page == current_page_of_running():
-            os.kill(pid, signal.SIGTERM)          # bấm lại cùng nút = đóng
+            os.kill(pid, signal.SIGTERM)  # bấm lại cùng nút = đóng
         else:
             with open(PAGEFILE, "w") as f:
                 f.write(page)
-            os.kill(pid, signal.SIGUSR1)          # bấm nút khác = chuyển trang
+            os.kill(pid, signal.SIGUSR1)  # bấm nút khác = chuyển trang
         return
     if "--fake" in args:
         import fake_backends as be
@@ -1176,6 +1288,7 @@ def main():
                 f.write(win.page)
         except OSError:
             pass
+
     win.stack.connect("notify::visible-child-name", remember)
     remember()
 
@@ -1184,9 +1297,11 @@ def main():
         if req in PAGES:
             win.go(req)
         return True
+
     try:
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_signal = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_signal = GLib.unix_signal_add

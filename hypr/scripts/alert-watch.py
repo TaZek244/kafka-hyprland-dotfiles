@@ -83,9 +83,18 @@ def load_config(path=CONFIG_FILE):
             config[name]["enabled"] = value["enabled"]
         if "levels" in default:
             levels = value.get("levels")
-            if isinstance(levels, list) and levels and all(isinstance(x, int) and not isinstance(x, bool) and 1 <= x <= 99 for x in levels):
+            if (
+                isinstance(levels, list)
+                and levels
+                and all(isinstance(x, int) and not isinstance(x, bool) and 1 <= x <= 99 for x in levels)
+            ):
                 config[name]["levels"] = sorted(set(levels), reverse=True)
-            if "critical" in default and isinstance(value.get("critical"), int) and not isinstance(value.get("critical"), bool) and 0 <= value["critical"] <= 99:   # 0 = không bao giờ khẩn cấp
+            if (
+                "critical" in default
+                and isinstance(value.get("critical"), int)
+                and not isinstance(value.get("critical"), bool)
+                and 0 <= value["critical"] <= 99
+            ):  # 0 = không bao giờ khẩn cấp
                 config[name]["critical"] = value["critical"]
         elif name == "popup":
             for key in ("enabled", "sound"):
@@ -125,7 +134,9 @@ class LevelTracker:
                 self.armed.add(level)
         old = self.previous
         self.previous = value
-        crossed = [level for level in self.levels if level in self.armed and value <= level and (old is None or old > level)]
+        crossed = [
+            level for level in self.levels if level in self.armed and value <= level and (old is None or old > level)
+        ]
         if not crossed:
             return None
         lowest = min(crossed)
@@ -234,18 +245,32 @@ def battery_time():
     return ""
 
 
-POPUP_CONFIG = dict(DEFAULTS["popup"])      # daemon cập nhật khi nạp cấu hình (set_popup_config)
+POPUP_CONFIG = dict(DEFAULTS["popup"])  # daemon cập nhật khi nạp cấu hình (set_popup_config)
 
 
 def set_popup_config(config):
-    POPUP_CONFIG.clear(); POPUP_CONFIG.update(config.get("popup", DEFAULTS["popup"]))
+    POPUP_CONFIG.clear()
+    POPUP_CONFIG.update(config.get("popup", DEFAULTS["popup"]))
 
 
 def popup_args(category, title, body, urgency, popup, value=None, device_kind=""):
     level = {"critical": "critical", "low": "ok"}.get(urgency, "warn")
-    args = [sys.executable, POPUP, "--title", title, "--body", body, "--level", level,
-            "--kind", POPUP_KIND.get(category, "test"), "--seconds", str(popup["seconds"]),
-            "--volume", str(popup["volume"])]
+    args = [
+        sys.executable,
+        POPUP,
+        "--title",
+        title,
+        "--body",
+        body,
+        "--level",
+        level,
+        "--kind",
+        POPUP_KIND.get(category, "test"),
+        "--seconds",
+        str(popup["seconds"]),
+        "--volume",
+        str(popup["volume"]),
+    ]
     if value is not None:
         args += ["--value", str(int(round(value)))]
     if device_kind:
@@ -253,25 +278,35 @@ def popup_args(category, title, body, urgency, popup, value=None, device_kind=""
     return args + (["--sound"] if popup["sound"] else [])
 
 
-def notify(category, title, body, urgency="normal", icon="dialog-warning", device=None, sender=None,
-           value=None, device_kind=""):
+def notify(
+    category, title, body, urgency="normal", icon="dialog-warning", device=None, sender=None, value=None, device_kind=""
+):
     if sender is not None:
         sender(category, title, body, urgency, icon, device)
         return
     tag = "kafka-alert-" + category + ("-" + device.replace(" ", "-") if device else "")
     popup = POPUP_CONFIG.get("enabled") and os.path.exists(POPUP)
     if popup:
-        try:        # bảng giữa màn hình + âm thanh; không chờ (bảng tự đóng/xếp hàng)
-            subprocess.Popen(popup_args(category, title, body, urgency, POPUP_CONFIG, value, device_kind),
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        try:  # bảng giữa màn hình + âm thanh; không chờ (bảng tự đóng/xếp hàng)
+            subprocess.Popen(
+                popup_args(category, title, body, urgency, POPUP_CONFIG, value, device_kind),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
         except OSError:
             popup = False
     # vẫn gửi dunst để có trong lịch sử; khi đã hiện bảng thì rule `kafka.alert.popup` trong dunstrc giấu hộp dunst
     extra = ["-c", "kafka.alert.popup"] if popup else []
     try:
-        subprocess.run(["notify-send", "-a", "Kafka Alerts", "-u", urgency, "-i", icon,
-                        "-h", "string:x-dunst-stack-tag:" + tag] + extra + [title, body],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+        subprocess.run(
+            ["notify-send", "-a", "Kafka Alerts", "-u", urgency, "-i", icon, "-h", "string:x-dunst-stack-tag:" + tag]
+            + extra
+            + [title, body],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
     except (OSError, subprocess.SubprocessError):
         pass
 
@@ -286,7 +321,7 @@ def wifi_pending_update(pending, level, percent):
         pending[level] = 1
     fired = []
     for pending_level in list(pending):
-        if percent > pending_level:             # sóng hồi lại -> mẫu yếu trước đó không còn "liên tiếp"
+        if percent > pending_level:  # sóng hồi lại -> mẫu yếu trước đó không còn "liên tiếp"
             del pending[pending_level]
             continue
         if pending_level != level:
@@ -350,8 +385,16 @@ class AlertDaemon:
             level = tracker.update(percent, not bool(item.get("charging", False)))
             if level is not None and self.config["devices"]["enabled"]:
                 urgency = "critical" if level <= self.config["devices"]["critical"] else "normal"
-                notify("devices", f"Pin {name} còn {level}%", "Thiết bị ngoại vi đang sắp hết pin — nhớ sạc",
-                       urgency, icon_for(level), name, value=percent, device_kind=str(item.get("kind") or ""))
+                notify(
+                    "devices",
+                    f"Pin {name} còn {level}%",
+                    "Thiết bị ngoại vi đang sắp hết pin — nhớ sạc",
+                    urgency,
+                    icon_for(level),
+                    name,
+                    value=percent,
+                    device_kind=str(item.get("kind") or ""),
+                )
         for name in set(self.devices) - current:
             del self.devices[name]
 
@@ -362,15 +405,27 @@ class AlertDaemon:
             self.wifi_pending.clear()
         if connected and percent is not None and self.config["wifi_signal"]["enabled"]:
             for _ in wifi_pending_update(self.wifi_pending, level, percent):
-                notify("wifi", f"Sóng Wi-Fi yếu ({int(percent)}%)", "Kết nối có thể chậm hoặc chập chờn — lại gần router",
-                       "normal", "network-wireless-offline", value=percent)
+                notify(
+                    "wifi",
+                    f"Sóng Wi-Fi yếu ({int(percent)}%)",
+                    "Kết nối có thể chậm hoặc chập chờn — lại gần router",
+                    "normal",
+                    "network-wireless-offline",
+                    value=percent,
+                )
 
     def internet_check(self):
         state = connectivity()
         now = time.monotonic()
         if state == "full":
             if self.internet_alerted and self.config["internet"]["enabled"]:
-                notify("internet", "Đã có Internet trở lại", "Kết nối Internet đã được khôi phục", "low", "network-transmit-receive")
+                notify(
+                    "internet",
+                    "Đã có Internet trở lại",
+                    "Kết nối Internet đã được khôi phục",
+                    "low",
+                    "network-transmit-receive",
+                )
             self.bad_since, self.internet_alerted = None, False
             return
         if intentionally_offline():
@@ -378,7 +433,11 @@ class AlertDaemon:
             return
         if self.bad_since is None:
             self.bad_since = now
-        if not self.internet_alerted and now - self.bad_since >= self.config["internet"]["grace_seconds"] and self.config["internet"]["enabled"]:
+        if (
+            not self.internet_alerted
+            and now - self.bad_since >= self.config["internet"]["grace_seconds"]
+            and self.config["internet"]["enabled"]
+        ):
             detail = state if state in ("limited", "portal", "none") else "không rõ trạng thái"
             notify("internet", "Mất kết nối Internet", f"Trạng thái kết nối: {detail}", "normal", "network-offline")
             self.internet_alerted = True
@@ -387,9 +446,13 @@ class AlertDaemon:
         def udev():
             while not self.stop:
                 try:
-                    process = subprocess.Popen(["udevadm", "monitor", "--udev", "--subsystem-match=power_supply"],
-                                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
-                                               preexec_fn=_die_with_parent)
+                    process = subprocess.Popen(
+                        ["udevadm", "monitor", "--udev", "--subsystem-match=power_supply"],
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        preexec_fn=_die_with_parent,
+                    )
                     for _ in process.stdout:
                         self.wake.set()
                         if self.stop:
@@ -398,6 +461,7 @@ class AlertDaemon:
                     pass
                 if not self.stop:
                     time.sleep(5)
+
         threading.Thread(target=udev, daemon=True).start()
         mtime = None
         while not self.stop:
@@ -410,13 +474,17 @@ class AlertDaemon:
                 pass
             now = time.monotonic()
             if now - self.last_battery >= 30:
-                self.battery_check(); self.last_battery = now
+                self.battery_check()
+                self.last_battery = now
             if now - self.last_devices >= 300:
-                self.device_check(); self.last_devices = now
+                self.device_check()
+                self.last_devices = now
             if now - self.last_wifi >= 30:
-                self.wifi_check(); self.last_wifi = now
+                self.wifi_check()
+                self.last_wifi = now
             if now - self.last_internet >= 15:
-                self.internet_check(); self.last_internet = now
+                self.internet_check()
+                self.last_internet = now
             self.wake.wait(5)
             self.wake.clear()
 
@@ -424,15 +492,58 @@ class AlertDaemon:
 def snapshot(config):
     battery, status = read_battery()
     wifi, connected = read_wifi()
-    return {"battery": {"percent": battery, "status": status}, "devices": read_devices(),
-            "wifi": {"percent": wifi, "connected": connected}, "connectivity": connectivity(), "config": config}
+    return {
+        "battery": {"percent": battery, "status": status},
+        "devices": read_devices(),
+        "wifi": {"percent": wifi, "connected": connected},
+        "connectivity": connectivity(),
+        "config": config,
+    }
 
 
 def test_notifications(config):
-    samples = [("battery", "Pin còn 50%", "[Thử] Đang dùng pin — còn khoảng 2 giờ 10 phút", "normal", "battery-caution", None, 48, ""),
-               ("devices", "Pin Signature M650 còn 30%", "[Thử] Thiết bị ngoại vi đang sắp hết pin — nhớ sạc", "normal", "battery-low", "Thu", 27, "mouse"),
-               ("wifi", "Sóng Wi-Fi yếu (35%)", "[Thử] Kết nối có thể chậm hoặc chập chờn — lại gần router", "normal", "network-wireless-offline", None, 35, ""),
-               ("internet", "Mất kết nối Internet", "[Thử] Trạng thái kết nối: none", "normal", "network-offline", None, None, "")]
+    samples = [
+        (
+            "battery",
+            "Pin còn 50%",
+            "[Thử] Đang dùng pin — còn khoảng 2 giờ 10 phút",
+            "normal",
+            "battery-caution",
+            None,
+            48,
+            "",
+        ),
+        (
+            "devices",
+            "Pin Signature M650 còn 30%",
+            "[Thử] Thiết bị ngoại vi đang sắp hết pin — nhớ sạc",
+            "normal",
+            "battery-low",
+            "Thu",
+            27,
+            "mouse",
+        ),
+        (
+            "wifi",
+            "Sóng Wi-Fi yếu (35%)",
+            "[Thử] Kết nối có thể chậm hoặc chập chờn — lại gần router",
+            "normal",
+            "network-wireless-offline",
+            None,
+            35,
+            "",
+        ),
+        (
+            "internet",
+            "Mất kết nối Internet",
+            "[Thử] Trạng thái kết nối: none",
+            "normal",
+            "network-offline",
+            None,
+            None,
+            "",
+        ),
+    ]
     for name, title, body, urgency, icon, device, value, dkind in samples:
         if config[name if name != "wifi" else "wifi_signal"]["enabled"]:
             notify(name, title, body, urgency, icon, device, value=value, device_kind=dkind)
@@ -443,7 +554,12 @@ def selftest():
     assert [tracker.update(x) for x in (85, 79, 49, 29)] == [None, 80, 50, 30]
     assert [LevelTracker([80, 50, 30, 15], 3).update(25)] == [30]
     tracker = LevelTracker([30], 3)
-    assert tracker.update(29) == 30 and tracker.update(28) is None and tracker.update(34) is None and tracker.update(29) == 30
+    assert (
+        tracker.update(29) == 30
+        and tracker.update(28) is None
+        and tracker.update(34) is None
+        and tracker.update(29) == 30
+    )
     assert tracker.update(20, False) is None and tracker.update(19) == 30
     wifi = LevelTracker([40], 5)
     assert wifi.update(45) is None and wifi.update(40) == 40
@@ -452,9 +568,11 @@ def selftest():
     assert wifi_pending_update(pending, None, 39) == [40]
     pending = {}
     assert wifi_pending_update(pending, 40, 38) == [] and wifi_pending_update(pending, None, 42) == [] and pending == {}
-    d = AlertDaemon(load_config(os.devnull)); d.battery_tracker.update(45)
+    d = AlertDaemon(load_config(os.devnull))
+    d.battery_tracker.update(45)
     t = d.battery_tracker
     import unittest.mock as _m
+
     with _m.patch(__name__ + ".load_config", return_value=_copy_defaults()):
         d.reload()
     assert d.battery_tracker is t and t.update(44) is None
@@ -462,14 +580,27 @@ def selftest():
     assert parse_wireless(sample) == 74
     with tempfile.TemporaryDirectory() as root:
         os.mkdir(os.path.join(root, "BAT0"))
-        for filename, value in (("type", "Battery"), ("capacity", "80"), ("status", "Discharging"), ("energy_full", "100")):
-            with open(os.path.join(root, "BAT0", filename), "w", encoding="utf-8") as f: f.write(value)
+        for filename, value in (
+            ("type", "Battery"),
+            ("capacity", "80"),
+            ("status", "Discharging"),
+            ("energy_full", "100"),
+        ):
+            with open(os.path.join(root, "BAT0", filename), "w", encoding="utf-8") as f:
+                f.write(value)
         os.mkdir(os.path.join(root, "BAT1"))
-        for filename, value in (("type", "Battery"), ("capacity", "40"), ("status", "Discharging"), ("energy_full", "300")):
-            with open(os.path.join(root, "BAT1", filename), "w", encoding="utf-8") as f: f.write(value)
+        for filename, value in (
+            ("type", "Battery"),
+            ("capacity", "40"),
+            ("status", "Discharging"),
+            ("energy_full", "300"),
+        ):
+            with open(os.path.join(root, "BAT1", filename), "w", encoding="utf-8") as f:
+                f.write(value)
         assert read_battery(root) == (50, "Discharging")
         broken = os.path.join(root, "broken.json")
-        with open(broken, "w", encoding="utf-8") as f: f.write('{"battery":{"levels":[15, 80, 15, 50]}}')
+        with open(broken, "w", encoding="utf-8") as f:
+            f.write('{"battery":{"levels":[15, 80, 15, 50]}}')
         cfg = load_config(broken)
         assert cfg["battery"]["levels"] == [80, 50, 15] and cfg["devices"] == DEFAULTS["devices"]
     a = popup_args("devices", "T", "B", "normal", {"seconds": 9, "volume": 50, "sound": False}, 27.4, "mouse")
@@ -479,7 +610,8 @@ def selftest():
     assert popup_args("internet", "T", "B", "low", {"seconds": 9, "volume": 50, "sound": False})[-1] == "50"
     with tempfile.TemporaryDirectory() as root:
         f = os.path.join(root, "a.json")
-        with open(f, "w", encoding="utf-8") as h: h.write('{"popup": {"enabled": false, "volume": 300, "seconds": 5}}')
+        with open(f, "w", encoding="utf-8") as h:
+            h.write('{"popup": {"enabled": false, "volume": 300, "seconds": 5}}')
         c = load_config(f)["popup"]
         assert c == {"enabled": False, "sound": True, "volume": 80, "seconds": 5}, c
     print("alert-watch.py selftest OK")
@@ -519,16 +651,26 @@ def main(argv):
     with open(PID_FILE, "w", encoding="utf-8") as pid:
         pid.write(str(os.getpid()))
     daemon = AlertDaemon(config)
-    def stop(_signum, _frame): daemon.stop = True; daemon.wake.set()
-    def reload_config(_signum, _frame): daemon.reload()
-    signal.signal(signal.SIGTERM, stop); signal.signal(signal.SIGINT, stop); signal.signal(signal.SIGUSR1, reload_config)
+
+    def stop(_signum, _frame):
+        daemon.stop = True
+        daemon.wake.set()
+
+    def reload_config(_signum, _frame):
+        daemon.reload()
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGUSR1, reload_config)
     try:
         daemon.run()
     except Exception as error:
         _log(f"lỗi vòng lặp: {error}")
     finally:
-        try: os.unlink(PID_FILE)
-        except OSError: pass
+        try:
+            os.unlink(PID_FILE)
+        except OSError:
+            pass
     return 0
 
 

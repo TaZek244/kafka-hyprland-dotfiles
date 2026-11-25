@@ -9,9 +9,9 @@ import sys
 
 
 HIDDEN_WS = "special:hidden"
-ROFI_GLYPH = "\U000F0613"
-VISIBLE_GLYPH = "\U000F0208"
-HIDDEN_GLYPH = "\U000F0209"
+ROFI_GLYPH = "\U000f0613"
+VISIBLE_GLYPH = "\U000f0208"
+HIDDEN_GLYPH = "\U000f0209"
 
 
 def run(args, stdin=None, timeout=3):
@@ -19,7 +19,11 @@ def run(args, stdin=None, timeout=3):
     timeout=None cho lệnh chờ người dùng (rofi), không thì menu tự đóng sau 3s."""
     try:
         return subprocess.run(
-            args, input=stdin, text=True, capture_output=True, timeout=timeout,
+            args,
+            input=stdin,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
@@ -69,8 +73,7 @@ def sort_clients(clients):
     return sorted(
         clients,
         key=lambda c: (
-            c.get("workspace", {}).get("name") == HIDDEN_WS
-            if isinstance(c.get("workspace"), dict) else False,
+            c.get("workspace", {}).get("name") == HIDDEN_WS if isinstance(c.get("workspace"), dict) else False,
             c.get("focusHistoryID", 0),
         ),
     )
@@ -96,13 +99,17 @@ def row_for(client):
         return f"<span foreground='#7d6f90'>{HIDDEN_GLYPH}  <b>{cls}</b>  · ẩn · {title}</span>"
     ws = client.get("workspace", {})
     ws_name = ws.get("name", "") if isinstance(ws, dict) else ""
-    return (f"<span foreground='#a8e6cf'>{VISIBLE_GLYPH}</span>  <b>{cls}</b>  "
-            f"<span foreground='#a99bbd'>· {safe_text(ws_name)} · {title}</span>")
+    return (
+        f"<span foreground='#a8e6cf'>{VISIBLE_GLYPH}</span>  <b>{cls}</b>  "
+        f"<span foreground='#a99bbd'>· {safe_text(ws_name)} · {title}</span>"
+    )
 
 
 def dispatch_move(address, workspace):
-    expr = (f'hl.dsp.window.move({{ workspace = {json.dumps(workspace, ensure_ascii=False)}, '
-            f'window = {json.dumps("address:" + address, ensure_ascii=False)}, follow = false }})')
+    expr = (
+        f"hl.dsp.window.move({{ workspace = {json.dumps(workspace, ensure_ascii=False)}, "
+        f"window = {json.dumps('address:' + address, ensure_ascii=False)}, follow = false }})"
+    )
     result = run(["hyprctl", "dispatch", expr])
     if result is None or result.returncode != 0:
         if result and result.stderr:
@@ -142,17 +149,29 @@ def menu():
             return
         rows = [row_for(client) for client in clients]
         if selected_address:
-            selected_row = next(
-                (i for i, c in enumerate(clients)
-                 if str(c.get("address")) == selected_address), 0)
+            selected_row = next((i for i, c in enumerate(clients) if str(c.get("address")) == selected_address), 0)
         hidden_count = sum(is_hidden(client) for client in clients)
         message = f"Bấm để ẩn ⇄ hiện · Esc để xong · đang ẩn: {hidden_count}"
         rofi = run(
-            ["rofi", "-dmenu", "-i", "-markup-rows", "-format", "i", "-no-custom",
-             "-selected-row", str(selected_row), "-p", f"{ROFI_GLYPH}  Ẩn/hiện",
-             "-mesg", message, "-theme",
-             os.path.expanduser("~/.config/rofi/kafka.rasi"), "-theme-str",
-             'entry { placeholder: "  Lọc cửa sổ..."; }'],
+            [
+                "rofi",
+                "-dmenu",
+                "-i",
+                "-markup-rows",
+                "-format",
+                "i",
+                "-no-custom",
+                "-selected-row",
+                str(selected_row),
+                "-p",
+                f"{ROFI_GLYPH}  Ẩn/hiện",
+                "-mesg",
+                message,
+                "-theme",
+                os.path.expanduser("~/.config/rofi/kafka.rasi"),
+                "-theme-str",
+                'entry { placeholder: "  Lọc cửa sổ..."; }',
+            ],
             "\n".join(rows) + "\n",
             timeout=None,
         )
@@ -199,8 +218,7 @@ def show_all():
         address = json.dumps("address:" + str(client.get("address")), ensure_ascii=False)
         target = json.dumps(workspace, ensure_ascii=False)
         expressions.append(
-            f"dispatch hl.dsp.window.move({{ workspace = {target}, "
-            f"window = {address}, follow = false }})"
+            f"dispatch hl.dsp.window.move({{ workspace = {target}, window = {address}, follow = false }})"
         )
     result = run(["hyprctl", "--batch", "; ".join(expressions)])
     if result is None or result.returncode != 0:
@@ -229,8 +247,7 @@ def status():
 
 
 def main():
-    commands = {"menu": menu, "hide-active": hide_active, "show-all": show_all,
-                "status": status}
+    commands = {"menu": menu, "hide-active": hide_active, "show-all": show_all, "status": status}
     command = sys.argv[1] if len(sys.argv) > 1 else "menu"
     commands.get(command, lambda: print(f"Lệnh không hợp lệ: {command}", file=sys.stderr))()
 

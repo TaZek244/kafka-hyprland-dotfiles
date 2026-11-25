@@ -19,8 +19,7 @@ import math
 _TZ = 7.0
 _PI = math.pi
 _CAN = ("Giáp", "Ất", "Bính", "Đinh", "Mậu", "Kỷ", "Canh", "Tân", "Nhâm", "Quý")
-_CHI = ("Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi",
-        "Thân", "Dậu", "Tuất", "Hợi")
+_CHI = ("Tý", "Sửu", "Dần", "Mão", "Thìn", "Tỵ", "Ngọ", "Mùi", "Thân", "Dậu", "Tuất", "Hợi")
 
 
 def _int(x):
@@ -40,28 +39,28 @@ def _new_moon_day(k, time_zone):
     """Ngày dương lịch bắt đầu sóc thứ k, quy về múi giờ địa phương."""
     t = k / 1236.85
     t2, t3, dr = t * t, t * t * t, _PI / 180
-    jd1 = (2415020.75933 + 29.53058868 * k + 0.0001178 * t2
-           - 0.000000155 * t3)
+    jd1 = 2415020.75933 + 29.53058868 * k + 0.0001178 * t2 - 0.000000155 * t3
     jd1 += 0.00033 * math.sin((166.56 + 132.87 * t - 0.009173 * t2) * dr)
     m = 359.2242 + 29.10535608 * k - 0.0000333 * t2 - 0.00000347 * t3
     mpr = 306.0253 + 385.81691806 * k + 0.0107306 * t2 + 0.00001236 * t3
     f = 21.2964 + 390.67050646 * k - 0.0016528 * t2 - 0.00000239 * t3
-    c1 = ((0.1734 - 0.000393 * t) * math.sin(m * dr)
-          + 0.0021 * math.sin(2 * m * dr)
-          - 0.4068 * math.sin(mpr * dr)
-          + 0.0161 * math.sin(2 * mpr * dr)
-          - 0.0004 * math.sin(3 * mpr * dr)
-          + 0.0104 * math.sin(2 * f * dr)
-          - 0.0051 * math.sin((m + mpr) * dr)
-          - 0.0074 * math.sin((m - mpr) * dr)
-          + 0.0004 * math.sin((2 * f + m) * dr)
-          - 0.0004 * math.sin((2 * f - m) * dr)
-          - 0.0006 * math.sin((2 * f + mpr) * dr)
-          + 0.0010 * math.sin((2 * f - mpr) * dr)
-          + 0.0005 * math.sin((2 * mpr + m) * dr))
+    c1 = (
+        (0.1734 - 0.000393 * t) * math.sin(m * dr)
+        + 0.0021 * math.sin(2 * m * dr)
+        - 0.4068 * math.sin(mpr * dr)
+        + 0.0161 * math.sin(2 * mpr * dr)
+        - 0.0004 * math.sin(3 * mpr * dr)
+        + 0.0104 * math.sin(2 * f * dr)
+        - 0.0051 * math.sin((m + mpr) * dr)
+        - 0.0074 * math.sin((m - mpr) * dr)
+        + 0.0004 * math.sin((2 * f + m) * dr)
+        - 0.0004 * math.sin((2 * f - m) * dr)
+        - 0.0006 * math.sin((2 * f + mpr) * dr)
+        + 0.0010 * math.sin((2 * f - mpr) * dr)
+        + 0.0005 * math.sin((2 * mpr + m) * dr)
+    )
     if t < -11:
-        deltat = (0.001 + 0.000839 * t + 0.0002261 * t2
-                  - 0.00000845 * t3 - 0.000000081 * t * t3)
+        deltat = 0.001 + 0.000839 * t + 0.0002261 * t2 - 0.00000845 * t3 - 0.000000081 * t * t3
     else:
         deltat = -0.000278 + 0.000265 * t + 0.000262 * t2
     return _int(jd1 + c1 - deltat + 0.5 + time_zone / 24)
@@ -73,9 +72,11 @@ def _sun_longitude(jdn, time_zone):
     t2, t3, dr = t * t, t * t * t, _PI / 180
     m = 357.52910 + 35999.05030 * t - 0.0001559 * t2 - 0.00000048 * t3
     l0 = 280.46645 + 36000.76983 * t + 0.0003032 * t2
-    dl = ((1.914600 - 0.004817 * t - 0.000014 * t2) * math.sin(dr * m)
-          + (0.019993 - 0.000101 * t) * math.sin(2 * dr * m)
-          + 0.000290 * math.sin(3 * dr * m))
+    dl = (
+        (1.914600 - 0.004817 * t - 0.000014 * t2) * math.sin(dr * m)
+        + (0.019993 - 0.000101 * t) * math.sin(2 * dr * m)
+        + 0.000290 * math.sin(3 * dr * m)
+    )
     lam = (l0 + dl - 0.00569 - 0.00478 * math.sin(dr * (125.04 - 1934.136 * t))) % 360
     return _int(lam / 30)
 

@@ -46,12 +46,11 @@ OVERLAY_HEIGHT = 150
 OVERLAY_TOP_COLOR = (0xE0 / 255.0, 0x55 / 255.0, 0x9A / 255.0, 0.60)
 OVERLAY_BOT_COLOR = (0xC9 / 255.0, 0x47 / 255.0, 0x85 / 255.0, 0.12)
 MODES = ("overlay", "wallpaper")
-MODE_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
-                         "kafka", "cava-mode")
+MODE_FILE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"), "kafka", "cava-mode")
 MODE = "overlay"
-WAVE_DOWNSCALE = 3   # sóng vẽ ở 1/3 độ phân giải rồi phóng lên (vẽ thẳng ~56% CPU, 1/2 ~20%, 1/3 ~10%)
-WAVE_FPS = 30        # sóng mềm, 30 khung/giây là đủ mượt
-STYLE = os.environ.get("KAFKA_CAVA_STYLE", "wave")   # "wave" (sóng cực quang) | "bars" (cột cũ)
+WAVE_DOWNSCALE = 3  # sóng vẽ ở 1/3 độ phân giải rồi phóng lên (vẽ thẳng ~56% CPU, 1/2 ~20%, 1/3 ~10%)
+WAVE_FPS = 30  # sóng mềm, 30 khung/giây là đủ mượt
+STYLE = os.environ.get("KAFKA_CAVA_STYLE", "wave")  # "wave" (sóng cực quang) | "bars" (cột cũ)
 
 
 def read_mode():
@@ -87,7 +86,7 @@ def build_cava_config(bars=BARS, framerate=FRAMERATE):
         "[general]\n"
         f"bars = {int(bars)}\n"
         f"framerate = {int(framerate)}\n"
-        "sleep_timer = 3\n"   # im lặng 3s thì cava tự ngủ (đỡ ~4% CPU)
+        "sleep_timer = 3\n"  # im lặng 3s thì cava tự ngủ (đỡ ~4% CPU)
         "\n"
         "[input]\n"
         "method = pulse\n"
@@ -249,7 +248,7 @@ def run_visualizer():
     gi.require_version("Gtk", "3.0")
     gi.require_version("Gdk", "3.0")
     gi.require_version("GtkLayerShell", "0.1")
-    from gi.repository import Gdk, GLib, Gtk, GtkLayerShell
+    from gi.repository import GLib, Gtk, GtkLayerShell
 
     class CavaWallpaperWindow(Gtk.Window):
         def __init__(self):
@@ -274,8 +273,7 @@ def run_visualizer():
             # Cấu hình Layer Shell: lớp BOTTOM (trên hình nền, dưới mọi cửa sổ)
             GtkLayerShell.init_for_window(self)
             GtkLayerShell.set_namespace(self, NAMESPACE)
-            GtkLayerShell.set_layer(
-                self, GtkLayerShell.Layer.TOP if MODE == "overlay" else GtkLayerShell.Layer.BOTTOM)
+            GtkLayerShell.set_layer(self, GtkLayerShell.Layer.TOP if MODE == "overlay" else GtkLayerShell.Layer.BOTTOM)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.LEFT, True)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.RIGHT, True)
             GtkLayerShell.set_anchor(self, GtkLayerShell.Edge.BOTTOM, True)
@@ -315,7 +313,7 @@ def run_visualizer():
                     stdout=subprocess.PIPE,
                     stderr=subprocess.DEVNULL,
                     stdin=subprocess.DEVNULL,
-                     close_fds=True,
+                    close_fds=True,
                 )
             except OSError as e:
                 print(f"Không thể chạy cava: {e}", file=sys.stderr)
@@ -373,7 +371,6 @@ def run_visualizer():
             now = time.monotonic()
             if any(v > 0 for v in vals):
                 self.raw_silent_since = now
-                was_silent = self.is_silent
                 self.is_silent = False
                 self.bars = smooth_bars(vals, self.bars, DECAY)
                 self.queue_draw()
@@ -428,7 +425,7 @@ def run_visualizer():
             """Sóng cực quang: 3 lớp sóng cong (Catmull-Rom) màu hồng→tím đổi sắc theo thời gian,
             viền phát sáng và chấm đỉnh rơi chậm."""
             vals = [min(v, float(ASCII_MAX)) / float(ASCII_MAX) for v in self.bars]
-            k_px = 1.0 / WAVE_DOWNSCALE           # đơn vị nét/chấm theo độ phân giải vẽ
+            k_px = 1.0 / WAVE_DOWNSCALE  # đơn vị nét/chấm theo độ phân giải vẽ
             max_h = max(1.0, float(height - 12 * k_px))
             t = time.monotonic()
             # chấm đỉnh: giữ đỉnh rồi rơi dần
@@ -438,7 +435,7 @@ def run_visualizer():
             peaks = [max(v, p - 0.012) for v, p in zip(vals, peaks)]
             self._peaks = peaks
 
-            shift = 0.5 + 0.5 * math.sin(t * 0.35)          # sắc màu trôi chậm
+            shift = 0.5 + 0.5 * math.sin(t * 0.35)  # sắc màu trôi chậm
             pink = (0xE0 / 255, 0x55 / 255, 0x9A / 255)
             violet = (0xC7 / 255, 0x7D / 255, 0xFF / 255)
             rose = (0xFF / 255, 0x7A / 255, 0xA2 / 255)
@@ -466,9 +463,14 @@ def run_visualizer():
                     p0 = pts[i - 1] if i > 0 else pts[i]
                     p1, p2 = pts[i], pts[i + 1]
                     p3 = pts[i + 2] if i + 2 < len(pts) else p2
-                    ctx.curve_to(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6,
-                                 p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6,
-                                 p2[0], p2[1])
+                    ctx.curve_to(
+                        p1[0] + (p2[0] - p0[0]) / 6,
+                        p1[1] + (p2[1] - p0[1]) / 6,
+                        p2[0] - (p3[0] - p1[0]) / 6,
+                        p2[1] - (p3[1] - p1[1]) / 6,
+                        p2[0],
+                        p2[1],
+                    )
 
             def hgrad(alpha):
                 g = cairo.LinearGradient(0, 0, width, 0)
@@ -580,6 +582,7 @@ def run_visualizer():
     try:
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix
+
         add_signal = GLibUnix.signal_add
     except (ValueError, ImportError):
         add_signal = GLib.unix_signal_add
@@ -625,11 +628,22 @@ def main():
                 if not running_pid():
                     break
                 time.sleep(0.1)
-            subprocess.Popen([sys.executable, os.path.abspath(__file__)], start_new_session=True,
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(
+                [sys.executable, os.path.abspath(__file__)],
+                start_new_session=True,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         if subprocess.call(["which", "notify-send"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
-            subprocess.Popen(["notify-send", "-a", "Sóng nhạc",
-                              "Sóng nhạc: " + ("nổi trên cửa sổ" if m == "overlay" else "làm hình nền")])
+            subprocess.Popen(
+                [
+                    "notify-send",
+                    "-a",
+                    "Sóng nhạc",
+                    "Sóng nhạc: " + ("nổi trên cửa sổ" if m == "overlay" else "làm hình nền"),
+                ]
+            )
         return 0
 
     if "--toggle" in args:

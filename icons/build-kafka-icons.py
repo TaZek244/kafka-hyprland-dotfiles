@@ -30,10 +30,10 @@ from typing import Dict, List, Optional, Tuple
 # Các khóa phải viết thường để tra cứu không phân biệt hoa thường.
 COLOR_MAP: Dict[str, str] = {
     # Màu chính trên biểu tượng thư mục Papirus
-    "#5d399b": "#7a2758",          # Mặt sau / phần tab thư mục
-    "#7e57c2": "url(#kafkaFront)", # Mặt trước thư mục (dùng gradient)
-    "#e4e4e4": "#f6e3ee",          # Tờ giấy kẹp bên trong thư mục
-    "#2c1e44": "#fff2f8",          # Biểu tượng nhỏ (glyph) trên mặt trước (sẽ kèm opacity 0.92)
+    "#5d399b": "#7a2758",  # Mặt sau / phần tab thư mục
+    "#7e57c2": "url(#kafkaFront)",  # Mặt trước thư mục (dùng gradient)
+    "#e4e4e4": "#f6e3ee",  # Tờ giấy kẹp bên trong thư mục
+    "#2c1e44": "#fff2f8",  # Biểu tượng nhỏ (glyph) trên mặt trước (sẽ kèm opacity 0.92)
     # Các sắc độ violet phụ (sáng -> #f7a6cc, tối -> #5a1d45)
     "#9575cd": "#f7a6cc",
     "#b39ddb": "#f7a6cc",
@@ -53,13 +53,20 @@ FRONT_OLD_COLOR = "#7e57c2"
 
 # Danh sách các thư mục kích thước chuẩn của Papirus cần quét
 PAPIRUS_SIZES: Tuple[str, ...] = (
-    "16x16", "16x16@2x",
-    "18x18", "18x18@2x",
-    "22x22", "22x22@2x",
-    "24x24", "24x24@2x",
-    "32x32", "32x32@2x",
-    "48x48", "48x48@2x",
-    "64x64", "64x64@2x",
+    "16x16",
+    "16x16@2x",
+    "18x18",
+    "18x18@2x",
+    "22x22",
+    "22x22@2x",
+    "24x24",
+    "24x24@2x",
+    "32x32",
+    "32x32@2x",
+    "48x48",
+    "48x48@2x",
+    "64x64",
+    "64x64@2x",
     "84x84",
     "96x96",
     "128x128",
@@ -70,13 +77,13 @@ VIOLET_FILE_RE = re.compile(r"^(folder|user)-violet(-.*)?\.svg$")
 
 # Khối định nghĩa gradient mặt trước thư mục
 KAFKA_GRADIENT_DEFS = (
-    '<defs>'
+    "<defs>"
     '<linearGradient id="kafkaFront" x1="0" y1="0" x2="1" y2="1">'
     '<stop offset="0" stop-color="#e0559a"/>'
     '<stop offset="0.55" stop-color="#c94785"/>'
     '<stop offset="1" stop-color="#8e4fc4"/>'
-    '</linearGradient>'
-    '</defs>'
+    "</linearGradient>"
+    "</defs>"
 )
 
 
@@ -111,7 +118,7 @@ def _parse_float(val: Optional[str]) -> Optional[float]:
 
 def _extract_attr(tag_text: str, attr_name: str) -> Optional[str]:
     """Trích xuất giá trị thuộc tính từ một thẻ mở/tự đóng SVG."""
-    pattern = rf'\b{ re.escape(attr_name) }\s*=\s*(["\'])(.*?)\1'
+    pattern = rf'\b{re.escape(attr_name)}\s*=\s*(["\'])(.*?)\1'
     m = re.search(pattern, tag_text, flags=re.IGNORECASE | re.DOTALL)
     return m.group(2) if m else None
 
@@ -200,8 +207,7 @@ def _build_spiderweb_group(rect: Dict[str, Optional[float]], svg_width: float) -
     ry_attr = f' ry="{_fmt_num(ry)}"' if ry is not None else ""
 
     clip_rect = (
-        f'<rect x="{_fmt_num(x)}" y="{_fmt_num(y)}" '
-        f'width="{_fmt_num(w)}" height="{_fmt_num(h)}"{rx_attr}{ry_attr}/>'
+        f'<rect x="{_fmt_num(x)}" y="{_fmt_num(y)}" width="{_fmt_num(w)}" height="{_fmt_num(h)}"{rx_attr}{ry_attr}/>'
     )
     clip_defs = f'<defs><clipPath id="kafkaWebClip">{clip_rect}</clipPath></defs>'
 
@@ -210,9 +216,7 @@ def _build_spiderweb_group(rect: Dict[str, Optional[float]], svg_width: float) -
     for rad in angles_rad:
         px = cx + radius * math.cos(rad)
         py = cy + radius * math.sin(rad)
-        spoke_Commands.append(
-            f"M {_fmt_num(cx)},{_fmt_num(cy)} L {_fmt_num(px)},{_fmt_num(py)}"
-        )
+        spoke_Commands.append(f"M {_fmt_num(cx)},{_fmt_num(cy)} L {_fmt_num(px)},{_fmt_num(py)}")
 
     # Vẽ 3 vòng tơ nối các tia liền kề ở bán kính 0.35R, 0.65R, 0.95R
     # Sử dụng đường cong bậc hai (Q) với điểm điều khiển kéo về tâm 12%
@@ -220,10 +224,7 @@ def _build_spiderweb_group(rect: Dict[str, Optional[float]], svg_width: float) -
     ring_commands: List[str] = []
     for scale in ring_scales:
         r_ring = radius * scale
-        pts = [
-            (cx + r_ring * math.cos(rad), cy + r_ring * math.sin(rad))
-            for rad in angles_rad
-        ]
+        pts = [(cx + r_ring * math.cos(rad), cy + r_ring * math.sin(rad)) for rad in angles_rad]
         if not pts:
             continue
         seg = [f"M {_fmt_num(pts[0][0])},{_fmt_num(pts[0][1])}"]
@@ -235,20 +236,17 @@ def _build_spiderweb_group(rect: Dict[str, Optional[float]], svg_width: float) -
             # Kéo điểm trung điểm về phía tâm (cx, cy) 12%
             ctrl_x = mid_x + 0.12 * (cx - mid_x)
             ctrl_y = mid_y + 0.12 * (cy - mid_y)
-            seg.append(
-                f"Q {_fmt_num(ctrl_x)},{_fmt_num(ctrl_y)} "
-                f"{_fmt_num(p2[0])},{_fmt_num(p2[1])}"
-            )
+            seg.append(f"Q {_fmt_num(ctrl_x)},{_fmt_num(ctrl_y)} {_fmt_num(p2[0])},{_fmt_num(p2[1])}")
         ring_commands.append(" ".join(seg))
 
     all_d = " ".join(spoke_Commands + ring_commands)
     web_group = (
-        f'{clip_defs}'
+        f"{clip_defs}"
         f'<g id="kafkaSpiderWeb" clip-path="url(#kafkaWebClip)" '
         f'stroke="#ffffff" stroke-opacity="0.22" fill="none" '
         f'stroke-width="{_fmt_num(stroke_w)}" stroke-linecap="round">'
         f'<path d="{all_d}"/>'
-        f'</g>'
+        f"</g>"
     )
     return web_group
 
@@ -405,7 +403,7 @@ def build_index_theme(src_dir: Path, out_dir: Path) -> bool:
             if in_icon_theme_section and not has_inherits:
                 out_lines.append("Inherits=Papirus-Dark,Papirus,breeze-dark,hicolor")
                 has_inherits = True
-            in_icon_theme_section = (stripped == "[Icon Theme]")
+            in_icon_theme_section = stripped == "[Icon Theme]"
             out_lines.append(line)
             continue
 
@@ -438,9 +436,7 @@ def safe_clean_output(out_dir: Path) -> None:
     """
     normalized = os.path.normpath(str(out_dir))
     if not normalized.endswith("/Kafka"):
-        raise ValueError(
-            f"Từ chối xóa thư mục đích vì đường dẫn không kết thúc bằng '/Kafka': {normalized}"
-        )
+        raise ValueError(f"Từ chối xóa thư mục đích vì đường dẫn không kết thúc bằng '/Kafka': {normalized}")
     if out_dir.exists():
         shutil.rmtree(out_dir)
 
@@ -577,10 +573,7 @@ def run_selftest() -> int:
     # (1) Không còn các mã màu violet gốc (#7e57c2, #5d399b, #2c1e44)
     forbidden = ("#7e57c2", "#5d399b", "#2c1e44")
     no_old_colors = all(
-        c not in out_48.lower()
-        and c not in out_48_music.lower()
-        and c not in out_16.lower()
-        for c in forbidden
+        c not in out_48.lower() and c not in out_48_music.lower() and c not in out_16.lower() for c in forbidden
     )
     has_new_colors = (
         "#7a2758" in out_48_music.lower()
@@ -597,11 +590,10 @@ def run_selftest() -> int:
 
     # (2) Có url(#kafkaFront) và <linearGradient id="kafkaFront"
     has_grad = all(
-        "url(#kafkaFront)" in s and '<linearGradient id="kafkaFront"' in s
-        for s in (out_48, out_48_music, out_16)
+        "url(#kafkaFront)" in s and '<linearGradient id="kafkaFront"' in s for s in (out_48, out_48_music, out_16)
     )
     report(
-        "2. Chèn gradient url(#kafkaFront) và <linearGradient id=\"kafkaFront\"",
+        '2. Chèn gradient url(#kafkaFront) và <linearGradient id="kafkaFront"',
         has_grad,
     )
 
@@ -610,7 +602,7 @@ def run_selftest() -> int:
     web_in_48 = 'id="kafkaWebClip"' in out_48 and 'clip-path="url(#kafkaWebClip)"' in out_48
     web_pos = out_48_music.find('clip-path="url(#kafkaWebClip)"')
     glyph_pos = out_48_music.find("#fff2f8")
-    web_before_glyph = (web_pos != -1 and glyph_pos != -1 and web_pos < glyph_pos)
+    web_before_glyph = web_pos != -1 and glyph_pos != -1 and web_pos < glyph_pos
     no_web_in_16 = "kafkaWebClip" not in out_16
     report(
         "3. Mạng nhện: có ở width=48 (nằm trước glyph) và không có ở width=16",
@@ -733,9 +725,7 @@ def resolve_default_src() -> Path:
 
 def main(argv: Optional[List[str]] = None) -> int:
     """Điểm vào chính của chương trình."""
-    parser = argparse.ArgumentParser(
-        description="Dựng bộ icon theme Kafka (Papirus-Dark với thư mục hồng-tím Kafka)."
-    )
+    parser = argparse.ArgumentParser(description="Dựng bộ icon theme Kafka (Papirus-Dark với thư mục hồng-tím Kafka).")
     parser.add_argument(
         "--src",
         type=str,
@@ -759,11 +749,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.selftest:
         return run_selftest()
 
-    src_dir = (
-        Path(os.path.expanduser(args.src))
-        if args.src is not None
-        else resolve_default_src()
-    )
+    src_dir = Path(os.path.expanduser(args.src)) if args.src is not None else resolve_default_src()
     out_dir = Path(os.path.expanduser(args.out))
 
     try:

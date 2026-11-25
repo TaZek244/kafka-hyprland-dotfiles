@@ -46,9 +46,9 @@ POP_TOP = 44
 SHOW_DELAY_MS, HIDE_DELAY_MS = 90, 350
 PROBE_INTERVAL_MS = 1500
 TARGET_RGB = (0xC9, 0x47, 0x85)
-PROBE_Y, PROBE_W, PROBE_H = 6, 640, 28         # dải dò y 6..33, x < 640 (gộp theo cột, xem collapse_rows)
+PROBE_Y, PROBE_W, PROBE_H = 6, 640, 28  # dải dò y 6..33, x < 640 (gộp theo cột, xem collapse_rows)
 LEFT_LIMIT = 640
-MERGE_GAP = 6                                  # đoạn hồng cách nhau ≤ 6px là cùng một ô (bị chữ cắt)
+MERGE_GAP = 6  # đoạn hồng cách nhau ≤ 6px là cùng một ô (bị chữ cắt)
 
 ROMAN = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X")
 
@@ -138,7 +138,7 @@ def collapse_rows(rgb, width, rows, color=TARGET_RGB):
     other = b"\x00\x00\x00"
     out = bytearray()
     for x in range(width):
-        hit = any(rgb[(y * width + x) * 3:(y * width + x) * 3 + 3] == target for y in range(rows))
+        hit = any(rgb[(y * width + x) * 3 : (y * width + x) * 3 + 3] == target for y in range(rows))
         out += target if hit else other
     return bytes(out)
 
@@ -148,7 +148,7 @@ def pick_ws_run(runs, limit=LEFT_LIMIT):
     Khối Kafka (đứng đầu) có thể bị vạch ngăn tách làm 2 đoạn (bản phẳng), nên không lấy "đoạn thứ hai";
     giới hạn `limit` để không bắt nhầm vạch hồng của ô nhạc giữa thanh."""
     merged = []
-    for r in runs:                       # nối đoạn bị nét chữ cắt (thân chữ "I" + bóng phủ hết chiều cao)
+    for r in runs:  # nối đoạn bị nét chữ cắt (thân chữ "I" + bóng phủ hết chiều cao)
         if merged and r[0] - merged[-1][1] <= MERGE_GAP:
             merged[-1] = (merged[-1][0], r[1])
         else:
@@ -218,16 +218,18 @@ def summarize(clients, active_id):
                 counts[cls] = counts.get(cls, 0) + 1
             tooltip = ", ".join(f"{k} ×{v}" if v > 1 else k for k, v in counts.items())
 
-        result.append({
-            "id": ws_id,
-            "roman": roman(ws_id),
-            "classes": classes[:3],
-            "extra": max(0, len(classes) - 3),
-            "apps_text": apps_text,
-            "tooltip": tooltip,
-            "active": ws_id == active_id,
-            "empty": empty,
-        })
+        result.append(
+            {
+                "id": ws_id,
+                "roman": roman(ws_id),
+                "classes": classes[:3],
+                "extra": max(0, len(classes) - 3),
+                "apps_text": apps_text,
+                "tooltip": tooltip,
+                "active": ws_id == active_id,
+                "empty": empty,
+            }
+        )
     return result
 
 
@@ -288,9 +290,10 @@ def run_daemon():
     import gi
 
     gi.require_version("Gtk", "3.0")
-    gi.require_version("Gdk", "3.0")          # thiếu dòng này có thể nạp nhầm Gdk 4 → ImportError
+    gi.require_version("Gdk", "3.0")  # thiếu dòng này có thể nạp nhầm Gdk 4 → ImportError
     gi.require_version("GtkLayerShell", "0.1")
     from gi.repository import Gdk, Gio, GLib, Gtk, GtkLayerShell
+
     try:
         gi.require_version("GioUnix", "2.0")
         from gi.repository import GioUnix
@@ -317,9 +320,7 @@ def run_daemon():
         GtkLayerShell.set_exclusive_zone(win, -1)
         GtkLayerShell.set_keyboard_mode(win, GtkLayerShell.KeyboardMode.NONE)
         win.add_events(
-            Gdk.EventMask.ENTER_NOTIFY_MASK
-            | Gdk.EventMask.LEAVE_NOTIFY_MASK
-            | Gdk.EventMask.BUTTON_PRESS_MASK
+            Gdk.EventMask.ENTER_NOTIFY_MASK | Gdk.EventMask.LEAVE_NOTIFY_MASK | Gdk.EventMask.BUTTON_PRESS_MASK
         )
         return win
 
@@ -379,7 +380,7 @@ def run_daemon():
             panel.pack_start(title, False, False, 0)
 
             grid = Gtk.Grid(row_spacing=6, column_spacing=6)
-            grid.set_column_homogeneous(True)            # VIII rộng hơn I → cột đều nhau
+            grid.set_column_homogeneous(True)  # VIII rộng hơn I → cột đều nhau
             panel.pack_start(grid, False, False, 0)
 
             self.cells = {}
@@ -691,8 +692,7 @@ def selftest():
     # 1. Kiểm thử roman
     check(
         "roman",
-        [roman(i) for i in range(1, 11)]
-        == ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
+        [roman(i) for i in range(1, 11)] == ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
     )
 
     # 2. Kiểm thử find_runs: 2 đoạn hồng >= 10px + 1 đoạn ngắn < 10px bị bỏ
@@ -703,16 +703,19 @@ def selftest():
     check("find_runs", runs == [(10, 24), (45, 64)])
 
     # 2a. pick_ws_run: Kafka tách 2 đoạn + ô ws → lấy đoạn cuối; ô nhạc ở x ≥ 640 bị bỏ
-    check("pick_ws_run", pick_ws_run([(4, 90), (100, 140), (170, 210), (900, 920)]) == (170, 210)
-          and pick_ws_run([(4, 90), (170, 210)]) == (170, 210) and pick_ws_run([(4, 90)]) is None
-          and pick_ws_run([(10, 155), (183, 198), (201, 218)]) == (183, 218))
+    check(
+        "pick_ws_run",
+        pick_ws_run([(4, 90), (100, 140), (170, 210), (900, 920)]) == (170, 210)
+        and pick_ws_run([(4, 90), (170, 210)]) == (170, 210)
+        and pick_ws_run([(4, 90)]) is None
+        and pick_ws_run([(10, 155), (183, 198), (201, 218)]) == (183, 218),
+    )
 
     # 2b. collapse_rows: ô hồng bị chữ cắt ở hàng giữa vẫn thành 1 đoạn liền
     r0 = pk * 12
-    r1 = pk * 3 + bg * 2 + pk * 2 + bg * 2 + pk * 3      # hàng có chữ
+    r1 = pk * 3 + bg * 2 + pk * 2 + bg * 2 + pk * 3  # hàng có chữ
     merged = collapse_rows(r0 + r1 + r1, 12, 3)
-    check("collapse_rows", find_runs(merged, TARGET_RGB, 10) == [(0, 11)]
-          and find_runs(r1, TARGET_RGB, 10) == [])
+    check("collapse_rows", find_runs(merged, TARGET_RGB, 10) == [(0, 11)] and find_runs(r1, TARGET_RGB, 10) == [])
 
     # 3. Kiểm thử summarize: 4 cửa sổ ở ws 1 và 3 + 1 cửa sổ ws -98 bị bỏ, và trường hợp > 3 app (+N)
     fake_clients = [
@@ -752,8 +755,7 @@ def selftest():
         and ws3["apps_text"] == "mpv"
         and ws1_many["classes"] == ["kitty", "chromium", "thunar"]
         and ws1_many["extra"] == 2
-        and ws1_many["apps_text"]
-        == "kitty chromium thunar +2"
+        and ws1_many["apps_text"] == "kitty chromium thunar +2"
     )
     check("summarize", cond_summarize)
 

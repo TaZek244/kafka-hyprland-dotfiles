@@ -1,0 +1,19 @@
+# Cấu hình ruff cho các script Python trong repo (popup GTK, daemon, công cụ dựng icon/con trỏ/font).
+#   ruff format          # định dạng
+#   ruff check           # tìm lỗi (biến chưa định nghĩa, import thừa…)
+line-length = 120
+target-version = "py311"
+extend-exclude = ["example", "niri"]
+
+[format]
+quote-style = "double"
+
+[lint]
+# Chỉ quy tắc bắt lỗi thật: cú pháp, biến chưa định nghĩa, import thừa (E4 E7 E9 F) + except trần và lỗi phổ biến của bugbear
+select = ["E4", "E7", "E9", "F", "E722", "B006", "B008", "B023"]
+# Kiểu cách, không phải lỗi: tên biến "l", gán lambda vào biến
+ignore = ["E741", "E731"]
+
+[lint.per-file-ignores]
+# gi.require_version() phải chạy trước khi import từ gi.repository
+"**/*.py" = ["E402"]

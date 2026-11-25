@@ -14,26 +14,27 @@ set -u
 
 LOCK="${XDG_RUNTIME_DIR:-/tmp}/kafka-bar-watch.lock"
 
-fire() {   # fire <số signal...>
+fire() { # fire <số signal...>
     local s
     for s in "$@"; do pkill -RTMIN+"$s" -x waybar 2>/dev/null; done
 }
 
 # Đọc stdin, dòng nào khớp regex thì bắn signal (gộp 0.5s: đọc tiếp tới khi im 0.5s rồi mới bắn)
-pump() {   # pump <regex> <signal...>
-    local re=$1; shift
+pump() { # pump <regex> <signal...>
+    local re=$1
+    shift
     local line
     while IFS= read -r line; do
         [[ $line =~ $re ]] || continue
-        while IFS= read -r -t 0.5 line; do :; done   # nuốt loạt sự kiện đi kèm
+        while IFS= read -r -t 0.5 line; do :; done # nuốt loạt sự kiện đi kèm
         fire "$@"
     done
 }
 
 watch_dunst() {
     while true; do
-        gdbus monitor --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications 2>/dev/null \
-            | pump "historyLength|paused|pauseLevel|NotificationHistory" 10 12
+        gdbus monitor --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications 2>/dev/null |
+            pump "historyLength|paused|pauseLevel|NotificationHistory" 10 12
         sleep 3
     done
 }
@@ -48,16 +49,20 @@ watch_nm() {
 case "${1:-}" in
     daemon)
         exec 9>"$LOCK"
-        flock -n 9 || exit 0                      # đã có một bản chạy
+        flock -n 9 || exit 0 # đã có một bản chạy
         watch_dunst &
         watch_nm &
         trap 'kill 0' EXIT TERM INT
         wait
         ;;
     status)
-        if pgrep -f 'scripts/bar-watch[.]sh daemon' >/dev/null; then echo "đang chạy"; else echo "không chạy"; exit 1; fi
+        if pgrep -f 'scripts/bar-watch[.]sh daemon' >/dev/null; then echo "đang chạy"; else
+            echo "không chạy"
+            exit 1
+        fi
         ;;
     *)
-        echo "dùng: $0 daemon|status" >&2; exit 2
+        echo "dùng: $0 daemon|status" >&2
+        exit 2
         ;;
 esac

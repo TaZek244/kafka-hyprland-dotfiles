@@ -67,8 +67,8 @@ read_override() {
     local value=""
     [[ -r "$OVERRIDE_FILE" ]] && value=$(tr -d '[:space:]' <"$OVERRIDE_FILE")
     case "$value" in
-        on|off) echo "$value" ;;
-        *)      echo auto ;;
+        on | off) echo "$value" ;;
+        *) echo auto ;;
     esac
 }
 
@@ -76,10 +76,19 @@ read_override() {
 desired_state() {
     local ac=$1 profile=$2 override=$3
     case "$override" in
-        on)  echo on;  return ;;
-        off) echo off; return ;;
+        on)
+            echo on
+            return
+            ;;
+        off)
+            echo off
+            return
+            ;;
     esac
-    [[ "$profile" == "power-saver" ]] && { echo off; return; }
+    [[ "$profile" == "power-saver" ]] && {
+        echo off
+        return
+    }
     [[ "$ac" == "1" ]] && echo on || echo off
 }
 
@@ -102,11 +111,11 @@ apply_now() {
     log "áp $WANT (ac=$AC, profile=${PROFILE:-(rỗng)}, ghi đè=$OVERRIDE)"
     if [[ "$WANT" == "on" ]]; then
         # Phải truyền lại đủ tham số, nếu không hiệu ứng không chạy đúng dạng loop.
-        hyprctl_call eval 'hl.animation({ leaf = "borderangle", enabled = true, speed = 60, bezier = "linear", style = "loop" })' \
-            || log "không áp được 'on' qua hyprctl"
+        hyprctl_call eval 'hl.animation({ leaf = "borderangle", enabled = true, speed = 60, bezier = "linear", style = "loop" })' ||
+            log "không áp được 'on' qua hyprctl"
     else
-        hyprctl_call eval 'hl.animation({ leaf = "borderangle", enabled = false })' \
-            || log "không áp được 'off' qua hyprctl"
+        hyprctl_call eval 'hl.animation({ leaf = "borderangle", enabled = false })' ||
+            log "không áp được 'off' qua hyprctl"
     fi
 }
 
@@ -117,19 +126,31 @@ case "${1:-status}" in
         echo "nguồn: $src"
         echo "profile: ${PROFILE:-(không có)}"
         echo "ghi đè: $OVERRIDE"
-        echo "mong muốn: $WANT" ;;
+        echo "mong muốn: $WANT"
+        ;;
     apply)
         snapshot
-        apply_now ;;
+        apply_now
+        ;;
     set)
         case "${2:-}" in
-            on|off|auto) ;;
-            *) sed -n '2,22p' "$0"; exit 2 ;;
+            on | off | auto) ;;
+            *)
+                sed -n '2,22p' "$0"
+                exit 2
+                ;;
         esac
-        mkdir -p "$STATE_DIR" || { log "không tạo được $STATE_DIR"; exit 1; }
-        printf '%s\n' "$2" >"$OVERRIDE_FILE" || { log "không ghi được $OVERRIDE_FILE"; exit 1; }
+        mkdir -p "$STATE_DIR" || {
+            log "không tạo được $STATE_DIR"
+            exit 1
+        }
+        printf '%s\n' "$2" >"$OVERRIDE_FILE" || {
+            log "không ghi được $OVERRIDE_FILE"
+            exit 1
+        }
         snapshot
-        apply_now ;;
+        apply_now
+        ;;
     --selftest)
         pass=0 fail=0
         check() { # <mô tả> <ac> <profile> <override> <kỳ vọng>
@@ -143,24 +164,31 @@ case "${1:-status}" in
                 fail=$((fail + 1))
             fi
         }
-        check "cắm sạc / balanced / auto"       1 balanced    auto on
-        check "dùng pin / balanced / auto"      0 balanced    auto off
-        check "cắm sạc / power-saver / auto"    1 power-saver auto off
-        check "dùng pin / ghi đè on"            0 balanced    on   on
-        check "cắm sạc / ghi đè off"            1 balanced    off  off
-        check "profile rỗng / cắm sạc"          1 ""          auto on
-        check "profile rỗng / dùng pin"         0 ""          auto off
-        check "power-saver / ghi đè on"         1 power-saver on   on
+        check "cắm sạc / balanced / auto" 1 balanced auto on
+        check "dùng pin / balanced / auto" 0 balanced auto off
+        check "cắm sạc / power-saver / auto" 1 power-saver auto off
+        check "dùng pin / ghi đè on" 0 balanced on on
+        check "cắm sạc / ghi đè off" 1 balanced off off
+        check "profile rỗng / cắm sạc" 1 "" auto on
+        check "profile rỗng / dùng pin" 0 "" auto off
+        check "power-saver / ghi đè on" 1 power-saver on on
         printf 'selftest: %d PASS, %d FAIL\n' "$pass" "$fail"
-        (( fail == 0 )) && exit 0
-        exit 1 ;;
+        ((fail == 0)) && exit 0
+        exit 1
+        ;;
     daemon)
         exec 9>"$LOCK"
-        flock -n 9 || { log "đã có một bản đang chạy"; exit 0; }
+        flock -n 9 || {
+            log "đã có một bản đang chạy"
+            exit 0
+        }
         prev=""
         while :; do
             # Hyprland đã thoát (đăng xuất) → dừng giám sát
-            hyprland_alive || { log "không thấy socket Hyprland → thoát"; exit 0; }
+            hyprland_alive || {
+                log "không thấy socket Hyprland → thoát"
+                exit 0
+            }
             snapshot
             # Lần đầu luôn áp; những lần sau chỉ gọi hyprctl khi trạng thái đổi.
             if [[ -z "$prev" || "$WANT" != "$prev" ]]; then
@@ -168,6 +196,10 @@ case "${1:-status}" in
                 prev="$WANT"
             fi
             sleep "$INTERVAL"
-        done ;;
-    *) sed -n '2,22p' "$0"; exit 2 ;;
+        done
+        ;;
+    *)
+        sed -n '2,22p' "$0"
+        exit 2
+        ;;
 esac

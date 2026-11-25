@@ -41,7 +41,7 @@ atomic_write() {
 
     local tmp
     tmp=$(mktemp "$dir/.tmp.XXXXXX") || return 1
-    printf '%s\n' "$content" > "$tmp" || {
+    printf '%s\n' "$content" >"$tmp" || {
         rm -f "$tmp"
         return 1
     }
@@ -52,7 +52,7 @@ atomic_write() {
 get_status() {
     if [[ -r "$STATE" ]]; then
         local val=""
-        IFS= read -r val < "$STATE" || true
+        IFS= read -r val <"$STATE" || true
         if [[ "$val" == "pixel" || "$val" == "flat" ]]; then
             printf '%s\n' "$val"
             return 0
@@ -66,14 +66,14 @@ ROFI_CSS="$REPO/rofi/theme-current.rasi"
 WALKER_CSS="$REPO/walker/themes/kafka/theme-current.css"
 DUNST_DROPIN="$REPO/dunst/dunstrc.d/50-ui-theme.conf"
 KITTY_CONF="$REPO/kitty/theme-current.conf"
-TOPBAR_LINK="$REPO/waybar/topbar-current.jsonc"     # symlink: bố cục thanh trên (config.jsonc include nó)
-WALKER_LINK="$REPO/walker/themes/kafka-current"     # symlink: theme walker (config.toml theme = "kafka-current")
-GTK_CSS="$REPO/gtk/gtk-3.0/theme-current.css"      # gtk.css @import nó ở cuối (app GTK3: Thunar, Mousepad…)
-GTK_LINK="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/theme-current.css"   # GTK tìm @import cạnh ~/.config/gtk-3.0/gtk.css
-GTK4_CSS="$REPO/gtk/gtk-4.0/theme-current.css"     # gtk-4.0/gtk.css @import nó (app GTK4/libadwaita: pavucontrol, satty, bảng phím tắt)
+TOPBAR_LINK="$REPO/waybar/topbar-current.jsonc"                        # symlink: bố cục thanh trên (config.jsonc include nó)
+WALKER_LINK="$REPO/walker/themes/kafka-current"                        # symlink: theme walker (config.toml theme = "kafka-current")
+GTK_CSS="$REPO/gtk/gtk-3.0/theme-current.css"                          # gtk.css @import nó ở cuối (app GTK3: Thunar, Mousepad…)
+GTK_LINK="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-3.0/theme-current.css" # GTK tìm @import cạnh ~/.config/gtk-3.0/gtk.css
+GTK4_CSS="$REPO/gtk/gtk-4.0/theme-current.css"                         # gtk-4.0/gtk.css @import nó (app GTK4/libadwaita: pavucontrol, satty, bảng phím tắt)
 GTK4_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gtk-4.0"
-HYPRSHELL_LINK="$REPO/hyprshell/styles.css"        # symlink: styles-flat.css | styles-pixel.css (tổng quan + chuyển cửa sổ)
-BTOP_LINK="$REPO/btop/themes/kafka-current.theme"   # symlink: kafka.theme | kafka-pixel.theme (btop.conf color_theme = "kafka-current")
+HYPRSHELL_LINK="$REPO/hyprshell/styles.css"       # symlink: styles-flat.css | styles-pixel.css (tổng quan + chuyển cửa sổ)
+BTOP_LINK="$REPO/btop/themes/kafka-current.theme" # symlink: kafka.theme | kafka-pixel.theme (btop.conf color_theme = "kafka-current")
 
 # Bố cục thanh trên theo chế độ: pixel = HUD RPG (topbar-pixel.jsonc), phẳng = topbar.jsonc
 topbar_target() { [[ "$1" == "pixel" ]] && printf 'topbar-pixel.jsonc\n' || printf 'topbar.jsonc\n'; }
@@ -142,7 +142,7 @@ check_pidfile_proc() {
 
     [[ -r "$pidfile" ]] || return 1
     local pid=""
-    IFS= read -r pid < "$pidfile" || true
+    IFS= read -r pid <"$pidfile" || true
 
     # Chỉ chấp nhận PID là số nguyên dương
     [[ "$pid" =~ ^[0-9]+$ ]] || return 1
@@ -150,7 +150,7 @@ check_pidfile_proc() {
     [[ -r "/proc/$pid/cmdline" ]] || return 1
 
     local cmdline=""
-    cmdline=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
+    cmdline=$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null)
     if [[ "$cmdline" == *"$needle"* ]]; then
         printf '%s\n' "$pid"
         return 0
@@ -187,10 +187,10 @@ apply_side_effects() {
     if pid=$(check_pidfile_proc "$media_pidfile" "media-pill"); then
         kill "$pid" 2>/dev/null || true
         local i=0
-        while (( i < 20 )); do
+        while ((i < 20)); do
             kill -0 "$pid" 2>/dev/null || break
             sleep 0.1
-            (( i++ ))
+            ((i++))
         done
         if command -v hyprctl >/dev/null 2>&1; then
             hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/media-pill.py')" >/dev/null 2>&1 || true
@@ -202,16 +202,24 @@ apply_side_effects() {
     #     dock-apps vẽ lại ô (bản pixel = ô kho đồ).
     if [[ "$mode" == "pixel" ]]; then
         python3 "$REPO/hypr/scripts/hud.py" once >/dev/null 2>&1 || true
-        command -v hyprctl >/dev/null 2>&1 && \
+        command -v hyprctl >/dev/null 2>&1 &&
             hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/hud.py daemon')" >/dev/null 2>&1 || true
     fi
     if pgrep -x waybar >/dev/null 2>&1 && command -v hyprctl >/dev/null 2>&1; then
         killall waybar 2>/dev/null || true
         local j=0
-        while (( j < 20 )) && pgrep -x waybar >/dev/null 2>&1; do sleep 0.1; (( j++ )); done
+        while ((j < 20)) && pgrep -x waybar >/dev/null 2>&1; do
+            sleep 0.1
+            ((j++))
+        done
         hyprctl dispatch "hl.dsp.exec_cmd('waybar')" >/dev/null 2>&1 || true
-        "$REPO/hypr/scripts/dock-density.sh" >/dev/null 2>&1 || true      # pixel: ô cố định (file rỗng); phẳng: tính co
-        ( sleep 1.5; "$REPO/hypr/scripts/dock-apps.py" render >/dev/null 2>&1; "$REPO/hypr/scripts/dock-pins.py" render >/dev/null 2>&1; pkill -USR1 -f '^python3 .*sni-tray[.]py daemon' ) &
+        "$REPO/hypr/scripts/dock-density.sh" >/dev/null 2>&1 || true # pixel: ô cố định (file rỗng); phẳng: tính co
+        (
+            sleep 1.5
+            "$REPO/hypr/scripts/dock-apps.py" render >/dev/null 2>&1
+            "$REPO/hypr/scripts/dock-pins.py" render >/dev/null 2>&1
+            pkill -USR1 -f '^python3 .*sni-tray[.]py daemon'
+        ) &
     fi
 
     # 2a. hyprshell đọc styles.css lúc khởi động → báo nạp lại (lỗi thì bỏ qua: lần chạy sau tự theo)
@@ -221,7 +229,7 @@ apply_side_effects() {
     if pid=$(check_pidfile_proc "$runtime_dir/kafka-tools-popup.pid" "tools-popup"); then
         kill "$pid" 2>/dev/null || true
         sleep 0.3
-        command -v hyprctl >/dev/null 2>&1 && \
+        command -v hyprctl >/dev/null 2>&1 &&
             hyprctl dispatch "hl.dsp.exec_cmd('$REPO/hypr/scripts/tools-popup.py')" >/dev/null 2>&1 || true
     fi
 
@@ -236,7 +244,7 @@ apply_side_effects() {
         local wp
         for wp in $(pgrep -x walker); do kill "$wp" 2>/dev/null || true; done
         sleep 0.3
-        command -v hyprctl >/dev/null 2>&1 && \
+        command -v hyprctl >/dev/null 2>&1 &&
             hyprctl dispatch "hl.dsp.exec_cmd('walker --gapplication-service')" >/dev/null 2>&1 || true
     fi
 
@@ -279,7 +287,7 @@ run_selftest() {
             printf 'PASS: %s\n' "$desc"
         else
             printf 'FAIL: %s\n' "$desc"
-            (( fails++ ))
+            ((fails++))
         fi
     }
 
@@ -343,28 +351,28 @@ run_selftest() {
     fi
 
     # 8. Symlink bố cục thanh trên + CSS GTK theo chế độ
-    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar-pixel.jsonc" ]] \
-       && grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
+    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar-pixel.jsonc" ]] &&
+        grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
         check "pixel: topbar-current → topbar-pixel.jsonc, GTK import theme-pixel.css" "ok"
     else
         check "pixel: topbar-current → topbar-pixel.jsonc, GTK import theme-pixel.css" "fail"
     fi
-    if grep -q 'gtk-4.0/theme-pixel.css' "$tmp/gtk/gtk-4.0/theme-current.css" 2>/dev/null \
-       && [[ -L "$tmp/hyprshell/styles.css" && -L "$tmp/btop/themes/kafka-current.theme" ]]; then
+    if grep -q 'gtk-4.0/theme-pixel.css' "$tmp/gtk/gtk-4.0/theme-current.css" 2>/dev/null &&
+        [[ -L "$tmp/hyprshell/styles.css" && -L "$tmp/btop/themes/kafka-current.theme" ]]; then
         check "pixel: GTK4 import theme-pixel.css, symlink hyprshell + btop" "ok"
     else
         check "pixel: GTK4 import theme-pixel.css, symlink hyprshell + btop" "fail"
     fi
     KAFKA_UI_TEST_REPO="$tmp" XDG_STATE_HOME="$tmp/state" KAFKA_UI_NO_SIDE_EFFECTS=1 bash "$0" flat
-    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar.jsonc" ]] \
-       && ! grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
+    if [[ "$(readlink "$tmp/waybar/topbar-current.jsonc")" == "topbar.jsonc" ]] &&
+        ! grep -q 'theme-pixel.css' "$tmp/gtk/gtk-3.0/theme-current.css"; then
         check "flat: topbar-current → topbar.jsonc, GTK không import" "ok"
     else
         check "flat: topbar-current → topbar.jsonc, GTK không import" "fail"
     fi
 
     rm -rf "$tmp"
-    (( fails == 0 ))
+    ((fails == 0))
 }
 
 cmd="${1:-}"
@@ -388,9 +396,9 @@ case "$cmd" in
         ;;
     ensure)
         mkdir -p "$STATE_DIR"
-        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" || ! -e "$KITTY_CONF" \
-              || ! -e "$TOPBAR_LINK" || ! -e "$GTK_CSS" || ! -e "$WALKER_LINK" || ! -e "$GTK4_CSS" \
-              || ! -e "$HYPRSHELL_LINK" || ! -e "$BTOP_LINK" ]]; then
+        if [[ ! -e "$THEME_CSS" || ! -e "$ROFI_CSS" || ! -e "$WALKER_CSS" || ! -e "$KITTY_CONF" ||
+            ! -e "$TOPBAR_LINK" || ! -e "$GTK_CSS" || ! -e "$WALKER_LINK" || ! -e "$GTK4_CSS" ||
+            ! -e "$HYPRSHELL_LINK" || ! -e "$BTOP_LINK" ]]; then
             current=$(get_status)
             write_theme_css "$current"
         fi

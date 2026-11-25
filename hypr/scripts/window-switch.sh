@@ -14,9 +14,25 @@ FLAG="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/kafka-window-switch"
 send() { hyprshell socat "$1" >/dev/null 2>&1; }
 
 case "$1" in
-    open)     : >"$FLAG"; send '{"OpenSwitch":{"reverse":false}}' ;;
-    open-rev) : >"$FLAG"; send '{"OpenSwitch":{"reverse":true}}' ;;
-    release)  [[ -e "$FLAG" ]] || exit 0; rm -f "$FLAG"; send '{"CloseSwitch":{"switch":true}}' ;;
-    cancel)   rm -f "$FLAG"; send '{"CloseSwitch":{"switch":false}}' ;;
-    *) sed -n '2,13p' "$0"; exit 2 ;;
+    open)
+        : >"$FLAG"
+        send '{"OpenSwitch":{"reverse":false}}'
+        ;;
+    open-rev)
+        : >"$FLAG"
+        send '{"OpenSwitch":{"reverse":true}}'
+        ;;
+    release)
+        [[ -e "$FLAG" ]] || exit 0
+        rm -f "$FLAG"
+        send '{"CloseSwitch":{"switch":true}}'
+        ;;
+    cancel)
+        rm -f "$FLAG"
+        send '{"CloseSwitch":{"switch":false}}'
+        ;;
+    *)
+        sed -n '2,13p' "$0"
+        exit 2
+        ;;
 esac

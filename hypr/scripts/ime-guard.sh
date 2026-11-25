@@ -24,7 +24,7 @@ RUN="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 LOCK="$RUN/kafka-ime-guard.lock"
 INTERVAL=5
 ENV_VARS=(WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE HYPRLAND_INSTANCE_SIGNATURE
-          GTK_IM_MODULE QT_IM_MODULE XMODIFIERS SDL_IM_MODULE)
+    GTK_IM_MODULE QT_IM_MODULE XMODIFIERS SDL_IM_MODULE)
 
 log() { echo "ime-guard: $*" >&2; }
 
@@ -32,8 +32,8 @@ export_env() {
     local present=()
     for v in "${ENV_VARS[@]}"; do [[ -n "${!v}" ]] && present+=("$v"); done
     ((${#present[@]})) || return 0
-    dbus-update-activation-environment --systemd "${present[@]}" 2>/dev/null \
-        || systemctl --user import-environment "${present[@]}" 2>/dev/null
+    dbus-update-activation-environment --systemd "${present[@]}" 2>/dev/null ||
+        systemctl --user import-environment "${present[@]}" 2>/dev/null
 }
 
 # Lý do không khỏe (rỗng = khỏe)
@@ -41,15 +41,25 @@ problem() {
     local pids n pid wd
     pids=$(pgrep -x -u "$(id -u)" fcitx5)
     n=$(wc -w <<<"$pids")
-    ((n == 0)) && { echo "fcitx5 không chạy"; return; }
-    ((n > 1)) && { echo "có $n bản fcitx5"; return; }
+    ((n == 0)) && {
+        echo "fcitx5 không chạy"
+        return
+    }
+    ((n > 1)) && {
+        echo "có $n bản fcitx5"
+        return
+    }
     pid=$pids
     wd=$(tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | sed -n 's/^WAYLAND_DISPLAY=//p')
-    [[ -n "$WAYLAND_DISPLAY" && "$wd" != "$WAYLAND_DISPLAY" ]] \
-        && { echo "fcitx5 (pid $pid) chạy với WAYLAND_DISPLAY='${wd}' thay vì '$WAYLAND_DISPLAY'"; return; }
+    [[ -n "$WAYLAND_DISPLAY" && "$wd" != "$WAYLAND_DISPLAY" ]] &&
+        {
+            echo "fcitx5 (pid $pid) chạy với WAYLAND_DISPLAY='${wd}' thay vì '$WAYLAND_DISPLAY'"
+            return
+        }
     if ! busctl --user --timeout=2 call org.fcitx.Fcitx5 /controller org.fcitx.Fcitx.Controller1 DebugInfo \
-            2>/dev/null | grep -q 'Group \[wayland:'; then
-        echo "fcitx5 (pid $pid) chưa nối frontend Wayland"; return
+        2>/dev/null | grep -q 'Group \[wayland:'; then
+        echo "fcitx5 (pid $pid) chưa nối frontend Wayland"
+        return
     fi
 }
 
@@ -59,13 +69,23 @@ start_fcitx() {
     # tưởng đã có bản chạy và thoát, mất giám sát cho tới lần đăng nhập sau)
     setsid -f fcitx5 -d 9>&- >/dev/null 2>&1
     # chờ fcitx5 nối xong (tối đa ~6s)
-    for _ in $(seq 30); do sleep 0.2; [[ -z "$(problem)" ]] && { enforce_config; activate_vi; return 0; }; done
+    for _ in $(seq 30); do
+        sleep 0.2
+        [[ -z "$(problem)" ]] && {
+            enforce_config
+            activate_vi
+            return 0
+        }
+    done
     return 1
 }
 
 # Bật sẵn tiếng Việt. Với ShareInputState=All, fcitx5 vừa khởi động lại có thể để trạng thái chung là
 # EN dù ActiveByDefault=True; "-o" bật cho mọi cửa sổ (một trạng thái dùng chung).
-activate_vi() { sleep 0.3; fcitx5-remote -o 2>/dev/null; }
+activate_vi() {
+    sleep 0.3
+    fcitx5-remote -o 2>/dev/null
+}
 
 # Một trạng thái VI/EN cho MỌI cửa sổ (kể cả từng tab/ô nhập của Chromium qua XIM). Từng hỏng vì dòng
 # "[Behavior]" trong ~/.config/fcitx5/config bị comment → hai khoá rơi vào [Hotkey/TriggerKeys], fcitx5
@@ -86,7 +106,10 @@ enforce_config() {
         ShareInputState s All ActiveByDefault s True >/dev/null 2>&1 || return 1
     # Cửa sổ mở TRƯỚC lúc đổi (vd Discord) vẫn giữ trạng thái riêng cho tới lần chuyển kế tiếp
     # (fcitx5 chỉ lan trạng thái khi có thay đổi) → chuyển EN rồi VI một lần để đồng bộ mọi cửa sổ.
-    sleep 0.3; fcitx5-remote -c 2>/dev/null; sleep 0.2; fcitx5-remote -o 2>/dev/null
+    sleep 0.3
+    fcitx5-remote -c 2>/dev/null
+    sleep 0.2
+    fcitx5-remote -o 2>/dev/null
 }
 
 notify() { command -v notify-send >/dev/null && notify-send -a "Bộ gõ" -i fcitx "$@"; }
@@ -96,32 +119,52 @@ case "${1:-status}" in
     status)
         p=$(problem)
         [[ -z "$p" ]] && config_wrong && p="ShareInputState không phải All (mỗi cửa sổ một trạng thái VI/EN)"
-        if [[ -z "$p" ]]; then echo "OK: fcitx5 $(fcitx5-remote -n 2>/dev/null) (trạng thái $(fcitx5-remote 2>/dev/null))"; exit 0
-        else echo "LỖI: $p"; exit 1; fi ;;
+        if [[ -z "$p" ]]; then
+            echo "OK: fcitx5 $(fcitx5-remote -n 2>/dev/null) (trạng thái $(fcitx5-remote 2>/dev/null))"
+            exit 0
+        else
+            echo "LỖI: $p"
+            exit 1
+        fi
+        ;;
     restart)
         export_env
         # daemon chưa chạy (vd khoá từng bị fcitx5 cũ giữ) → bật lại; đã có thì bản mới tự thoát
-        start_fcitx_ok=0; start_fcitx && start_fcitx_ok=1
+        start_fcitx_ok=0
+        start_fcitx && start_fcitx_ok=1
         setsid -f "$(realpath "$0")" daemon 9>&- >/dev/null 2>&1
-        if ((start_fcitx_ok)); then notify "Đã khởi động lại bộ gõ" "Cửa sổ terminal mở từ trước nếu gõ không dấu thì mở cửa sổ mới."
-        else notify -u critical "Bộ gõ chưa chạy được" "$(problem)"; exit 1; fi ;;
+        if ((start_fcitx_ok)); then
+            notify "Đã khởi động lại bộ gõ" "Cửa sổ terminal mở từ trước nếu gõ không dấu thì mở cửa sổ mới."
+        else
+            notify -u critical "Bộ gõ chưa chạy được" "$(problem)"
+            exit 1
+        fi
+        ;;
     daemon)
         exec 9>"$LOCK"
-        flock -n 9 || { log "đã có một bản đang chạy"; exit 0; }
+        flock -n 9 || {
+            log "đã có một bản đang chạy"
+            exit 0
+        }
         export_env
         p=$(problem)
         if [[ -n "$p" ]]; then
             log "lúc khởi động: $p → bật lại"
             start_fcitx || log "chưa ổn: $(problem)"
         else
-            enforce_config; activate_vi
+            enforce_config
+            activate_vi
         fi
         bad=0
         while sleep "$INTERVAL"; do
             # Hyprland đã thoát (đăng xuất) → dừng giám sát
             [[ -n "$HYPRLAND_INSTANCE_SIGNATURE" && ! -S "$RUN/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock" ]] && exit 0
             p=$(problem)
-            if [[ -z "$p" ]]; then bad=0; enforce_config; continue; fi
+            if [[ -z "$p" ]]; then
+                bad=0
+                enforce_config
+                continue
+            fi
             # 2 lần liên tiếp mới xử lý (tránh lúc fcitx5 đang tự khởi động lại)
             ((++bad < 2)) && continue
             log "$p → bật lại"
@@ -131,6 +174,10 @@ case "${1:-status}" in
                 notify -u critical "Bộ gõ gặp lỗi" "$(problem). Bấm giữa ô VI/EN để thử lại."
             fi
             bad=0
-        done ;;
-    *) sed -n '2,22p' "$0"; exit 2 ;;
+        done
+        ;;
+    *)
+        sed -n '2,22p' "$0"
+        exit 2
+        ;;
 esac

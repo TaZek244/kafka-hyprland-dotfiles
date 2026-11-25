@@ -16,7 +16,8 @@ for c in json.load(sys.stdin):
     exit 0
 fi
 
-read -r pinned x y w h < <(python3 - <<'EOF'
+read -r pinned x y w h < <(
+    python3 - <<'EOF'
 import json, subprocess
 def q(*a):
     try:
@@ -39,5 +40,5 @@ EOF
 case "$pinned" in
     none) exit 0 ;;
     true) hyprctl --batch 'dispatch hl.dsp.window.pin({ action = "disable" }); dispatch hl.dsp.window.float({ action = "disable" })' >/dev/null ;;
-    *)    hyprctl --batch "dispatch hl.dsp.window.float({ action = \"enable\" }); dispatch hl.dsp.window.resize({ x = $w, y = $h, relative = false }); dispatch hl.dsp.window.move({ x = $x, y = $y, relative = false }); dispatch hl.dsp.window.pin({ action = \"enable\" })" >/dev/null ;;
+    *) hyprctl --batch "dispatch hl.dsp.window.float({ action = \"enable\" }); dispatch hl.dsp.window.resize({ x = $w, y = $h, relative = false }); dispatch hl.dsp.window.move({ x = $x, y = $y, relative = false }); dispatch hl.dsp.window.pin({ action = \"enable\" })" >/dev/null ;;
 esac

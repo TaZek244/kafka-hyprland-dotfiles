@@ -13,14 +13,14 @@ lock_file="$runtime_dir/kafka-desktop-mode.lock"
 current_mode() {
     local mode="scroll"
     if [[ -r "$state_file" ]]; then
-        IFS= read -r mode < "$state_file" || true
+        IFS= read -r mode <"$state_file" || true
     fi
     [[ "$mode" == desktop ]] && printf 'desktop\n' || printf 'scroll\n'
 }
 
 write_mode() {
     mkdir -p -- "$state_dir" || return 1
-    printf '%s\n' "$1" > "$state_file"
+    printf '%s\n' "$1" >"$state_file"
 }
 
 hyprland_ready() {
@@ -64,7 +64,7 @@ geometry() {
             [(($ux + (($uw - $w) / 2) + (32 * $k))|n),
              (($uy + (($uh - $h) / 2) + (32 * $k))|n), $w, $h] | @tsv
         end
-    ' <<< '{}'
+    ' <<<'{}'
 }
 
 monitor_for() {
@@ -81,7 +81,7 @@ on_mode() {
     mkdir -p -- "$runtime_dir" || return 1
     clients=$(hyprctl clients -j) || return 1
     monitors=$(hyprctl monitors -j) || return 1
-    jq -r '.[] | select(.workspace.id > 0 and .floating == true) | .address' <<<"$clients" > "$prefloat_file" || return 1
+    jq -r '.[] | select(.workspace.id > 0 and .floating == true) | .address' <<<"$clients" >"$prefloat_file" || return 1
     write_mode desktop || return 1
     hyprctl eval 'kafka_desktop(true)' >/dev/null || return 1
 
@@ -91,7 +91,7 @@ on_mode() {
         geometry_values=$(geometry "$client" "$monitor" "$k")
         read -r x y w h <<<"$geometry_values"
         hyprctl --batch "dispatch hl.dsp.window.float({ action = 'enable', window = 'address:$address' }); dispatch hl.dsp.window.resize({ x = $w, y = $h, relative = false, window = 'address:$address' }); dispatch hl.dsp.window.move({ x = $x, y = $y, relative = false, window = 'address:$address' })" >/dev/null || true
-        k=$(( (k + 1) % 8 ))
+        k=$(((k + 1) % 8))
     done < <(jq -c '.[] | select(.workspace.id > 0 and .floating == false)' <<<"$clients")
     # Thu/đẩy mọi cửa sổ nổi vào trong vùng nội dung (chừa Waybar, lề 12px) — hàm trong hyprland.lua
     hyprctl eval 'kafka_fit_all_floats()' >/dev/null 2>&1 || true
@@ -126,27 +126,48 @@ selftest() {
     expected_inside=$'120\t80\t400\t300'
     expected_outside=$'401\t261\t1107\t670'
     if [[ "$inside" == "$expected_inside" && "$outside" == "$expected_outside" ]]; then
-        printf 'PASS\n'; return 0
+        printf 'PASS\n'
+        return 0
     fi
-    printf 'FAIL\n'; printf 'inside: %s\noutside: %s\n' "$inside" "$outside" >&2; return 1
+    printf 'FAIL\n'
+    printf 'inside: %s\noutside: %s\n' "$inside" "$outside" >&2
+    return 1
 }
 
 command=${1:-}
-if [[ "$command" == --selftest ]]; then selftest; exit $?; fi
+if [[ "$command" == --selftest ]]; then
+    selftest
+    exit $?
+fi
 case "$command" in
-    on|off|toggle|status|apply) ;;
-    *) usage; exit 2 ;;
+    on | off | toggle | status | apply) ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac
-if [[ "$command" == status ]]; then status; exit 0; fi
-if ! hyprland_ready; then printf '%s\n' 'Hyprland hoặc hyprctl không khả dụng.' >&2; exit 1; fi
+if [[ "$command" == status ]]; then
+    status
+    exit 0
+fi
+if ! hyprland_ready; then
+    printf '%s\n' 'Hyprland hoặc hyprctl không khả dụng.' >&2
+    exit 1
+fi
 if [[ "$command" != apply ]]; then
     exec 9>"$lock_file"
-    flock -n 9 || { printf '%s\n' 'Thao tác khác đang chạy.' >&2; exit 1; }
+    flock -n 9 || {
+        printf '%s\n' 'Thao tác khác đang chạy.' >&2
+        exit 1
+    }
 fi
 case "$command" in
     on) on_mode ;;
     off) off_mode ;;
     toggle) if [[ "$(current_mode)" == scroll ]]; then on_mode; else off_mode; fi ;;
     apply) [[ "$(current_mode)" == desktop ]] && hyprctl eval 'kafka_desktop(true)' >/dev/null ;;
-    *) usage; exit 2 ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac

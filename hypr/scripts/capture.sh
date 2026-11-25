@@ -30,7 +30,7 @@ load_state() {
             MODULES) modules="$value" ;;
             START) start_epoch="$value" ;;
         esac
-    done < "$state_file"
+    done <"$state_file"
     [[ -n "$pid" && -n "$video_file" && -n "$start_epoch" ]]
 }
 
@@ -136,15 +136,15 @@ edit_image() {
     set +e
     hyprshot -m region --raw >"$raw_file"
     raw_status=$?
-    if (( raw_status == 0 )) && [[ -s "$raw_file" ]]; then
+    if ((raw_status == 0)) && [[ -s "$raw_file" ]]; then
         satty --filename "$raw_file" --output-filename "$output" \
-        --copy-command wl-copy --early-exit
+            --copy-command wl-copy --early-exit
         satty_status=$?
     fi
     rm -f -- "$raw_file"
     set -u
     # hyprshot trả lỗi khi người dùng hủy; satty không được mở trong trường hợp đó.
-    if (( raw_status != 0 || satty_status != 0 )); then
+    if ((raw_status != 0 || satty_status != 0)); then
         rm -f -- "$output"
         return "$satty_status"
     fi
@@ -165,7 +165,10 @@ start_recording() {
     local mode="$1" audio_choice geometry output_name monitor source
     local null_id loop_sink_id loop_mic_id recorder_pid
 
-    recording_alive && { stop_recording; return 0; }
+    recording_alive && {
+        stop_recording
+        return 0
+    }
     audio_choice=$(choose_audio)
     [[ -n "$audio_choice" ]] || return 0
 
@@ -185,14 +188,25 @@ except (StopIteration, KeyError, TypeError, json.JSONDecodeError):
     output_name="$recordings_dir/rec_$(date +%Y%m%d_%H%M%S).mp4"
     modules=""
     case "$audio_choice" in
-        1) source=$(pactl get-default-sink).monitor
-           audio_args=("--audio=$source") ;;
-        2) source=$(pactl get-default-sink).monitor
-           null_id=$(pactl load-module module-null-sink sink_name=kafka_rec_mix sink_properties=device.description=KafkaRecMix) || return 1
-           loop_sink_id=$(pactl load-module module-loopback source="$source" sink=kafka_rec_mix latency_msec=20) || { pactl unload-module "$null_id" >/dev/null 2>&1 || true; return 1; }
-           loop_mic_id=$(pactl load-module module-loopback source="$(pactl get-default-source)" sink=kafka_rec_mix latency_msec=20) || { pactl unload-module "$loop_sink_id" >/dev/null 2>&1 || true; pactl unload-module "$null_id" >/dev/null 2>&1 || true; return 1; }
-           modules="$null_id $loop_sink_id $loop_mic_id"
-           audio_args=("--audio=kafka_rec_mix.monitor") ;;
+        1)
+            source=$(pactl get-default-sink).monitor
+            audio_args=("--audio=$source")
+            ;;
+        2)
+            source=$(pactl get-default-sink).monitor
+            null_id=$(pactl load-module module-null-sink sink_name=kafka_rec_mix sink_properties=device.description=KafkaRecMix) || return 1
+            loop_sink_id=$(pactl load-module module-loopback source="$source" sink=kafka_rec_mix latency_msec=20) || {
+                pactl unload-module "$null_id" >/dev/null 2>&1 || true
+                return 1
+            }
+            loop_mic_id=$(pactl load-module module-loopback source="$(pactl get-default-source)" sink=kafka_rec_mix latency_msec=20) || {
+                pactl unload-module "$loop_sink_id" >/dev/null 2>&1 || true
+                pactl unload-module "$null_id" >/dev/null 2>&1 || true
+                return 1
+            }
+            modules="$null_id $loop_sink_id $loop_mic_id"
+            audio_args=("--audio=kafka_rec_mix.monitor")
+            ;;
         *) audio_args=() ;;
     esac
 
@@ -221,18 +235,21 @@ except (StopIteration, KeyError, TypeError, json.JSONDecodeError):
 
 stop_recording() {
     local elapsed minutes seconds waited=0
-    load_state || { clear_state; return 0; }
+    load_state || {
+        clear_state
+        return 0
+    }
     if kill -0 "$pid" 2>/dev/null; then
         kill -INT "$pid" 2>/dev/null || true
-        while kill -0 "$pid" 2>/dev/null && (( waited < 25 )); do
+        while kill -0 "$pid" 2>/dev/null && ((waited < 25)); do
             sleep 0.2
             waited=$((waited + 1))
         done
         kill -TERM "$pid" 2>/dev/null || true
     fi
     remove_modules
-    elapsed=$(( $(date +%s) - start_epoch ))
-    (( elapsed < 0 )) && elapsed=0
+    elapsed=$(($(date +%s) - start_epoch))
+    ((elapsed < 0)) && elapsed=0
     minutes=$((elapsed / 60))
     seconds=$((elapsed % 60))
     clear_state
@@ -246,10 +263,16 @@ usage() {
 
 case "${1:-}" in
     menu) show_menu ;;
-    full|window|region) capture_image "$1" ;;
+    full | window | region) capture_image "$1" ;;
     edit) edit_image ;;
-    rec) [[ "${2:-}" == "full" || "${2:-}" == "region" ]] && start_recording "$2" || { usage; exit 2; } ;;
+    rec) [[ "${2:-}" == "full" || "${2:-}" == "region" ]] && start_recording "$2" || {
+        usage
+        exit 2
+    } ;;
     stop) stop_recording ;;
     status) json_status ;;
-    *) usage; exit 2 ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac

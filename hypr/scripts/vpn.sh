@@ -36,7 +36,10 @@ refresh() {
 }
 
 notify() {
-    ((IN_SELFTEST)) && { printf '%s\n' "$*" >> "${KAFKA_VPN_NOTIFY_LOG:-/dev/null}"; return 0; }
+    ((IN_SELFTEST)) && {
+        printf '%s\n' "$*" >>"${KAFKA_VPN_NOTIFY_LOG:-/dev/null}"
+        return 0
+    }
     command -v notify-send >/dev/null 2>&1 && notify-send -a "Kafka" "$@" >/dev/null 2>&1
     return 0
 }
@@ -48,11 +51,11 @@ json_escape() {
         ch=${s:i:1}
         case $ch in
             "\\") out+='\\' ;;
-            '"')  out+='\"' ;;
+            '"') out+='\"' ;;
             $'\n') out+='\n' ;;
             $'\r') out+='\r' ;;
             $'\t') out+='\t' ;;
-            *)    out+=$ch ;;
+            *) out+=$ch ;;
         esac
     done
     printf '%s' "$out"
@@ -70,13 +73,18 @@ parse_line() {
         fi
         case $ch in
             "\\") esc=1 ;;
-            ':')  rest=${line:i+1}; break ;;
-            *)    name+=$ch ;;
+            ':')
+                rest=${line:i+1}
+                break
+                ;;
+            *) name+=$ch ;;
         esac
     done
     V_NAME=$name
     IFS=: read -r V_TYPE V_ACTIVE V_STATE <<<"$rest"
-    V_TYPE=${V_TYPE,,}; V_ACTIVE=${V_ACTIVE,,}; V_STATE=${V_STATE,,}
+    V_TYPE=${V_TYPE,,}
+    V_ACTIVE=${V_ACTIVE,,}
+    V_STATE=${V_STATE,,}
     [[ -z $V_STATE ]] && { [[ $V_ACTIVE == yes ]] && V_STATE=activated || V_STATE=deactivated; }
 }
 
@@ -95,7 +103,7 @@ load_connections() {
 state_class() { # <active> <state> -> on | connecting | off
     local active=$1 state=$2
     case $state in
-        activated)  printf 'on' ;;
+        activated) printf 'on' ;;
         activating) printf 'connecting' ;;
         *) [[ $active == yes ]] && printf 'on' || printf 'off' ;;
     esac
@@ -107,21 +115,26 @@ warp_run() { "$warp_bin" --accept-tos "$@"; }
 
 warp_state() {
     local out
-    out=$(warp_run status 2>/dev/null) || { printf 'off'; return; }
-    if   [[ $out == *Connected* ]];   then printf 'on'
-    elif [[ $out == *Connecting* ]];  then printf 'connecting'
+    out=$(warp_run status 2>/dev/null) || {
+        printf 'off'
+        return
+    }
+    if [[ $out == *Connected* ]]; then
+        printf 'on'
+    elif [[ $out == *Connecting* ]]; then
+        printf 'connecting'
     else printf 'off'; fi
 }
 
 selected_name() {
     local sel=""
-    [[ -r $SELECT_FILE ]] && { IFS= read -r sel < "$SELECT_FILE" || true; }
+    [[ -r $SELECT_FILE ]] && { IFS= read -r sel <"$SELECT_FILE" || true; }
     printf '%s' "$sel"
 }
 
 write_selection() {
     mkdir -p -- "$STATE_DIR" || return 1
-    printf '%s\n' "$1" > "$SELECT_FILE"
+    printf '%s\n' "$1" >"$SELECT_FILE"
 }
 
 # Xác định backend: BACKEND = nm | warp | none, kèm BACK_NAME / BACK_STATE.
@@ -134,36 +147,46 @@ resolve() {
         for entry in "${CONNS[@]}"; do
             IFS=$'\t' read -r name type active state <<<"$entry"
             if [[ $name == "$sel" ]]; then
-                BACKEND=nm; BACK_NAME=$name; BACK_STATE=$(state_class "$active" "$state")
+                BACKEND=nm
+                BACK_NAME=$name
+                BACK_STATE=$(state_class "$active" "$state")
                 return 0
             fi
         done
     fi
     if [[ $sel == warp ]] && warp_available; then
-        BACKEND=warp; BACK_NAME="Cloudflare WARP"; BACK_STATE=$(warp_state)
+        BACKEND=warp
+        BACK_NAME="Cloudflare WARP"
+        BACK_STATE=$(warp_state)
         return 0
     fi
     # Chưa chọn: WARP là VPN "có sẵn" dùng chung → ưu tiên; VPN tự cài (NM) chỉ khi không có WARP
     if warp_available; then
-        BACKEND=warp; BACK_NAME="Cloudflare WARP"; BACK_STATE=$(warp_state)
+        BACKEND=warp
+        BACK_NAME="Cloudflare WARP"
+        BACK_STATE=$(warp_state)
         return 0
     fi
-    if (( ${#CONNS[@]} )); then
+    if ((${#CONNS[@]})); then
         IFS=$'\t' read -r name type active state <<<"${CONNS[0]}"
-        BACKEND=nm; BACK_NAME=$name; BACK_STATE=$(state_class "$active" "$state")
+        BACKEND=nm
+        BACK_NAME=$name
+        BACK_STATE=$(state_class "$active" "$state")
         return 0
     fi
-    BACKEND=none; BACK_NAME=""; BACK_STATE=none
+    BACKEND=none
+    BACK_NAME=""
+    BACK_STATE=none
 }
 
 cmd_status() {
     resolve
     local label tooltip cls=$BACK_STATE
     case $BACK_STATE in
-        on)         label='Đang bật' ;;
+        on) label='Đang bật' ;;
         connecting) label='Đang kết nối…' ;;
-        off)        label='Đang tắt' ;;
-        *)          label='' ;;
+        off) label='Đang tắt' ;;
+        *) label='' ;;
     esac
     if [[ $BACKEND == none ]]; then
         cls=none
@@ -188,17 +211,19 @@ change_state() {
         if [[ $BACK_STATE == on || $BACK_STATE == connecting ]]; then action=down; else action=up; fi
     fi
     # Đúng trạng thái đích thì khỏi gọi backend (warp-cli connect lặp dễ báo lỗi).
-    if [[ $action == up && ( $BACK_STATE == on || $BACK_STATE == connecting ) ]] ||
-       [[ $action == down && $BACK_STATE == off ]]; then
+    if [[ $action == up && ($BACK_STATE == on || $BACK_STATE == connecting) ]] ||
+        [[ $action == down && $BACK_STATE == off ]]; then
         refresh
         return 0
     fi
 
     if [[ $BACKEND == warp ]]; then
         # warp-cli dùng connect/disconnect, không phải up/down
-        out=$(warp_run "$([[ $action == up ]] && echo connect || echo disconnect)" 2>&1); rc=$?
+        out=$(warp_run "$([[ $action == up ]] && echo connect || echo disconnect)" 2>&1)
+        rc=$?
     else
-        out=$("$nmcli_bin" connection "$action" id "$BACK_NAME" 2>&1); rc=$?
+        out=$("$nmcli_bin" connection "$action" id "$BACK_NAME" 2>&1)
+        rc=$?
     fi
     if ((rc != 0)); then
         notify -u critical "VPN: lỗi $action" "$out"
@@ -210,8 +235,8 @@ change_state() {
 }
 
 cmd_toggle() { change_state toggle; }
-cmd_up()     { change_state up; }
-cmd_down()   { change_state down; }
+cmd_up() { change_state up; }
+cmd_down() { change_state down; }
 
 cmd_import() {
     local file=$1 out rc=0 name
@@ -220,8 +245,10 @@ cmd_import() {
         refresh
         return 1
     fi
-    name=${file##*/}; name=${name%.*}   # nmcli đặt tên kết nối = tên file bỏ đuôi
-    out=$("$nmcli_bin" connection import type wireguard file "$file" 2>&1); rc=$?
+    name=${file##*/}
+    name=${name%.*} # nmcli đặt tên kết nối = tên file bỏ đuôi
+    out=$("$nmcli_bin" connection import type wireguard file "$file" 2>&1)
+    rc=$?
     if ((rc != 0)); then
         notify -u critical "VPN: nhập file thất bại" "$out"
         refresh
@@ -262,7 +289,7 @@ cmd_select() {
             items+=("$n")
         done
         warp_available && items+=("warp")
-        if (( ${#items[@]} == 0 )); then
+        if ((${#items[@]} == 0)); then
             notify "Chưa có VPN để chọn" "Nhập file WireGuard trước: vpn.sh import <file.conf>"
             refresh
             return 1
@@ -285,15 +312,26 @@ cmd_select() {
 selftest() (
     IN_SELFTEST=1
     local tmp fake_nm fake_warp no_warp nm_out nm_log warp_log notify_log conf
-    tmp=$(mktemp -d) || { printf 'FAIL: không tạo được thư mục tạm\n'; return 1; }
+    tmp=$(mktemp -d) || {
+        printf 'FAIL: không tạo được thư mục tạm\n'
+        return 1
+    }
     trap 'rm -rf -- "$tmp"' EXIT
 
-    fake_nm="$tmp/nmcli-gia"; fake_warp="$tmp/warp-gia"; no_warp="$tmp/khong-co-warp-cli"
-    nm_out="$tmp/nm.out"; nm_log="$tmp/nm.log"; warp_log="$tmp/warp.log"; notify_log="$tmp/notify.log"
+    fake_nm="$tmp/nmcli-gia"
+    fake_warp="$tmp/warp-gia"
+    no_warp="$tmp/khong-co-warp-cli"
+    nm_out="$tmp/nm.out"
+    nm_log="$tmp/nm.log"
+    warp_log="$tmp/warp.log"
+    notify_log="$tmp/notify.log"
     mkdir -p -- "$tmp/state"
-    : > "$nm_out"; : > "$nm_log"; : > "$warp_log"; : > "$notify_log"
+    : >"$nm_out"
+    : >"$nm_log"
+    : >"$warp_log"
+    : >"$notify_log"
 
-    cat > "$fake_nm" <<'FAKE'
+    cat >"$fake_nm" <<'FAKE'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${FAKE_NM_LOG:-/dev/null}"
 prev=""; sub=""
@@ -307,7 +345,7 @@ case "$sub" in
 esac
 exit 0
 FAKE
-    cat > "$fake_warp" <<'FAKE'
+    cat >"$fake_warp" <<'FAKE'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "${FAKE_WARP_LOG:-/dev/null}"
 [[ ${1:-} == --accept-tos ]] && shift
@@ -320,78 +358,112 @@ FAKE
     chmod +x "$fake_nm" "$fake_warp"
 
     export FAKE_NM_OUT="$nm_out" FAKE_NM_LOG="$nm_log" FAKE_WARP_LOG="$warp_log" \
-           KAFKA_VPN_NOTIFY_LOG="$notify_log"
+        KAFKA_VPN_NOTIFY_LOG="$notify_log"
     nmcli_bin=$fake_nm
-    STATE_DIR="$tmp/state"; SELECT_FILE="$STATE_DIR/vpn-connection"
+    STATE_DIR="$tmp/state"
+    SELECT_FILE="$STATE_DIR/vpn-connection"
 
     local pass=0 fail=0 out cls tip
-    ok()  { printf 'PASS: %s\n' "$1"; pass=$((pass+1)); }
-    bad() { printf 'FAIL: %s%s\n' "$1" "${2:+ — $2}"; fail=$((fail+1)); }
+    ok() {
+        printf 'PASS: %s\n' "$1"
+        pass=$((pass + 1))
+    }
+    bad() {
+        printf 'FAIL: %s%s\n' "$1" "${2:+ — $2}"
+        fail=$((fail + 1))
+    }
     has() { [[ $1 == *"$2"* ]]; }
     json_ok() { printf '%s\n' "$1" | python3 -c 'import json,sys;json.loads(sys.stdin.read())' >/dev/null 2>&1; }
     jfield() { printf '%s\n' "$1" | python3 -c 'import json,sys;print(json.loads(sys.stdin.read())[sys.argv[1]])' "$2" 2>/dev/null; }
-    set_nm() { printf '%s\n' "$1" > "$nm_out"; : > "$nm_log"; }
-    set_warp() { warp_bin=$1; export FAKE_WARP_STATUS=$2; : > "$warp_log"; }
+    set_nm() {
+        printf '%s\n' "$1" >"$nm_out"
+        : >"$nm_log"
+    }
+    set_warp() {
+        warp_bin=$1
+        export FAKE_WARP_STATUS=$2
+        : >"$warp_log"
+    }
     clear_sel() { rm -f -- "$SELECT_FILE"; }
 
     # Ca 1 — không có kết nối nào, cũng không có warp-cli
-    set_nm ''; set_warp "$no_warp" Disconnected; clear_sel; : > "$notify_log"
+    set_nm ''
+    set_warp "$no_warp" Disconnected
+    clear_sel
+    : >"$notify_log"
     out=$(cmd_status)
     if json_ok "$out" && [[ $(jfield "$out" class) == none ]] && has "$(jfield "$out" tooltip)" 'Chưa có VPN'; then
         ok 'status: chưa có VPN → JSON đúng, class none'
     else bad 'status: chưa có VPN' "$out"; fi
     out=$(cmd_list)
     if has "$out" 'Chưa có kết nối VPN'; then ok 'list: danh sách trống'; else bad 'list: danh sách trống' "$out"; fi
-    : > "$nm_log"
+    : >"$nm_log"
     cmd_toggle >/dev/null 2>&1
     if ! grep -Eq 'connection (up|down)' "$nm_log"; then ok 'toggle: không bật/tắt gì khi chưa có VPN'; else bad 'toggle: không bật/tắt gì khi chưa có VPN'; fi
     if has "$(<"$notify_log")" 'Nhập file WireGuard'; then ok 'toggle: nhắc import'; else bad 'toggle: nhắc import'; fi
 
     # Ca 2 — một WireGuard đang tắt (và thêm trạng thái activating)
-    set_nm 'KafkaVPN:wireguard:no:deactivated'; set_warp "$no_warp" Disconnected; clear_sel
-    out=$(cmd_status); cls=$(jfield "$out" class); tip=$(jfield "$out" tooltip)
+    set_nm 'KafkaVPN:wireguard:no:deactivated'
+    set_warp "$no_warp" Disconnected
+    clear_sel
+    out=$(cmd_status)
+    cls=$(jfield "$out" class)
+    tip=$(jfield "$out" tooltip)
     if json_ok "$out" && [[ $cls == off ]] && has "$tip" KafkaVPN && has "$tip" 'Trái: bật/tắt · Phải: chọn kết nối'; then
         ok 'status: WireGuard tắt → class off'
     else bad 'status: WireGuard tắt' "$out"; fi
     out=$(cmd_list)
     if has "$out" KafkaVPN && has "$out" wireguard; then ok 'list: hiện kết nối WireGuard'; else bad 'list: hiện kết nối WireGuard' "$out"; fi
-    : > "$nm_log"; cmd_toggle >/dev/null 2>&1
+    : >"$nm_log"
+    cmd_toggle >/dev/null 2>&1
     if grep -Fq 'connection up id KafkaVPN' "$nm_log"; then ok 'toggle: bật kết nối đang tắt'; else bad 'toggle: bật kết nối đang tắt'; fi
-    : > "$nm_log"; cmd_up >/dev/null 2>&1
+    : >"$nm_log"
+    cmd_up >/dev/null 2>&1
     if grep -Fq 'connection up id KafkaVPN' "$nm_log"; then ok 'up: bật kết nối'; else bad 'up: bật kết nối'; fi
     set_nm 'KafkaVPN:wireguard:no:activating'
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == connecting ]]; then ok 'status: activating → connecting'; else bad 'status: activating → connecting' "$out"; fi
 
     # Ca 3 — một WireGuard đang bật
-    set_nm 'KafkaVPN:wireguard:yes:activated'; set_warp "$no_warp" Disconnected; clear_sel
+    set_nm 'KafkaVPN:wireguard:yes:activated'
+    set_warp "$no_warp" Disconnected
+    clear_sel
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == on ]] && has "$(jfield "$out" tooltip)" 'Đang bật'; then
         ok 'status: WireGuard bật → class on'
     else bad 'status: WireGuard bật' "$out"; fi
-    : > "$nm_log"; cmd_toggle >/dev/null 2>&1
+    : >"$nm_log"
+    cmd_toggle >/dev/null 2>&1
     if grep -Fq 'connection down id KafkaVPN' "$nm_log"; then ok 'toggle: tắt kết nối đang bật'; else bad 'toggle: tắt kết nối đang bật'; fi
-    : > "$nm_log"; cmd_down >/dev/null 2>&1
+    : >"$nm_log"
+    cmd_down >/dev/null 2>&1
     if grep -Fq 'connection down id KafkaVPN' "$nm_log"; then ok 'down: tắt kết nối'; else bad 'down: tắt kết nối'; fi
 
     # Ca 4 — tên có dấu ':' và dấu cách (nmcli -t ghi thành '\:')
-    set_nm 'Kafka\: VPN\: đỏ:wireguard:no:deactivated'; set_warp "$no_warp" Disconnected; clear_sel
-    out=$(cmd_status); tip=$(jfield "$out" tooltip)
+    set_nm 'Kafka\: VPN\: đỏ:wireguard:no:deactivated'
+    set_warp "$no_warp" Disconnected
+    clear_sel
+    out=$(cmd_status)
+    tip=$(jfield "$out" tooltip)
     if json_ok "$out" && has "$tip" 'Kafka: VPN: đỏ'; then
         ok "status: giải mã tên có ':' và dấu cách"
     else bad "status: giải mã tên có ':' và dấu cách" "$out"; fi
-    : > "$nm_log"; cmd_toggle >/dev/null 2>&1
+    : >"$nm_log"
+    cmd_toggle >/dev/null 2>&1
     if grep -Fq 'connection up id Kafka: VPN: đỏ' "$nm_log"; then ok 'toggle: dùng tên đã giải mã'; else bad 'toggle: dùng tên đã giải mã'; fi
 
     # Ca 4b — tên có dấu ngoặc kép và dấu '\' → vẫn phải là JSON hợp lệ
     set_nm 'Kafka "Web" \\ đỏ:wireguard:no:deactivated'
-    out=$(cmd_status); tip=$(jfield "$out" tooltip)
+    out=$(cmd_status)
+    tip=$(jfield "$out" tooltip)
     if json_ok "$out" && has "$tip" 'Kafka "Web" \ đỏ'; then
         ok 'status: escape " và \ trong JSON'
     else bad 'status: escape " và \ trong JSON' "$out"; fi
 
     # Ca 5 — chỉ có warp-cli
-    set_nm ''; set_warp "$fake_warp" Connected; clear_sel
+    set_nm ''
+    set_warp "$fake_warp" Connected
+    clear_sel
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == on ]] && has "$(jfield "$out" tooltip)" WARP; then
         ok 'status: WARP Connected → on'
@@ -399,34 +471,39 @@ FAKE
     export FAKE_WARP_STATUS=Disconnected
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == off ]]; then ok 'status: WARP Disconnected → off'; else bad 'status: WARP Disconnected → off' "$out"; fi
-    : > "$warp_log"; cmd_toggle >/dev/null 2>&1
+    : >"$warp_log"
+    cmd_toggle >/dev/null 2>&1
     if grep -Fq connect "$warp_log"; then ok 'toggle WARP: connect'; else bad 'toggle WARP: connect'; fi
     export FAKE_WARP_STATUS=Connected
-    : > "$warp_log"; cmd_toggle >/dev/null 2>&1
+    : >"$warp_log"
+    cmd_toggle >/dev/null 2>&1
     if grep -Fq disconnect "$warp_log"; then ok 'toggle WARP: disconnect'; else bad 'toggle WARP: disconnect'; fi
     # có cả WARP lẫn kết nối NM, chưa chọn → WARP (VPN có sẵn)
-    set_nm 'KafkaVPN:wireguard:no:deactivated'; clear_sel
+    set_nm 'KafkaVPN:wireguard:no:deactivated'
+    clear_sel
     out=$(cmd_status)
     if has "$(jfield "$out" tooltip)" WARP; then ok 'chưa chọn + có WARP → WARP mặc định'; else bad 'chưa chọn + có WARP → WARP mặc định' "$out"; fi
     # chọn kết nối NM thì dùng NM dù có WARP
-    printf 'KafkaVPN\n' > "$SELECT_FILE"
+    printf 'KafkaVPN\n' >"$SELECT_FILE"
     out=$(cmd_status)
     if has "$(jfield "$out" tooltip)" KafkaVPN; then ok 'chọn VPN tự cài → dùng NM'; else bad 'chọn VPN tự cài → dùng NM' "$out"; fi
     # file chọn 'warp' được ưu tiên dù vẫn còn kết nối NM
     set_nm 'KafkaVPN:wireguard:no:deactivated'
-    printf 'warp\n' > "$SELECT_FILE"
+    printf 'warp\n' >"$SELECT_FILE"
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == on ]] && has "$(jfield "$out" tooltip)" WARP; then
         ok 'file chọn "warp" → ưu tiên WARP'
     else bad 'file chọn "warp" → ưu tiên WARP' "$out"; fi
 
     # Ca 6 — chọn kết nối / đánh dấu list / import
-    set_nm $'A:wireguard:no:deactivated\nB:wireguard:yes:activated'; set_warp "$no_warp" Disconnected; clear_sel
+    set_nm $'A:wireguard:no:deactivated\nB:wireguard:yes:activated'
+    set_warp "$no_warp" Disconnected
+    clear_sel
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == off ]] && has "$(jfield "$out" tooltip)" A; then
         ok 'chưa chọn → lấy kết nối đầu tiên'
     else bad 'chưa chọn → lấy kết nối đầu tiên' "$out"; fi
-    printf 'B\n' > "$SELECT_FILE"
+    printf 'B\n' >"$SELECT_FILE"
     out=$(cmd_status)
     if [[ $(jfield "$out" class) == on ]] && has "$(jfield "$out" tooltip)" B; then
         ok 'đã chọn → dùng tên trong file'
@@ -435,8 +512,10 @@ FAKE
     if has "$out" '* B'; then ok 'list: đánh dấu * ở kết nối đang chọn'; else bad 'list: đánh dấu *' "$out"; fi
     cmd_select A >/dev/null 2>&1
     if [[ $(<"$SELECT_FILE") == A ]]; then ok 'select <tên>: ghi file chọn'; else bad 'select <tên>: ghi file chọn'; fi
-    conf="$tmp/kafka.conf"; printf '[Interface]\n' > "$conf"
-    : > "$nm_log"; cmd_import "$conf" >/dev/null 2>&1
+    conf="$tmp/kafka.conf"
+    printf '[Interface]\n' >"$conf"
+    : >"$nm_log"
+    cmd_import "$conf" >/dev/null 2>&1
     if [[ $(<"$SELECT_FILE") == kafka ]]; then ok 'import: ghi tên vào file chọn'; else bad 'import: ghi tên vào file chọn'; fi
     if grep -Fq 'connection import type wireguard file' "$nm_log"; then ok 'import: gọi nmcli import'; else bad 'import: gọi nmcli import'; fi
     if grep -Fq 'connection modify kafka connection.autoconnect no' "$nm_log"; then ok 'import: tắt autoconnect'; else bad 'import: tắt autoconnect'; fi
@@ -451,13 +530,40 @@ usage() {
 
 cmd=${1:-status}
 case "$cmd" in
-    --selftest) selftest; exit $? ;;
-    status)     cmd_status; exit $? ;;
-    toggle)     cmd_toggle; exit $? ;;
-    up)         cmd_up; exit $? ;;
-    down)       cmd_down; exit $? ;;
-    import)     cmd_import "${2:-}"; exit $? ;;
-    list)       cmd_list; exit $? ;;
-    select)     cmd_select "${2:-}"; exit $? ;;
-    *)          usage; exit 2 ;;
+    --selftest)
+        selftest
+        exit $?
+        ;;
+    status)
+        cmd_status
+        exit $?
+        ;;
+    toggle)
+        cmd_toggle
+        exit $?
+        ;;
+    up)
+        cmd_up
+        exit $?
+        ;;
+    down)
+        cmd_down
+        exit $?
+        ;;
+    import)
+        cmd_import "${2:-}"
+        exit $?
+        ;;
+    list)
+        cmd_list
+        exit $?
+        ;;
+    select)
+        cmd_select "${2:-}"
+        exit $?
+        ;;
+    *)
+        usage
+        exit 2
+        ;;
 esac

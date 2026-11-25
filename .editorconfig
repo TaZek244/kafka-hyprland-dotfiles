@@ -1,0 +1,10 @@
+# shfmt đọc file này: chạy `shfmt -w .` (hoặc `shfmt -d .` để xem trước)
+root = true
+
+[*.sh]
+indent_style = space
+indent_size = 4
+switch_case_indent = true
+
+[{example,niri}/**]
+ignore = true

@@ -19,15 +19,15 @@ except Exception: pass')
 cur=$(hyprctl repl 'return kafka_tile_current()' 2>/dev/null | head -n1)
 
 #       kiểu   chữ to   nhãn
-modes=( "auto|Auto|tự động"
-        "1:1|1 : 1|chia đôi"
-        "2:1|2 : 1|cửa sổ này to"
-        "1:2|1 : 2|cửa sổ này nhỏ"
-        "3:1|3 : 1|to hơn nữa"
-        "1:3|1 : 3|nhỏ hơn nữa"
-        "grid|2 × 2|lưới"
-        "cols|1:1:1|các cột đều"
-        "rows|═══|các hàng đều" )
+modes=("auto|Auto|tự động"
+    "1:1|1 : 1|chia đôi"
+    "2:1|2 : 1|cửa sổ này to"
+    "1:2|1 : 2|cửa sổ này nhỏ"
+    "3:1|3 : 1|to hơn nữa"
+    "1:3|1 : 3|nhỏ hơn nữa"
+    "grid|2 × 2|lưới"
+    "cols|1:1:1|các cột đều"
+    "rows|═══|các hàng đều")
 
 entries="" sel=0 keys=()
 for i in "${!modes[@]}"; do

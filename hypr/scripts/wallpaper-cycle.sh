@@ -22,12 +22,13 @@ if [ -f "$DIMS_CACHE" ]; then
         [ -n "$cache_path" ] || continue
         CACHE_MTIME["$cache_path"]="$cache_mtime"
         CACHE_DIMS["$cache_path"]="$cache_width $cache_height"
-    done < "$DIMS_CACHE"
+    done <"$DIMS_CACHE"
 fi
 mapfile -t CANDIDATES < <(find "$WALL_DIR/" -maxdepth 1 -type f \( -iname 'kafka_*.jpg' -o -iname 'kafka_*.jpeg' -o -iname 'kafka_*.png' \) -print 2>/dev/null | sort -f)
 
 IDENTIFY_CMD=()
-if command -v magick >/dev/null 2>&1; then IDENTIFY_CMD=(magick identify -format '%w %h')
+if command -v magick >/dev/null 2>&1; then
+    IDENTIFY_CMD=(magick identify -format '%w %h')
 elif command -v identify >/dev/null 2>&1; then IDENTIFY_CMD=(identify -format '%w %h'); fi
 CACHE_TMP=''
 if [ "${#IDENTIFY_CMD[@]}" -gt 0 ]; then CACHE_TMP=$(mktemp "$DIMS_CACHE.XXXXXX") || exit 1; fi
@@ -36,13 +37,13 @@ for file in "${CANDIDATES[@]}"; do
     mtime=$(stat -c '%Y' -- "$file" 2>/dev/null) || continue
     width='' height=''
     if [ -n "${CACHE_MTIME[$file]+x}" ] && [ "${CACHE_MTIME[$file]}" = "$mtime" ]; then
-        read -r width height <<< "${CACHE_DIMS[$file]}"
+        read -r width height <<<"${CACHE_DIMS[$file]}"
     elif [ "${#IDENTIFY_CMD[@]}" -gt 0 ]; then
         read -r width height < <("${IDENTIFY_CMD[@]}" "$file[0]" 2>/dev/null)
     fi
 
     if [ "${#IDENTIFY_CMD[@]}" -gt 0 ]; then
-        printf '%s\t%s\t%s\t%s\n' "$mtime" "$width" "$height" "$file" >> "$CACHE_TMP"
+        printf '%s\t%s\t%s\t%s\n' "$mtime" "$width" "$height" "$file" >>"$CACHE_TMP"
         [[ "$width" =~ ^[0-9]+$ && "$height" =~ ^[0-9]+$ ]] || continue
         [ "$width" -gt "$height" ] || continue
     elif [ "$(basename "$file")" = 'kafka_main.jpg' ]; then
@@ -70,7 +71,7 @@ apply_wallpaper() {
     fi || return 1
 
     ln -sfn "$selected" "$CURRENT_LINK"
-    printf '%s\n' "$index" > "$STATE_FILE"
+    printf '%s\n' "$index" >"$STATE_FILE"
     IDX="$index"
 }
 usage() {
@@ -81,7 +82,10 @@ case "${1-}" in
         apply_wallpaper "$IDX" fade
         ;;
     set)
-        [ -f "${2-}" ] || { usage; exit 1; }
+        [ -f "${2-}" ] || {
+            usage
+            exit 1
+        }
         target="$(readlink -f "$2")"
         for i in "${!WALLS[@]}"; do
             if [ "$(readlink -f "${WALLS[$i]}")" = "$target" ]; then
@@ -94,13 +98,13 @@ case "${1-}" in
         ;;
     step)
         # Bước của vòng auto: quét lại thư mục, đọc chỉ số mới nhất, đổi êm không thông báo
-        apply_wallpaper "$(( (IDX + 1) % ${#WALLS[@]} ))" fade
+        apply_wallpaper "$(((IDX + 1) % ${#WALLS[@]}))" fade
         ;;
-    next|prev)
+    next | prev)
         if [ "$1" = 'next' ]; then
-            IDX=$(( (IDX + 1) % ${#WALLS[@]} ))
+            IDX=$(((IDX + 1) % ${#WALLS[@]}))
         else
-            IDX=$(( (IDX - 1 + ${#WALLS[@]}) % ${#WALLS[@]} ))
+            IDX=$(((IDX - 1 + ${#WALLS[@]}) % ${#WALLS[@]}))
         fi
         if apply_wallpaper "$IDX" outer; then
             notify-send '🕷 Kafka Wallpaper' "Đã đổi sang: $(basename "${WALLS[$IDX]}")"

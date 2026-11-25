@@ -31,20 +31,20 @@ entries+="|$(item $'\U000f033e' '#d8b4f8' 'Khóa')"
 
 choice=$(printf '%s' "$entries" | rofi -dmenu -i -markup-rows -sep '|' -eh 3 \
     -format i -no-custom -p "" -theme "$HOME/.config/rofi/kafka-actions.rasi" \
-    -theme-str 'listview { columns: 7; } panel { margin: 0px 98px 40px calc( 100% - 844px ); }')  # 7 ô: khung rộng 746px
+    -theme-str 'listview { columns: 7; } panel { margin: 0px 98px 40px calc( 100% - 844px ); }') # 7 ô: khung rộng 746px
 
 [[ -z "$choice" ]] && exit 0
-sleep 0.15   # chờ rofi đóng hẳn, focus trở lại cửa sổ cũ
+sleep 0.15 # chờ rofi đóng hẳn, focus trở lại cửa sổ cũ
 
 case "$choice" in
     0) "$scripts/toggle-app.sh" kafka-cava kitty --class kafka-cava -e cava ;;
     1) "$scripts/pin-toggle.sh" ;;
     2) "$scripts/pin-toggle.sh" all ;;
     3) if [[ -n "$addr" ]]; then
-           hyprctl dispatch "hl.dsp.window.float({ action = \"toggle\", window = \"address:$addr\" })" >/dev/null
-       else
-           hyprctl dispatch 'hl.dsp.window.float({ action = "toggle" })' >/dev/null
-       fi ;;
+        hyprctl dispatch "hl.dsp.window.float({ action = \"toggle\", window = \"address:$addr\" })" >/dev/null
+    else
+        hyprctl dispatch 'hl.dsp.window.float({ action = "toggle" })' >/dev/null
+    fi ;;
     4) "$scripts/closemenu.sh" ;;
     5) "$scripts/tile-menu.sh" ;;
     6) "$(dirname "$0")/lock.sh" ;;

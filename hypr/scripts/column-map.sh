@@ -108,8 +108,10 @@ selftest() {
       {"address":"0xd","class":"chromium","workspace":{"id":1},"floating":false,"at":[1842,62],"size":[1806,1004]},
       {"address":"0xe","class":"pavucontrol","workspace":{"id":1},"floating":true,"at":[300,300],"size":[500,400]},
       {"address":"0xf","class":"mpv","workspace":{"id":2},"floating":false,"at":[20,62],"size":[1806,1004]}]'
-    local out; out=$(render "$cl" "$mons" "0xb")
-    local text; text=$(jq -r '.text' <<<"$out")
+    local out
+    out=$(render "$cl" "$mons" "0xb")
+    local text
+    text=$(jq -r '.text' <<<"$out")
     local ok=1
     # (a) kitty focus, chồng 2 cửa sổ: icon + số nhỏ trong cùng span màu
     [[ $text == *"<span color=\"#e0559a\">${icon_kitty}<span size=\"small\" rise=\"4000\">2</span></span>"* ]] || ok=0
@@ -125,7 +127,7 @@ selftest() {
     [[ $(render '[]' "$mons" "" | jq -r '.text') == "" ]] || ok=0
     # (f) 9 cột, focus ở cột 9 → hiện 5 cột cuối + "‹4", không có "›"
     local many='[' i
-    for i in 1 2 3 4 5 6 7 8 9; do many+="{\"address\":\"0x$i\",\"class\":\"thunar\",\"workspace\":{\"id\":1},\"floating\":false,\"at\":[$((i*100)),62],\"size\":[90,500]},"; done
+    for i in 1 2 3 4 5 6 7 8 9; do many+="{\"address\":\"0x$i\",\"class\":\"thunar\",\"workspace\":{\"id\":1},\"floating\":false,\"at\":[$((i * 100)),62],\"size\":[90,500]},"; done
     many="${many%,}]"
     text=$(render "$many" "$mons" "0x9" | jq -r '.text')
     [[ $text == *'‹4</span>'* && $text != *'›</span>'* ]] || ok=0
@@ -133,11 +135,18 @@ selftest() {
     # (g) focus ở cột 1 → 5 cột đầu + "4›"
     text=$(render "$many" "$mons" "0x1" | jq -r '.text')
     [[ $text == *'4›</span>'* && $text != *'‹'* ]] || ok=0
-    if (( ok )); then echo PASS; else echo FAIL; echo "$out" >&2; return 1; fi
+    if ((ok)); then echo PASS; else
+        echo FAIL
+        echo "$out" >&2
+        return 1
+    fi
 }
 
 case "${1:-}" in
-    --selftest) selftest; exit $? ;;
+    --selftest)
+        selftest
+        exit $?
+        ;;
 esac
 clients=$(hyprctl clients -j 2>/dev/null) || clients='[]'
 monitors=$(hyprctl monitors -j 2>/dev/null) || monitors='[]'

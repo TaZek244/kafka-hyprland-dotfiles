@@ -16,10 +16,14 @@ item() { # item <icon> <nhãn>
 
 # show <số cột> <lời nhắn> <mục...>  -> in ra chỉ số mục đã chọn
 show() {
-    local cols=$1 mesg=$2; shift 2
+    local cols=$1 mesg=$2
+    shift 2
     local entries="" first=1 e
     for e in "$@"; do
-        if ((first)); then entries=$e; first=0; else entries+="|$e"; fi
+        if ((first)); then
+            entries=$e
+            first=0
+        else entries+="|$e"; fi
     done
     printf '%s' "$entries" | rofi -dmenu -i -markup-rows -sep '|' -eh 3 \
         -format i -no-custom -p "" -mesg "<span font='FiraCode Nerd Font Bold 14' foreground='#d4af6a'>󰐥  Kafka · Nguồn</span>
